@@ -129,3 +129,13 @@ The system should not wait for every higher-timeframe candle to close before rea
 - Under the provisional 20× depth rule, require at least 10,000 USDT executable ask depth and 10,000 USDT executable bid depth within 10 bps.
 - This is not a minimum trade size for subscribers; subscriber sizing and risk limits are separate product/risk decisions.
 - Expanding quote assets requires a future documented decision.
+
+
+## 13. Approved universe selection and ranking policy
+- Apply mandatory hard eligibility/safety filters before any ranking. A high volume or composite score cannot compensate for failing an eligibility, data-health, liquidity, or execution-cost gate.
+- Rank only eligible symbols using this initial test weighting: 30% quote-volume stability/activity, 25% executable order-book depth/resilience, 20% spread quality, 15% estimated slippage/market impact at 500 USDT reference notional, and 10% feed health/data continuity.
+- Use two operational cohorts: a broader lightweight Universe Watchlist (planning range 75–150 symbols) and an intensive Active Analysis Set (planning range 30–50 symbols).
+- Protect against temporary volume spikes through rolling 7-day robust statistics, multi-day persistence, activity/concentration analysis, and capped short-window contributions.
+- Apply hysteresis and dwell periods to reduce churn; immediate hard safety exclusions override all hold periods.
+- All weights, cohort sizes, and timing values are configurable pilot hypotheses, not validated performance claims or final production constants. Validate by replay, sensitivity analysis, paper trading, and capacity/latency tests.
+- See `docs/13-top-liquid-universe-and-latency.md` for the detailed policy.
