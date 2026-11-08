@@ -1,102 +1,97 @@
-# System Architecture (Proposed)
+# System Architecture — Local Manual-Analysis MVP
 
-## 1. Architectural style
-A modular, event-driven platform with a centralized analysis pipeline and independent subscriber distribution. Start with a modular monolith or a small number of deployable services unless measured scale or latency justifies service separation. Avoid premature microservices.
+Status: The local MVP architecture is approved by ADR 0006. This document describes the current milestone; continuous SaaS architecture remains future scope.
 
-## 2. Logical components
-1. **Market Data Gateway** — provider adapters, REST/WebSocket ingestion, normalization, validation, and source health.
-2. **Market Data Store** — time-series/candle data and optional order-book/trade data, with retention and provenance.
-3. **Market Context Engine** — regime, volatility, structure, session, and multi-timeframe context.
-4. **Evidence Engines** — price action, volume, liquidity, levels, and scenario feature extraction.
-5. **Opportunity Orchestrator** — coordinates analysis and scenario evaluation; records abstentions and rejection reasons.
-6. **AI Reasoning Adapter** — centrally calls OpenAI API when contextual synthesis or structured review is useful; validates structured output. No per-subscriber calls.
-7. **Decision & Risk Engine** — deterministic entry, invalidation, stop, targets, sizing/risk checks, freshness, and execution constraints.
-8. **Signal Registry** — immutable opportunity snapshots, versions, evidence, and lifecycle events.
-9. **Trade Monitor** — event-driven updates for active opportunities.
-10. **Subscription & Entitlement Engine** — plan rules and subscriber eligibility.
-11. **Notification Dispatcher** — channel adapters, templates, retries, deduplication, delivery records.
-12. **Admin & Analytics** — operational controls, audit, usage/cost, and performance reporting.
+## 1. Architecture style
 
-## 3. Data flow
-Provider feeds → normalize/validate → persist market data → update market context/features → detect candidate → evaluate scenario → optional AI synthesis → deterministic risk/decision gates → persist immutable signal snapshot → resolve subscriber entitlements → enqueue notifications → deliver and record outcomes → monitor signal lifecycle.
+Use a Laravel modular monolith in one repository. Keep domain boundaries clear without introducing separate deployable services. The application runs locally on Windows using XAMPP Apache/PHP and a verified local MySQL database.
 
-## 4. Centralized AI usage
-- One server-side API integration per deployment/environment, protected as a secret.
-- AI calls are made for analysis/review tasks, not once per recipient.
-- Store model identifier, prompt/schema version, request purpose, token/usage metadata where available, latency, and validated output.
-- Enforce timeouts, retries with limits, budgets, circuit breakers, and fallback behavior.
-- AI output is untrusted input: schema-validate it and never let it bypass deterministic gates.
-- Routine notification generation uses templates and stored signal fields.
+## 2. Runtime components
 
-## 5. Reliability and event processing
-- Use idempotency keys for provider events, analysis jobs, lifecycle events, and notifications.
-- Use an outbox/inbox or equivalent reliable event-publishing pattern.
-- Separate queues by workload and priority.
-- Apply backpressure and rate limits to providers and channels.
-- On stale data or unavailable critical components, fail closed: suppress new signals and preserve monitoring warnings.
+1. Laravel Web Application — local dashboard, run creation, report display, configuration.
+2. Analysis Run Orchestrator — creates and coordinates one manual analysis run.
+3. Database Queue Worker — processes the run when manually started in a terminal.
+4. Binance REST Adapter — exchange metadata, 24-hour tickers, klines, and selected current depth snapshots.
+5. Market Data Validation — symbol eligibility, freshness, candle completeness, duplicates, gaps, and source timestamps.
+6. Market Regime Engine — per-timeframe direction, volatility, and behavior classification.
+7. Multi-Timeframe Context Engine — profile-specific context/structure/setup/entry views and conflict reporting.
+8. Scenario Evaluators — small versioned deterministic baseline families.
+9. Decision & Risk Engine — entry, stop/invalidation, targets, costs, expiry, and hard gates.
+10. Report & Audit Store — immutable run, evidence, plan, and reason snapshots.
 
-## 6. Multi-tenancy and security
-- Tenant-scoped subscriber data and entitlements.
-- Central market analysis data can be shared across tenants where licensing permits.
-- Keep user preferences, payment details, and delivery endpoints isolated.
-- Store secrets in environment/secret management, never in source control.
-- Public repository must contain no credentials, private customer data, or licensed market data.
+## 3. Manual data flow
 
-## 7. Deployment shape
-Initial deployment topology and technology stack are intentionally undecided. Select after confirming market latency, data volume, operating budget, and team constraints.
+Dashboard action → create AnalysisRun → database queue → Binance REST collection → data-quality validation → per-timeframe features/regime → three profile evaluators → deterministic risk/decision gates → persist snapshots → render three independent reports.
 
+No always-on market feed or automatic post-run monitoring is required. A new manual refresh creates a new run.
 
-## 8. Crypto scalping data path (MVP proposal)
-For regular scalping, the architecture needs a persistent streaming path in addition to REST backfill:
-- WebSocket market stream for trades and best bid/ask; order-book depth updates where available and justified.
-- REST endpoints for instrument metadata, historical candle backfill, snapshots, and recovery after disconnects.
-- Sequence-aware order-book reconstruction when the venue provides sequence numbers and snapshot/delta semantics.
-- A stream health monitor for heartbeat, reconnect, sequence gaps, timestamp drift, and stale-feed detection.
-- A candle builder or validated candle adapter for 1m, 5m, 15m, and 1h intervals, with explicit open/closed status.
-- Event-driven feature updates and candidate evaluation; do not invoke a cloud AI model for every tick or candle.
+## 4. Technology
 
-The fast path should use deterministic code for freshness checks, price/volume features, spread/liquidity gates, entry distance, stop validity, and state transitions. AI is an optional bounded reasoning step and must never become a synchronous bottleneck for every market event.
+- Laravel 13 / PHP 8.3.
+- MySQL target database.
+- XAMPP Apache/PHP on Windows.
+- Laravel database queue.
+- File/database cache.
+- Binance Spot public REST API.
+- Reuse existing frontend conventions; do not add a frontend framework unless the repository already requires it.
 
-## 9. Initial timeframe topology
-Proposed: 1H context → 15m structure → 5m setup/confirmation → 1m entry timing. The topology is configurable and pending validation. Higher-timeframe context can be cached and updated on candle completion or material regime events; lower-timeframe monitoring is event-driven.
+Important environment check: XAMPP packages may bundle MariaDB instead of Oracle MySQL. Inspect the actual database server and version. If strict MySQL is required, install MySQL locally and connect XAMPP/Laravel to that service.
 
-## 10. Venue and product isolation
-Provider adapters must expose normalized domain events while retaining venue-specific provenance. Spot and perpetual contracts require separate instrument metadata and risk modules. If derivatives are later approved, funding, mark/index price, liquidation mechanics, contract multiplier, and leverage constraints must be modeled explicitly.
+## 5. Data acquisition
 
-## 11. Spot-only MVP boundary
-The initial domain model must represent spot instruments and long-only trade scenarios. Do not introduce futures contract multipliers, leverage, funding, mark/index price, margin, or liquidation components into the MVP domain. Keep provider adapters modular so a future derivatives product can be added without contaminating spot calculations.
+The first milestone uses REST only:
+- exchange information and symbol filters;
+- 24-hour ticker statistics;
+- klines for 1m, 5m, 15m, 1h, 4h, 1d, and 1w as needed by profiles;
+- current order-book snapshots only for shortlisted candidates where execution-quality checks require them.
 
-The platform does not hold subscriber assets or place orders in the MVP. Execution prices are estimates/reference prices, not guaranteed fills. Entry/exit evaluation must account for the chosen reference venue's fees, spread, liquidity, and slippage assumptions.
+Start with a configurable top-20 eligible USDT Spot universe for local smoke testing. Fetch deeper data only for shortlisted candidates. Respect current Binance request weights and limits. Store source event/open/close times and local receive times. Never fabricate historical depth from a current snapshot.
 
+## 6. Analysis modules
 
-## 12. Binance Spot reference integration and dynamic universe
-- Implement Binance Spot behind a venue adapter; keep normalized domain events independent of Binance payload shapes.
-- REST is used for exchange metadata, historical backfill, initial order-book snapshots, and recovery; WebSocket is the continuous real-time path for trades, book ticker, and depth updates.
-- Treat Binance symbol filters and trading status as authoritative instrument constraints; normalize tick size, step size, min quantity/notional, and supported order types into instrument metadata.
-- The `top_liquid` universe service consumes normalized market metrics and emits versioned membership changes. It must not be embedded in the strategy/AI analyst.
-- Maintain a broader candidate monitor and a narrower intensive-analysis/monitoring set. Subscription to feeds must respect venue connection and stream limits, with sharded connections and controlled resubscription as needed.
-- On depth sequence gaps, stale books, reconnects, or failed resynchronization, mark book quality invalid and suppress decisions that require depth until a fresh snapshot plus deltas is synchronized.
-- Keep universe selection, feed-health gates, and execution-cost gates deterministic. AI may explain a candidate but cannot override exclusions or freshness gates.
+Keep modules/services separated by responsibility:
+- MarketData
+- InstrumentUniverse
+- CandleStore
+- FeatureCalculation
+- MarketRegime
+- MultiTimeframe
+- ScenarioEvaluation
+- DecisionRisk
+- AnalysisRuns
+- Reports
+- Audit
 
+Do not create an elaborate generic plugin framework. Use small interfaces only where a second implementation is genuinely expected.
 
-## 13. Approved event-driven monitoring and opportunity pipeline
+## 7. Database and persistence
 
-The MVP uses two market-monitoring cohorts: a broad lightweight Watchlist and a smaller intensive Active Analysis Set. The Watchlist detects emerging activity and liquidity changes; the Active set maintains synchronized local books and computes richer structure/flow features. Cohort transitions are versioned and reason-coded. Capacity ranges are planning hypotheses, not fixed production limits.
+Use decimal-safe columns for prices, quantities, and monetary values. Persist analysis runs, selected symbols, data provenance, per-timeframe regime snapshots, feature/config versions, scenario evaluations, trade plans, and immutable reason/state events. Avoid storing secrets. Retain only the data needed for reproducible local research and within applicable data terms.
 
-The processing path is:
-1. Venue adapter ingestion and canonical event envelope.
-2. Data normalization, deduplication, timestamp/provenance retention, and health validation.
-3. Candle aggregation and rolling feature updates.
-4. Lightweight event triggers and bounded candidate queue.
-5. Market regime/context and scenario evaluation.
-6. Structured evidence packet and optional bounded AI review.
-7. Deterministic entry/risk gates.
-8. Immutable candidate/signal persistence.
-9. Entitlement resolution and notification outbox.
-10. Event-driven lifecycle monitoring.
+## 8. Queue and local operations
 
-Use bounded per-symbol queues, event coalescing, backpressure, priority, and stale-candidate expiry. No AI call belongs on every tick/trade/depth event. A candidate trigger is not a signal.
+Use Laravel's database queue. The user starts the worker manually from a terminal. Do not create a web request that shells out to a background process, and do not add Redis/Horizon. Configure timeout and retry behavior based on measured analysis duration and prevent duplicate concurrent runs.
 
-Depth-dependent logic is enabled only for a sequence-synchronized local book. On a sequence gap, stale book, or resync failure, mark the book invalid and suppress dependent decisions. Historical depth replay requires prospective capture and explicit retention/licensing approval.
+## 9. AI boundary
 
-See docs/14 and docs/15 and ADR 0005 for full contracts, recovery behavior, feature families, state boundaries, and acceptance criteria.
+The first working baseline must run without an OpenAI API key. Deterministic features, scenario rules, and risk gates create the authoritative result. Optional AI evidence summarization can be considered after baseline tests; AI cannot invent levels or override gates.
+
+## 10. Explicitly deferred architecture
+
+Not part of this milestone:
+- Binance WebSocket ingestion and persistent Market Runtime;
+- watchlist/active-set continuous monitoring;
+- Redis, Kafka, RabbitMQ, Horizon, Reverb;
+- cloud deployment, containers, microservices;
+- subscribers, entitlements, billing, and commercial distribution;
+- automated order execution.
+
+These may be reconsidered only after the local prototype demonstrates a repeatable research benefit and the user approves the next milestone.
+
+## 11. References
+
+- Binance Spot REST API: https://github.com/binance/binance-spot-api-docs/blob/master/rest-api.md
+- Binance Spot API documentation: https://developers.binance.com/en/docs/products/spot/overview
+- Research evidence: docs/16-research-evidence-and-strategy-hypotheses.md
+- Local implementation plan: docs/17-local-mvp-implementation-plan.md
+- Regime contract: docs/18-market-regime-and-multitimeframe-spec.md
