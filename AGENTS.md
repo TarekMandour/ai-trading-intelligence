@@ -1,44 +1,47 @@
 # Agent Operating Instructions
 
 ## Mission
-Help build AI Trading Intelligence as a reliable, auditable, multi-tenant SaaS platform for discovering and distributing trade opportunities. The repository documentation is the source of truth.
+Build AI Trading Intelligence as a reliable, auditable local trading-research prototype first. The repository documentation is the source of truth. The immediate milestone is the Local Manual-Analysis MVP; commercial SaaS is a later milestone.
 
 ## Mandatory workflow
-1. Read README.md and the relevant files under docs/ before proposing or changing code.
-2. Inspect the existing repository and current branch. Never assume the codebase is empty or that a task's context is complete.
-3. Restate the task, identify affected components, risks, and tests, then present a plan for approval when scope or architecture changes.
-4. Implement only the approved scope on a feature branch. Do not commit directly to main.
+1. Read README.md and relevant docs before changing code.
+2. Inspect the existing repository, current branch, runtime versions, and existing code. Never assume the codebase is empty.
+3. Follow docs/17-local-mvp-implementation-plan.md and docs/18-market-regime-and-multitimeframe-spec.md.
+4. Implement only on phase-1-local-mvp or a child feature branch. Never commit directly to main or phase-0-foundation.
 5. Add or update tests for every behavior change.
-6. Run relevant tests, static analysis, formatting, and report exact commands and outcomes. Never claim a check passed unless it was run.
-7. Update docs/PROJECT_STATUS.md and relevant architecture/decision documents when decisions or progress change.
-8. Keep changes small, reviewable, and reversible.
+6. Run tests/static analysis/formatting and report exact commands and outcomes. Never claim a check passed unless it was run.
+7. Update docs/PROJECT_STATUS.md and relevant documents as progress changes.
+8. Prefer a working vertical slice over broad incomplete scaffolding.
 
-## Non-negotiable rules
-- Phase 0 is documentation and decision-making only. Do not create production application code until the user approves Phase 0 exit.
-- Do not change agreed architecture, product scope, service boundaries, or public interfaces without explaining alternatives and obtaining approval.
-- Do not delete or silently weaken existing behavior.
-- Do not add dependencies, paid services, data vendors, or infrastructure without stating why, alternatives, and cost implications.
-- Never expose API keys, tokens, credentials, personal data, or secrets in source, logs, commits, examples, or documentation. Use placeholders and environment variables.
-- OpenAI API calls are centralized server-side. Never call OpenAI once per subscriber merely to distribute an already analyzed signal.
-- Notification delivery must not depend on an AI call when the signal content is already stored.
-- Deterministic risk gates, calculations, and lifecycle state transitions are authoritative; model output cannot bypass them.
-- AI must be allowed to abstain. Never force a BUY/SELL signal.
-- Never describe a score as a success probability unless statistically calibrated and validated out-of-sample.
-- Preserve immutable signal snapshots and an auditable event history. Never rewrite past signal values to make historical performance look better.
+## Approved first milestone
+- Laravel 13 / PHP 8.3.
+- MySQL target database; verify actual local XAMPP database server/version. Do not call MariaDB MySQL.
+- Windows/XAMPP local development.
+- Binance Spot public REST only.
+- Manual analysis initiated from the dashboard.
+- Laravel database queue with a manually started worker.
+- Three independent reports: Scalping (1–30m), Intraday (30m–8h), Swing (1–7d).
+- Transparent deterministic regime and scenario baselines first.
+- No OpenAI API key required for the first working baseline.
+
+## Exclusions for this milestone
+No production deployment, always-on monitoring, Binance WebSocket, Go/Python runtime, OpenSwoole, ReactPHP, Redis, Horizon, Kafka, RabbitMQ, Docker, Kubernetes, microservices, Reverb, subscriptions, billing, commercial redistribution, order execution, custody, derivatives, margin, borrowing, leverage, or short signals.
+Do not add dependencies or paid services without explaining why, alternatives, and cost implications. Do not implement every research hypothesis at once.
+
+## Trading and data safety
+- Never expose credentials, tokens, or personal data in source, logs, commits, examples, or docs.
+- Deterministic calculations, hard gates, and lifecycle transitions are authoritative.
+- AI must be allowed to abstain. Never force a BUY signal.
+- Scores are not success probabilities unless statistically calibrated and validated out-of-sample.
+- Preserve immutable analysis snapshots and auditable state/reason history.
 - Prevent look-ahead bias, repainting, survivorship bias, and data leakage.
-- Treat all market data as potentially delayed, incomplete, adjusted, or inconsistent until validated.
-- Do not assume a market, broker, exchange, timeframe, data provider, or programming stack has been finalized unless recorded in an approved decision.
-- No arbitrary code execution generated by an AI model. Research proposals must use a constrained, validated specification and approved primitives.
+- Use completed candles for context; label forming candles.
+- Preserve timeframe conflicts; do not average them into an opaque score.
+- Entry assumptions use ask-side prices; exits use bid-side prices, including both-leg fees and slippage.
+- A current REST order-book snapshot is not historical depth.
+- No AI-generated prices, stops, targets, executable code, or risk-gate bypasses.
 
-## Architecture and trading safety
-- Separate market-data ingestion, analysis, decision/risk, trade monitoring, subscriptions/entitlements, and notification delivery.
-- Centralize opportunity analysis; personalize distribution by plan entitlement, not by rerunning analysis per user.
-- Keep research/simulation models separate from production-approved decision logic.
-- Record data timestamps, source, timeframe, analysis version, model/prompt version where applicable, and decision rationale.
-- Enforce freshness, liquidity, spread, slippage, and risk limits before a signal can be distributed.
-- A signal must have entry conditions, stop/invalidation, targets or exit logic, expiry, and a clear state.
-
-## Required response format for implementation tasks
+## Required implementation-task response
 - Context read
 - Understanding and assumptions
 - Proposed plan
@@ -47,13 +50,5 @@ Help build AI Trading Intelligence as a reliable, auditable, multi-tenant SaaS p
 - Tests to add/run
 - Results and remaining limitations
 
-## Phase 0 exit gate
-No production implementation begins until the user reviews and approves:
-- MVP market and instruments
-- Trading styles and timeframes
-- Data provider and data coverage
-- Signal lifecycle and risk policy
-- Subscription entitlement rules
-- AI responsibilities and deterministic boundaries
-- Architecture and initial technology stack
-- Validation and release criteria
+## Definition of done
+Follow docs/17-local-mvp-implementation-plan.md. Record exact commands and results. A successful smoke test is not proof of profitability.
