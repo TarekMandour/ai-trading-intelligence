@@ -46,3 +46,25 @@ The MVP is centralized-exchange crypto Spot, regular scalping, long/buy opportun
 - Reference notional for liquidity qualification is **500 USDT**.
 - Under the proposed 20× depth ratio, require at least **10,000 USDT executable ask depth** and **10,000 USDT executable bid depth**, each within 10 bps.
 - The reference notional is not a mandatory subscriber trade size.
+
+
+## Approved universe construction and ranking policy (2026-11-09)
+
+The MVP universe is built in two stages: mandatory hard eligibility filters first, then weighted ranking among eligible symbols. A high volume or composite score cannot override a failed hard gate.
+
+The approved initial ranking-weight hypothesis is:
+- 30% quote-volume stability and trade activity
+- 25% executable order-book depth and depth resilience
+- 20% spread quality
+- 15% estimated slippage/market impact at the 500 USDT reference notional
+- 10% feed health, freshness, and data continuity
+
+These weights are starting points for validation, not final production constants or trade-success probabilities. Correlation/double-counting between spread, depth, and slippage must be tested.
+
+Adopt two cohorts:
+- `Universe Watchlist`: broader lightweight-monitoring pool, initially planned at 75–150 eligible symbols.
+- `Active Analysis Set`: top 30–50 symbols receiving intensive analysis.
+
+Both sizes are planning ranges and must be validated against opportunity coverage, feed/compute capacity, latency, and execution quality. Protect against temporary volume spikes with rolling 7-day medians/distributions, multi-day persistence, concentration/activity checks, and capped short-window contributions. Use hysteresis and minimum dwell periods to prevent churn, with immediate removal/quarantine for hard safety failures.
+
+The detailed policy and validation requirements are maintained in `docs/13-top-liquid-universe-and-latency.md`.
