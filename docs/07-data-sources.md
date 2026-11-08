@@ -55,3 +55,8 @@ Before launch, confirm exchange/vendor terms permit commercial use and redistrib
 
 ## 9. Provider evaluation for the MVP
 Evaluate candidate venues/providers against WebSocket stability, trade/quote latency, depth quality, historical trades and candles, rate limits, instrument coverage, symbol lifecycle, fee assumptions, outage behavior, geographic restrictions, API stability, commercial licensing, and total cost. The chosen venue must match where the target subscriber can realistically execute.
+
+## 10. Approved MVP market-data scope — Spot
+The first provider integration must cover centralized-exchange spot markets only. Required data: spot instrument metadata, trades, best bid/ask, order-book depth, 1m/5m/15m/1h OHLCV, and sufficient historical trades/candles for replay. No derivatives-specific feeds are required.
+
+A provider/exchange must pass a commercial rights review for the intended SaaS use before production. The review must explicitly cover display of quotes/charts, derived analytics and signals, caching/retention, subscriber distribution, geographic restrictions, attribution, and any downstream data processor. API access or a public endpoint alone is not evidence of redistribution rights.
