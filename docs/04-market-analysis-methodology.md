@@ -73,3 +73,8 @@ Short-lived opportunities need a short, explicit validity window. Store detected
 
 ## 10. AI and latency
 Do not call OpenAI for every tick or every subscriber. Deterministic streaming analysis should identify and gate candidates. Invoke AI only at bounded decision points where contextual synthesis is useful, with strict timeout and fallback behavior. A delayed AI response must not turn an expired entry into a current signal.
+
+## 11. Spot-only interpretation
+The MVP evaluates long spot opportunities. A short signal is not actionable in the approved product scope. Entry and exit planning must model buying at the executable ask side and selling at the executable bid side, with fees and slippage on both legs. Chart mid-price or last-trade price alone is not sufficient to estimate executable return.
+
+The analysis output must disclose the reference venue and assumed fee tier. Where subscriber execution venue or fee tier differs, present the plan as an analytical reference and avoid implying an identical realized return.
