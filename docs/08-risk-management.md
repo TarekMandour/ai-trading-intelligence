@@ -30,3 +30,11 @@ Avoid guarantees, certainty language, or claims of expected profit without valid
 
 ## 7. Operational kill switches
 Operators must be able to pause a provider, market, scenario family, analysis version, and notification channel independently.
+
+## 8. Spot-specific controls
+- MVP risk model is long-only spot; no leverage, borrowing, margin, or short exposure.
+- Use ask-side assumptions for buys and bid-side assumptions for sells.
+- Apply fees to entry and exit, plus spread and estimated slippage.
+- Validate minimum notional, quantity step, tick size, symbol status, and available liquidity.
+- Never imply that a signal's reference price is a guaranteed execution price.
+- Clearly disclose the exchange and fee-tier assumptions behind estimated net return.
