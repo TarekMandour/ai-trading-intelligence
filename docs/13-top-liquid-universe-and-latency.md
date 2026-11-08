@@ -29,7 +29,7 @@ Exclude a symbol when any of the following applies:
 - Critical market data is stale, malformed, contradictory, or cannot be synchronized.
 - Its expected execution costs exceed the configured scenario's cost budget.
 
-The initial quote-asset whitelist is intentionally **not decided here**. USDT may be evaluated as the simplest first candidate, but it must not be silently treated as approved.
+**Approved MVP quote-asset whitelist: USDT only.** Other quote assets are excluded from the MVP universe unless a future documented decision expands the scope.
 
 ### Stage B: liquidity ranking and cohort selection
 
@@ -56,17 +56,17 @@ All values are initial experiment parameters. They must be measured by quote ass
 | Median spread | At or below 5 bps (0.05%) | Keep entry/exit friction bounded |
 | Spread tail | 95th percentile at or below 10 bps during liquid observation windows | Avoid frequently widening markets |
 | Emergency spread exclusion | Suppress new entries if spread exceeds 15 bps for 60 consecutive seconds | Avoid abnormal execution conditions |
-| Ask depth for entry | At least 20× configured order notional within 10 bps of best ask | Provide buy-side executable liquidity |
-| Bid depth for exit | At least 20× configured order notional within 10 bps of best bid | Provide sell-side executable liquidity |
+| Ask depth for entry | At least 20× the 500 USDT reference notional = **10,000 USDT** within 10 bps of best ask | Provide buy-side executable liquidity |
+| Bid depth for exit | At least 20× the 500 USDT reference notional = **10,000 USDT** within 10 bps of best bid | Provide sell-side executable liquidity |
 | Estimated slippage | At or below 5 bps per side at configured order notional | Bound market impact |
 | All-in round-trip cost | Fees on both legs + spread + estimated slippage must consume no more than 25% of the scenario's conservative gross Target 1 move | Ensure the opportunity is not mostly transaction costs |
 | Minimum observation history | 7 complete days for normal ranking | Reduce new-listing and short-history bias |
 
-**bps** means basis points (1 bp = 0.01%). USDT-equivalent values are comparison units only; the quote-asset whitelist and conversion method must be approved. A pair that fails a hard gate is excluded regardless of its composite rank.
+**bps** means basis points (1 bp = 0.01%). All MVP pairs are USDT-quoted, so the volume and depth thresholds are denominated directly in USDT; no quote-asset conversion is needed for the initial universe. A pair that fails a hard gate is excluded regardless of its composite rank.
 
 Depth should be computed from the actual order-book levels required to fill the configured notional, not from a single displayed depth number. Entry estimates consume asks; exit estimates consume bids. Depth must be measured at a defined distance from the current best price and updated from a synchronized book.
 
-The 20× depth ratio and 5 bps slippage limit are deliberately conservative starting hypotheses. They must be stress-tested at several order sizes; if the intended subscriber order size is unknown, use a configurable reference notional and disclose it in each signal.
+The approved **reference notional for universe qualification is 500 USDT**. The 20× depth ratio therefore means at least 10,000 USDT of executable ask depth and 10,000 USDT of executable bid depth, each within 10 bps of the respective best price. The 500 USDT figure is a liquidity-testing benchmark, not a required subscriber order size or a recommendation to trade that amount. The 20× ratio and 5 bps slippage limit remain provisional hypotheses and must be stress-tested at smaller and larger notionals.
 
 ## 4. Trade activity and market behavior checks
 
@@ -149,10 +149,18 @@ Every published signal must retain the universe membership and market-data conte
 7. Approve final values through a documented Phase 0 decision update; do not silently promote pilot values to production.
 
 ## 10. Open decisions
-- Approved quote-asset whitelist and conversion/reference methodology.
+- Future expansion beyond the approved MVP quote asset (USDT); no conversion methodology is needed for the initial USDT-only cohort.
 - Final cohort size and whether a separate probation pool is needed.
-- Reference subscriber order notional(s) and applicable Binance fee assumptions.
+- Subscriber order-size tiers and applicable Binance fee assumptions; 500 USDT is the approved reference notional for liquidity qualification only.
 - Whether depth is a mandatory hard gate for every signal family or only for entry eligibility.
 - Final latency SLOs after choosing hosting region and measuring end-to-end behavior.
 - Commercial licensing and legal permission for the intended SaaS distribution workflow.
 - Exact universe refresh cadence after stream-capacity testing.
+
+
+## 11. Approved MVP quote asset and reference notional
+- Quote asset whitelist: **USDT only**.
+- Reference notional for universe liquidity qualification: **500 USDT**.
+- Required executable depth at the proposed 20× ratio: at least **10,000 USDT on the ask side** and **10,000 USDT on the bid side**, each within 10 bps of the respective best price.
+- This reference notional is a market-universe qualification benchmark only. It does not prescribe subscriber trade size, account size, or risk allocation.
+- Other quote assets are excluded unless a future ADR explicitly approves them.
