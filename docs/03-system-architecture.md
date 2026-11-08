@@ -62,3 +62,8 @@ Proposed: 1H context → 15m structure → 5m setup/confirmation → 1m entry ti
 
 ## 10. Venue and product isolation
 Provider adapters must expose normalized domain events while retaining venue-specific provenance. Spot and perpetual contracts require separate instrument metadata and risk modules. If derivatives are later approved, funding, mark/index price, liquidation mechanics, contract multiplier, and leverage constraints must be modeled explicitly.
+
+## 11. Spot-only MVP boundary
+The initial domain model must represent spot instruments and long-only trade scenarios. Do not introduce futures contract multipliers, leverage, funding, mark/index price, margin, or liquidation components into the MVP domain. Keep provider adapters modular so a future derivatives product can be added without contaminating spot calculations.
+
+The platform does not hold subscriber assets or place orders in the MVP. Execution prices are estimates/reference prices, not guaranteed fills. Entry/exit evaluation must account for the chosen reference venue's fees, spread, liquidity, and slippage assumptions.
