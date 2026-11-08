@@ -67,3 +67,13 @@ Provider adapters must expose normalized domain events while retaining venue-spe
 The initial domain model must represent spot instruments and long-only trade scenarios. Do not introduce futures contract multipliers, leverage, funding, mark/index price, margin, or liquidation components into the MVP domain. Keep provider adapters modular so a future derivatives product can be added without contaminating spot calculations.
 
 The platform does not hold subscriber assets or place orders in the MVP. Execution prices are estimates/reference prices, not guaranteed fills. Entry/exit evaluation must account for the chosen reference venue's fees, spread, liquidity, and slippage assumptions.
+
+
+## 12. Binance Spot reference integration and dynamic universe
+- Implement Binance Spot behind a venue adapter; keep normalized domain events independent of Binance payload shapes.
+- REST is used for exchange metadata, historical backfill, initial order-book snapshots, and recovery; WebSocket is the continuous real-time path for trades, book ticker, and depth updates.
+- Treat Binance symbol filters and trading status as authoritative instrument constraints; normalize tick size, step size, min quantity/notional, and supported order types into instrument metadata.
+- The `top_liquid` universe service consumes normalized market metrics and emits versioned membership changes. It must not be embedded in the strategy/AI analyst.
+- Maintain a broader candidate monitor and a narrower intensive-analysis/monitoring set. Subscription to feeds must respect venue connection and stream limits, with sharded connections and controlled resubscription as needed.
+- On depth sequence gaps, stale books, reconnects, or failed resynchronization, mark book quality invalid and suppress decisions that require depth until a fresh snapshot plus deltas is synchronized.
+- Keep universe selection, feed-health gates, and execution-cost gates deterministic. AI may explain a candidate but cannot override exclusions or freshness gates.
