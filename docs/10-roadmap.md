@@ -42,3 +42,15 @@ The first release is scoped to crypto regular scalping. The proposed timeframe s
 - [ ] Validate timeframe roles and latency/freshness targets.
 - [ ] Define transaction-cost and liquidity gates.
 - [ ] Approve lifecycle, subscription entitlements, stack, and deployment plan.
+
+
+## Phase 0 design completion — monitoring and opportunity detection
+
+The following design artifacts are now recorded:
+- docs/14-market-monitoring-and-data-pipeline.md
+- docs/15-opportunity-detection-and-decision-pipeline.md
+- ADR 0005: event-driven market monitoring and evidence-gated opportunity detection.
+
+This completes the current design pass for the monitoring-to-candidate-to-opportunity workflow. It does not complete all of Phase 0 and does not authorize production code. Remaining Phase 0 work includes final technology/deployment decisions, exact operational/retention budgets, legal/commercial data rights, jurisdiction review, final timeframe/holding-time definitions, and the remaining subscription/entitlement and release criteria.
+
+Phase 1 can begin only after the user explicitly approves the complete Phase 0 exit gate. Phase 1 should first implement data contracts, provider adapter, instrument registry, stream health, event capture/replay, and deterministic data-quality gates before any AI opportunity analyst.
