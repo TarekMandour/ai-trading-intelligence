@@ -74,3 +74,21 @@ A provider/exchange must pass a commercial rights review for the intended SaaS u
 
 ## 12. Approved MVP quote-asset filter
 Only Binance Spot symbols quoted in **USDT** are eligible for the MVP `top_liquid` universe. Normalize quote volume and order-book depth directly in USDT. Do not include other quote assets or synthesize converted liquidity values in the MVP. A future expansion requires an explicit decision and documented conversion, fee, and liquidity-comparability policy.
+
+
+## 6. Approved Binance monitoring data contract
+
+The MVP market monitoring path uses official Binance Spot public market-data interfaces:
+- REST exchange information for instrument status and trading filters;
+- REST klines/trades/aggregate trades for supported backfill;
+- REST depth snapshots to initialize/rebuild a local book;
+- WebSocket aggTrade, bookTicker, and diff-depth streams for live monitoring;
+- validated 1m candles with deterministic aggregation to 5m, 15m, and 1h where appropriate.
+
+Every normalized event preserves venue event time, trade time where supplied, local receive time, processing time, source identifier, stream, connection/session, symbol, schema version, provenance, and quality status. Use decimal-safe price/quantity handling and deterministic deduplication.
+
+A local order book is valid only after snapshot/delta synchronization and continuous update IDs. Any sequence gap invalidates it until rebuilt. Historical depth is not assumed to be available retroactively; capture snapshots and deltas prospectively if depth-based replay is required.
+
+Review current official Binance stream limits and connection lifecycle before implementation. Keep subscription management, sharding, planned connection rotation, backoff, and rate-limit handling configurable. Public endpoint accessibility does not grant SaaS redistribution rights.
+
+Full stream contracts, recovery sequence, feature inputs, and acceptance criteria are in docs/14.
