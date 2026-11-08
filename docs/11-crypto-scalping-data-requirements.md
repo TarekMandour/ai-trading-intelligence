@@ -88,3 +88,11 @@ For realistic long spot execution estimates, use ask-side liquidity for entries 
 
 ## 10. Provisional liquidity and latency policy
 See `docs/13-top-liquid-universe-and-latency.md` for the complete proposed two-stage selection process, numerical starting hypotheses, event freshness objectives, universe refresh cadence, and validation plan. These values are initial test parameters only; they are not exchange guarantees or proven profitable thresholds.
+
+
+## 11. Approved MVP quote asset and liquidity reference
+- MVP quote asset whitelist: **USDT only**.
+- Reference notional used to qualify pair liquidity: **500 USDT**.
+- At the provisional 20× depth requirement, each eligible pair must show at least **10,000 USDT ask depth** for buys and **10,000 USDT bid depth** for exits within 10 bps of the respective best price.
+- The 500 USDT amount is a benchmark for comparing pair liquidity and slippage, not a required subscriber order size.
+- Exact fee tier and subscriber order-size profiles remain to be configured and validated.
