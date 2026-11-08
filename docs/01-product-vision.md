@@ -40,3 +40,9 @@ A multi-tenant SaaS subscription model. The platform generates opportunities cen
 - Cost per analyzed opportunity and per active subscriber
 
 No KPI target is approved until the MVP market, trading style, and validation method are defined.
+
+
+## MVP focus — Crypto Scalping
+The first release focuses on crypto scalping opportunities. The product should prioritize timely, fresh, executable scenarios over maximizing the number of alerts. Ultra-scalping and exchange-colocation/HFT requirements are explicitly out of initial scope.
+
+A candidate must not be presented as actionable merely because a 1m candle pattern appears. It must be evaluated against higher-timeframe context, market structure, liquidity, spread, fees, volatility, and execution constraints. The system may publish WAIT or NO OPPORTUNITY rather than issue a late or low-quality entry.
