@@ -78,3 +78,16 @@ Do not call OpenAI for every tick or every subscriber. Deterministic streaming a
 The MVP evaluates long spot opportunities. A short signal is not actionable in the approved product scope. Entry and exit planning must model buying at the executable ask side and selling at the executable bid side, with fees and slippage on both legs. Chart mid-price or last-trade price alone is not sufficient to estimate executable return.
 
 The analysis output must disclose the reference venue and assumed fee tier. Where subscriber execution venue or fee tier differs, present the plan as an analytical reference and avoid implying an identical realized return.
+
+
+## 9. Approved candidate-to-opportunity methodology
+
+The methodology is an event-driven evidence pipeline, not a single indicator recipe. Market triggers create candidates for evaluation; they do not create BUY signals. The candidate pipeline is defined in docs/15-opportunity-detection-and-decision-pipeline.md.
+
+Evaluate bounded Spot-long scenario families: trend continuation, pullback continuation, breakout/retest, momentum expansion, failed breakdown/liquidity sweep and reclaim, reversal with structural confirmation, and mean reversion inside a validated range. Each family must be independently versioned and validated.
+
+Build a timestamped evidence packet containing regime/context, structure, price response, trade-flow, spread/depth, estimated execution costs, and data quality. Compare competing hypotheses and record contradictions. Order-book imbalance is supporting evidence only; require persistence and corroboration from executed trades and price response.
+
+Keep opportunity, confirmation, execution, risk, and data-quality scores separate. Hard gates always precede ranking. A high score cannot override stale data, invalid book, excessive spread/slippage, missing stop, expired entry, or failed risk constraints.
+
+The initial 1H/15m/5m/1m roles remain a testable hypothesis. Do not infer predictive certainty from a regime label or research paper. Use event replay, out-of-sample tests, realistic bid/ask execution, and paper/shadow validation before promoting a scenario.
