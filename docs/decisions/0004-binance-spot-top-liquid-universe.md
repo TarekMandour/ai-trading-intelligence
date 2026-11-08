@@ -10,7 +10,7 @@ The MVP is centralized-exchange crypto Spot, regular scalping, long/buy opportun
 1. Select **Binance Spot direct market-data API** as the MVP technical reference venue and primary feed.
 2. Select **`top_liquid`** as the instrument-universe policy: a dynamic set of eligible active Spot pairs ranked by quote-volume stability, spread, executable order-book depth, estimated slippage/market impact, trade activity, and feed health.
 3. Plan for a configurable initial cohort; 30–50 pairs is a capacity-planning range, not a final fixed count.
-4. Keep quote-asset whitelist, exact cohort size, final numeric thresholds, and hosting-region latency objectives open pending measurement and explicit approval.
+4. Approve **USDT only** as the MVP quote-asset whitelist. Keep exact cohort sizes, final numeric thresholds, and hosting-region latency objectives configurable and open pending measurement. Adopt the two-stage hard-filter/weighted-ranking policy and the Watchlist/Active Analysis cohorts described below and in `docs/13-top-liquid-universe-and-latency.md`.
 5. Use Binance REST for metadata, backfill, initial depth snapshots, and recovery; use WebSocket for continuous live trades, best bid/ask, and depth updates.
 6. Keep provider-specific payloads behind a normalized adapter. Keep universe ranking, hard eligibility gates, freshness checks, and execution-cost checks deterministic.
 7. Do not launch paid subscriber display or derived-signal distribution until Binance's terms or a written authorization expressly permit the intended collection, storage, derived analytics, alert distribution, caching/retention, and downstream processing, and jurisdiction eligibility has been checked.
