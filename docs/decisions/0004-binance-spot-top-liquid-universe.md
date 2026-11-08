@@ -39,3 +39,10 @@ The MVP is centralized-exchange crypto Spot, regular scalping, long/buy opportun
 - `docs/12-market-data-provider-comparison.md`
 - `docs/13-top-liquid-universe-and-latency.md`
 - `docs/11-crypto-scalping-data-requirements.md`
+
+
+## Approved parameter refinement (2026-11-09)
+- MVP quote-asset whitelist is **USDT only**.
+- Reference notional for liquidity qualification is **500 USDT**.
+- Under the proposed 20× depth ratio, require at least **10,000 USDT executable ask depth** and **10,000 USDT executable bid depth**, each within 10 bps.
+- The reference notional is not a mandatory subscriber trade size.
