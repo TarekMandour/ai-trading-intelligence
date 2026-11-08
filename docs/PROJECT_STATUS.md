@@ -14,7 +14,11 @@ Last updated: 2026-11-09
 ## Confirmed product decisions
 - Product: centralized trading-intelligence SaaS for discovering actionable opportunities, monitoring their lifecycle, and distributing them to eligible subscribers.
 - MVP market: **Crypto**.
+- MVP product: **Centralized-exchange Spot only**.
 - MVP trading style: **Regular Scalping**. Ultra-scalping/HFT is out of initial scope.
+- MVP signals: **Long/buy spot opportunities only**; no native short exposure.
+- Margin, borrowing, leverage, futures, perpetuals, options, funding and liquidation are excluded from MVP.
+- Automated order execution and custody are out of scope; platform provides analysis and alerts.
 - Analysis is performed centrally; a stored opportunity is distributed to eligible subscribers without rerunning the same analysis per subscriber.
 - Subscription plans determine entitlements and delivery eligibility.
 - One centrally managed OpenAI API integration is intended for bounded model reasoning where it adds value. API usage is billed separately from ChatGPT/Codex.
@@ -33,11 +37,21 @@ Last updated: 2026-11-09
 
 These are proposed roles, not final approved trading rules. Validation must include realistic latency, fees, spread, slippage, liquidity, and entry-fill assumptions.
 
+## Data requirements identified
+- Spot instrument metadata and symbol status
+- Real-time trades and best bid/ask
+- 1m, 5m, 15m, 1h candles with explicit closed/forming status
+- Order-book depth and historical trades where available
+- Source event timestamp and receive timestamp on every real-time observation
+- Ask-side entry and bid-side exit execution estimates
+- Both-leg trading fees, spread, slippage, tick size, lot step and minimum notional
+- Commercial rights for display and derived signal distribution must be verified contractually
+
 ## Open decisions / blockers
-- Spot vs perpetual futures; leverage policy
 - Initial exchange/venue and fallback data provider
-- Initial symbol universe, quote assets, long/short policy
-- Commercial redistribution rights and target user jurisdictions
+- Initial symbol universe, quote assets, and minimum liquidity rules
+- Venue availability and regulatory/legal eligibility for company and subscriber jurisdictions
+- Commercial data licensing: display, derived analytics, retention, caching, redistribution, attribution and downstream processors
 - Exact holding-time definition for regular scalping
 - Final timeframe and intrabar decision rules
 - WebSocket/REST data coverage, historical trades/depth availability
@@ -46,28 +60,21 @@ These are proposed roles, not final approved trading rules. Validation must incl
 - Subscriber plans, entitlements, channels, and event notification policy
 - Initial technology stack, deployment topology, regulatory/legal review
 
-## Data requirements identified
-- Instrument metadata and symbol status
-- Real-time trades and best bid/ask
-- 1m, 5m, 15m, 1h candles with explicit closed/forming status
-- Historical candles and preferably historical trades for replay and execution validation
-- Order-book depth snapshots/deltas strongly preferred for liquidity-aware scalping
-- Source event timestamp and receive timestamp on every real-time observation
-- Funding, mark/index price, open interest, and liquidation data only if perpetuals are selected
-
 ## Work completed
 - README.md and AGENTS.md
 - Product overview, vision, PRD, architecture, analysis methodology, AI responsibilities, lifecycle, data sources, risk, validation, roadmap, and project status
 - ADR 0001: centralized analysis and entitlement-aware distribution
-- MVP scope addendum: crypto regular scalping and proposed timeframe roles
-- Crypto scalping data requirements and validation considerations
+- ADR 0002: crypto regular scalping MVP
+- ADR 0003: crypto spot-only MVP
+- Crypto scalping data requirements and timeframe proposal
+- Initial market-data provider comparison and licensing review
 
 ## Next actions
-1. Decide spot or perpetual futures.
-2. Select candidate exchange/venue and validate WebSocket, historical data, and commercial terms.
-3. Define initial tradable symbol universe and direction policy.
-4. Validate the proposed 1H/15m/5m/1m timeframe hierarchy.
-5. Set latency, freshness, spread, fee, slippage, and liquidity gates.
+1. Evaluate Binance Spot direct API as a technical candidate, subject to commercial rights and jurisdiction approval.
+2. Evaluate CoinAPI as a paid multi-exchange alternative and obtain written confirmation of downstream SaaS/derived-signal rights.
+3. Consider Kaiko for institutional-grade licensed feeds if budget and data requirements justify it.
+4. Select the initial reference venue and symbol universe.
+5. Validate the proposed 1H/15m/5m/1m hierarchy and execution-cost model.
 6. Complete remaining Phase 0 architecture and stack decisions.
 
 ## Current gate
