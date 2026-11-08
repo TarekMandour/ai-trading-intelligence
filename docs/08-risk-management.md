@@ -38,3 +38,19 @@ Operators must be able to pause a provider, market, scenario family, analysis ve
 - Validate minimum notional, quantity step, tick size, symbol status, and available liquidity.
 - Never imply that a signal's reference price is a guaranteed execution price.
 - Clearly disclose the exchange and fee-tier assumptions behind estimated net return.
+
+
+## 5. Market-data and opportunity safety gates
+
+The following are mandatory fail-closed conditions for any new tradable opportunity:
+- inactive/ineligible instrument or non-USDT quote asset;
+- stale, malformed, contradictory, or incomplete required market data;
+- invalid or unsynchronized local order book when the scenario relies on depth;
+- spread, depth, estimated slippage, fees, or all-in costs outside approved limits;
+- missing or invalid entry, stop/invalidation, target/exit method, expiry, or max entry distance;
+- price has moved beyond the allowed entry distance or the opportunity has expired;
+- scenario invalidation, duplicate/conflicting candidate, or breached risk policy.
+
+Entry feasibility is assessed on the ask side; exit feasibility on the bid side. Fees apply to both legs. Displayed depth is not guaranteed liquidity and may disappear; depth features must include persistence/change context and conservative slippage assumptions.
+
+Data-health failures immediately disable dependent decisions and cannot be overridden by AI, rank, or dwell/cooldown periods. See docs/14 and docs/15.
