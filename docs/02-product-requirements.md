@@ -1,7 +1,7 @@
 # Product Requirements (PRD)
 
 ## 1. Scope
-The MVP is a centrally operated opportunity discovery, decision, monitoring, and subscriber-distribution service. Exact first market and asset universe are not yet selected.
+The MVP is a centrally operated opportunity discovery, decision, monitoring, and subscriber-distribution service. MVP market is crypto centralized-exchange Spot, using Binance Spot as the reference venue and a dynamic `top_liquid` spot-pair universe.
 
 ## 2. Primary user stories
 - As a subscriber, I receive opportunities allowed by my active plan.
@@ -109,3 +109,15 @@ The system should not wait for every higher-timeframe candle to close before rea
 - Trade plans must model buy-side entry and sell-side exit, exchange trading fees, bid/ask spread, expected slippage, minimum order size/notional, tick size, and quantity step.
 - Do not assume subscribers use the same exchange or fee tier. The MVP must clearly state the reference venue and fee assumptions used for each signal.
 - Venue availability and legal eligibility must be checked for the intended operating company and subscriber jurisdictions before launch.
+
+
+## 11. Approved data-source and universe requirements
+- Primary MVP reference venue/feed: Binance Spot.
+- Universe policy: `top_liquid`; dynamically rank eligible active Spot pairs by liquidity and execution quality, not market capitalization alone.
+- Use rolling quote-volume stability, spread, order-book depth on both sides, estimated slippage/market impact, trade activity, instrument constraints, and feed health.
+- Exclude inactive, suspended, delisted, newly listed/insufficient-history, leveraged-token, and otherwise ineligible products according to a maintained eligibility policy.
+- Universe membership must be versioned with the metrics, observation window, inclusion/exclusion reason, and effective time used to make the decision.
+- Re-evaluate membership periodically with hysteresis/cooldown to prevent rapid churn. Active signals must retain their original venue/instrument context even if a pair later leaves the universe.
+- Initial planning cohort: configurable, with 30–50 pairs as a capacity-planning range only. Exact count and quote-asset whitelist remain open.
+- Numeric thresholds and freshness objectives are provisional and are specified in `docs/13-top-liquid-universe-and-latency.md`; they require empirical validation before becoming production gates.
+- Binance commercial rights, downstream processing permissions, subscriber display/derived-alert rights, and target-jurisdiction eligibility are mandatory release blockers.
