@@ -57,10 +57,10 @@ The MVP is a centrally operated opportunity discovery, decision, monitoring, and
 - Extensible market/provider adapters without leaking provider-specific formats into domain logic.
 
 ## 5. Open decisions
-- First market and jurisdiction
-- Asset universe and exclusions
-- Trading styles and timeframes
-- Data provider(s), historical depth, real-time availability, licensing
+- Target jurisdiction and legal eligibility
+- Exact cohort capacities and numerical liquidity/ranking thresholds after measurement
+- Final trading-style holding-time definition and intrabar rules
+- Data-provider historical depth, real-time availability, and licensing details
 - Signal categories and plan entitlements
 - Delivery channels
 - Initial technology stack and deployment model
@@ -118,7 +118,7 @@ The system should not wait for every higher-timeframe candle to close before rea
 - Exclude inactive, suspended, delisted, newly listed/insufficient-history, leveraged-token, and otherwise ineligible products according to a maintained eligibility policy.
 - Universe membership must be versioned with the metrics, observation window, inclusion/exclusion reason, and effective time used to make the decision.
 - Re-evaluate membership periodically with hysteresis/cooldown to prevent rapid churn. Active signals must retain their original venue/instrument context even if a pair later leaves the universe.
-- Initial planning cohort: configurable, with 30–50 pairs as a capacity-planning range only. Exact count and quote-asset whitelist remain open.
+- Initial planning cohorts: a lightweight Universe Watchlist (75–150 symbols) and an intensive Active Analysis Set (30–50 symbols); both are capacity-planning ranges only. MVP quote-asset whitelist is USDT only.
 - Numeric thresholds and freshness objectives are provisional and are specified in `docs/13-top-liquid-universe-and-latency.md`; they require empirical validation before becoming production gates.
 - Binance commercial rights, downstream processing permissions, subscriber display/derived-alert rights, and target-jurisdiction eligibility are mandatory release blockers.
 
