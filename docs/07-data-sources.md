@@ -70,3 +70,7 @@ A provider/exchange must pass a commercial rights review for the intended SaaS u
 - Reconstruct order books using the documented snapshot/delta synchronization procedure and sequence checks. A gap invalidates the local book until resynchronized.
 - The selected dynamic instrument universe is `top_liquid`; see `docs/13-top-liquid-universe-and-latency.md` for proposed ranking, gates, and service objectives.
 - The selected quote-asset whitelist is still an explicit open decision; do not silently assume every quote currency is eligible.
+
+
+## 12. Approved MVP quote-asset filter
+Only Binance Spot symbols quoted in **USDT** are eligible for the MVP `top_liquid` universe. Normalize quote volume and order-book depth directly in USDT. Do not include other quote assets or synthesize converted liquidity values in the MVP. A future expansion requires an explicit decision and documented conversion, fee, and liquidity-comparability policy.
