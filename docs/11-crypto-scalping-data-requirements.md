@@ -1,6 +1,6 @@
 # Crypto Scalping — Data Requirements and Timeframe Proposal
 
-Status: Proposed for Phase 0 review. This document does not approve a specific exchange, vendor, spot/perpetual product, or final strategy.
+Status: Phase 0 decision updated. Binance Spot is the selected MVP technical reference venue; the product remains Spot-only. Numeric liquidity and latency values remain provisional pending measurement.
 
 ## 1. MVP objective
 Provide regular crypto scalping opportunities with timely entry timing, explicit invalidation, realistic transaction-cost checks, and lifecycle monitoring. The MVP does not target ultra-low-latency HFT or automatic order execution.
@@ -76,3 +76,15 @@ Numeric service-level thresholds must be selected after choosing venue, instrume
 The MVP is centralized-exchange spot only, with long/buy opportunities and sell exits. Margin, leverage, borrowing, futures, perpetuals, funding, and liquidation data are not required. Automated order execution and custody are out of scope. A future derivatives expansion requires a separate product and risk decision.
 
 For realistic long spot execution estimates, use ask-side liquidity for entries and bid-side liquidity for exits. Include fees on both legs, spread, slippage, tick/step size, minimum notional, and reference venue fee tier.
+
+
+## 9. Selected MVP venue and universe
+- Reference venue/feed: Binance Spot.
+- Eligible universe policy: dynamic `top_liquid` active Spot pairs.
+- The target cohort is configurable; 30–50 pairs is a planning range, not a final fixed count.
+- Quote assets, exact cohort size, and final thresholds remain subject to explicit approval and empirical validation.
+- Selection must consider stable quote-volume, spread, executable depth, slippage, trade activity, instrument filters, and stream health—not 24h volume or market cap alone.
+- Binance commercial use and subscriber distribution rights remain a hard production gate.
+
+## 10. Provisional liquidity and latency policy
+See `docs/13-top-liquid-universe-and-latency.md` for the complete proposed two-stage selection process, numerical starting hypotheses, event freshness objectives, universe refresh cadence, and validation plan. These values are initial test parameters only; they are not exchange guarantees or proven profitable thresholds.
