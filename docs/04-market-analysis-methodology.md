@@ -1,93 +1,110 @@
 # Market Analysis Methodology
 
+Status: Research methodology for the local manual-analysis MVP. Strategy parameters and thresholds remain hypotheses until validated.
+
 ## 1. Objective
-Determine whether a market instrument presents a sufficiently evidenced, actionable trade scenario now or within a defined watch window. The engine must be able to abstain.
 
-## 2. Analysis layers
-### A. Data quality gate
-Validate timestamp freshness, candle completeness, symbol mapping, session status, missing values, price continuity, and provider consistency. Critical data failures stop analysis.
+For each eligible Binance Spot USDT instrument, determine whether a sufficiently evidenced long Spot opportunity exists for one of three separate holding profiles: Scalping (1–30m), Intraday (30m–8h), or Swing (1–7d). The engine must abstain when evidence is weak, stale, conflicting, or uneconomic after costs.
 
-### B. Market regime
-Estimate probabilities or confidence across states such as trend, range, high/low volatility, momentum expansion, compression, and transition. These are estimates, not certain labels.
+## 2. Analysis order
 
-### C. Multi-timeframe context
-Use higher timeframes for context and lower timeframes for setup/entry timing. Exact timeframe mapping depends on the selected market and trading style and remains open.
+1. Instrument and data eligibility.
+2. Per-timeframe feature calculation.
+3. Per-timeframe market-regime classification.
+4. Multi-timeframe context and conflict assessment.
+5. Scenario-family evaluation.
+6. Entry, stop, target, cost, freshness, and risk checks.
+7. Report persistence and audit.
 
-### D. Market structure and price action
-Potential evidence includes swing highs/lows, HH/HL and LH/LL, break of structure, change of character, displacement, breakout/retest, failed breakout, liquidity sweep, rejection, and support/resistance zones. Definitions must be deterministic and testable.
+A regime label is context, not a trade direction or signal.
 
-### E. Volume and participation
-Potential evidence includes relative volume, volume expansion/contraction, breakout participation, climax, and price-volume divergence. Interpret cautiously where volume is fragmented or unavailable.
+## 3. Market regime dimensions
 
-### F. Liquidity and execution
-Where reliable data exists, evaluate spread, depth, imbalance, trade flow, slippage, and market impact. Order-book snapshots are not proof of intent and may be spoofed or incomplete.
+### Direction
+- BULLISH
+- BEARISH
+- RANGING
+- UNCERTAIN
 
-### G. Scenario evaluation
-Initial scenario families for research: trend continuation, pullback, breakout/retest, reversal, mean reversion, momentum expansion, and liquidity sweep. This is a candidate library, not an approved production strategy set.
+### Volatility
+- LOW
+- NORMAL
+- HIGH
 
-### H. Trade decision
-Possible outcomes:
-- ENTER NOW — all required conditions and risk gates pass.
-- WAIT — promising setup, but confirmation or price location is not ready.
-- MISSED — valid entry window has passed.
-- REJECT — evidence, execution, or risk constraints fail.
-- NO OPPORTUNITY — no sufficiently strong scenario exists.
+### Behavior
+- TRENDING
+- CHOPPY
+- TRANSITION
+- UNCERTAIN
 
-## 3. Evidence and scoring
-Keep separate measures for opportunity quality, confirmation, risk, and execution. Scores are comparative ranking metrics until calibrated. A strong opportunity score must not override a hard failure such as stale data, inadequate liquidity, unacceptable spread, or invalid stop distance.
+These dimensions are orthogonal. A bullish market can have high volatility; a range can be low-volatility or high-volatility. Do not label every high-volatility market as trending or every sideways market as low-volatility.
 
-## 4. AI role
-AI may synthesize cross-layer evidence, compare competing scenario explanations, identify contradictions, and produce a concise structured rationale. AI must cite supplied evidence identifiers and distinguish facts from interpretation. It must not invent prices, infer unavailable order flow, or create missing candles.
+## 4. Baseline evidence features
 
-## 5. Output contract
-Every candidate decision should include instrument, market, direction, scenario, as-of time, source-data references, regime context, evidence, counter-evidence, entry timing, entry zone, stop/invalidation, targets/exit logic, max entry distance, expiry, risk/execution warnings, decision state, and analysis version.
+Research and implement transparent features first:
+- swing structure: HH/HL, LH/LL, range boundaries, breaks and reclaims;
+- normalized regression slope and directional movement;
+- ADX and +DI/-DI;
+- ATR percentage and rolling volatility percentile;
+- realized volatility and Bollinger Band width percentile;
+- path/range efficiency;
+- candle body/wick, close location, and follow-through;
+- relative volume where valid.
 
-## 6. Research discipline
-All definitions and thresholds must be versioned. Evaluate chronologically with train/validation/test separation, walk-forward testing, out-of-sample evaluation, realistic fees/spread/slippage, and robustness checks. Do not optimize on the final test set.
+Each output records timeframe, lookback, unit, exact source candle range, calculation version, and data-quality state. No single indicator is a complete strategy.
 
+## 5. Multi-timeframe profiles
 
-## 7. Crypto scalping profile (MVP proposal)
-The first research profile is regular crypto scalping, not ultra-scalping. A proposed timeframe hierarchy is:
-- 1H: regime, broader momentum, and directional bias.
-- 15m: market structure, swing points, and key levels.
-- 5m: setup formation, pullback/breakout context, and confirmation.
-- 1m: entry trigger, acceptable entry distance, and immediate invalidation monitoring.
+Initial hypotheses, subject to testing:
 
-The engine should use completed candles for stable context and may use live trade/book events for entry timing. Every decision must record whether its inputs were closed candles, forming candles, or live events. No historical backtest may pretend that an intrabar value was known before it actually occurred.
+| Profile | Context | Structure | Setup | Entry |
+|---|---|---|---|---|
+| Scalping | 1h | 15m | 5m | 1m |
+| Intraday | 4h | 1h | 15m | 5m |
+| Swing | 1w | 1d | 4h | 1h |
 
-## 8. Scalping-specific execution filters
-Before an opportunity can be actionable, evaluate:
-- bid/ask spread relative to the planned stop and target distance
-- expected fees for the relevant account/venue tier
-- estimated slippage and available depth
-- market impact for the intended notional size
-- feed latency and age of the last trade/quote/book update
-- volatility and abrupt spread expansion
-- entry distance from the original planned zone
-- venue status, trading restrictions, and symbol liquidity
+Preserve every timeframe's state and timestamp. Summarize alignment as ALIGNED, PARTIAL, CONFLICTED, or INSUFFICIENT and explain the conflict. Do not average away disagreement.
 
-A setup with positive chart evidence can still be rejected when transaction costs or execution quality erase its expected edge.
+Use completed candles for stable context. Forming candles must be explicitly labeled and cannot be represented as completed confirmation. Higher-timeframe alignment must be backward-looking as of the decision timestamp to prevent look-ahead leakage.
 
-## 9. Scalping-specific scenario expiry
-Short-lived opportunities need a short, explicit validity window. Store detected_at, discovery_price, valid_until, max_entry_distance, and the event/candle conditions that invalidate the setup. If price leaves the entry zone or the feed becomes stale, change the state to MISSED, EXPIRED, or REJECTED as appropriate; never keep distributing an obsolete ENTER NOW alert.
+## 6. Scenario families for baseline testing
 
-## 10. AI and latency
-Do not call OpenAI for every tick or every subscriber. Deterministic streaming analysis should identify and gate candidates. Invoke AI only at bounded decision points where contextual synthesis is useful, with strict timeout and fallback behavior. A delayed AI response must not turn an expired entry into a current signal.
+- Trend continuation / pullback continuation.
+- Breakout and retest.
+- Range mean reversion.
+- Momentum / volatility expansion.
 
-## 11. Spot-only interpretation
-The MVP evaluates long spot opportunities. A short signal is not actionable in the approved product scope. Entry and exit planning must model buying at the executable ask side and selling at the executable bid side, with fees and slippage on both legs. Chart mid-price or last-trade price alone is not sufficient to estimate executable return.
+Further research candidates: liquidity sweep/reclaim, structural reversal, order-flow imbalance, HMM/regime switching, and change-point detection. Do not implement all candidates in the first vertical slice.
 
-The analysis output must disclose the reference venue and assumed fee tier. Where subscriber execution venue or fee tier differs, present the plan as an analytical reference and avoid implying an identical realized return.
+Each scenario needs a formal versioned definition of inputs, setup, confirmation, invalidation, entry, stop, targets/exit, expiry, cost assumptions, and rejection reasons.
 
+## 7. Decision outputs
 
-## 9. Approved candidate-to-opportunity methodology
+- ENTERABLE: every required scenario, data, execution, freshness, and risk gate passes.
+- WAIT: scenario is promising but an explicit confirmation/entry condition is missing.
+- MISSED: entry has moved outside its allowed window.
+- REJECTED: a hard gate or contradictory evidence fails.
+- NO_OPPORTUNITY: no candidate passes the minimum threshold.
 
-The methodology is an event-driven evidence pipeline, not a single indicator recipe. Market triggers create candidates for evaluation; they do not create BUY signals. The candidate pipeline is defined in docs/15-opportunity-detection-and-decision-pipeline.md.
+A candidate plan must include entry zone, stop/invalidation, target 1/2, conservative reward/risk after costs, estimated fees/spread/slippage, expiry, reference price/time, evidence, contradictions, and data-quality warnings.
 
-Evaluate bounded Spot-long scenario families: trend continuation, pullback continuation, breakout/retest, momentum expansion, failed breakdown/liquidity sweep and reclaim, reversal with structural confirmation, and mean reversion inside a validated range. Each family must be independently versioned and validated.
+## 8. Costs and execution assumptions
 
-Build a timestamped evidence packet containing regime/context, structure, price response, trade-flow, spread/depth, estimated execution costs, and data quality. Compare competing hypotheses and record contradictions. Order-book imbalance is supporting evidence only; require persistence and corroboration from executed trades and price response.
+- Model entry on executable ask-side prices.
+- Model exit on executable bid-side prices.
+- Include fees on both legs, spread, and estimated slippage.
+- Use current order-book snapshots only as current execution context, never as historical order flow.
+- Reject a plan when data or cost assumptions are insufficient to establish positive conservative reward/risk.
+- Do not imply guaranteed fills.
 
-Keep opportunity, confirmation, execution, risk, and data-quality scores separate. Hard gates always precede ranking. A high score cannot override stale data, invalid book, excessive spread/slippage, missing stop, expired entry, or failed risk constraints.
+## 9. AI role
 
-The initial 1H/15m/5m/1m roles remain a testable hypothesis. Do not infer predictive certainty from a regime label or research paper. Use event replay, out-of-sample tests, realistic bid/ask execution, and paper/shadow validation before promoting a scenario.
+No AI API is required for the first deterministic baseline. Later, AI may summarize supplied evidence, compare bounded scenarios, and identify contradictions. It may not invent prices, calculate authoritative stops/targets, or override deterministic gates.
+
+## 10. Research discipline
+
+See docs/16-research-evidence-and-strategy-hypotheses.md. Test each scenario family independently with chronological splits, walk-forward evaluation, realistic costs, untouched out-of-sample data, threshold sensitivity, and ablations. Keep failed experiments. A score is not a success probability without calibration.
+
+## 11. Sources
+
+Research references and limitations are maintained in docs/16-research-evidence-and-strategy-hypotheses.md.
