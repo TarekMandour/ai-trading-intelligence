@@ -26,3 +26,14 @@ Examples: entry reached, target reached, stop reached, early-exit warning, momen
 
 ## 6. Historical integrity
 Never rewrite historical entry/stop/target values. Corrections must be represented as new events or explicitly linked revisions with reason and timestamp. Performance calculations must use what was knowable at each historical time.
+
+
+## 5. Candidate lifecycle boundary
+
+Candidate evaluation is a separate state machine from the published trade lifecycle:
+- DETECTED → WATCHING → CONFIRMED → ENTERABLE;
+- any non-terminal candidate may become INVALIDATED, EXPIRED, REJECTED, or MISSED under explicit rules.
+
+DETECTED means a market event triggered evaluation, not that a trade exists. CONFIRMED means evidence gates pass, but entry may still be WAIT. ENTERABLE means the current executable ask-side entry, cost, freshness, and risk gates pass. MISSED means the acceptable entry window has passed. A published trade then follows the existing trade lifecycle.
+
+Every transition stores prior/new state, event and receive timestamps, reason code, evidence snapshot, and policy/feature/model versions. Candidate state must not be rewritten to make historical signals appear valid. See docs/15 for transition semantics.
