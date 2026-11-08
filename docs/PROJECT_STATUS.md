@@ -79,3 +79,10 @@ These are proposed roles, not final approved trading rules. Validation must incl
 
 ## Current gate
 **Not approved for production implementation.** Continue Phase 0 decisions and review.
+
+
+### Newly approved universe parameters
+- Quote-asset whitelist: **USDT only**.
+- Reference notional for pair liquidity qualification: **500 USDT** (not a subscriber minimum).
+- Provisional 20× order-book depth gate: **10,000 USDT ask-side and 10,000 USDT bid-side**, each within 10 bps.
+- These approvals are reflected in `docs/13-top-liquid-universe-and-latency.md`; numeric thresholds remain subject to empirical validation.
