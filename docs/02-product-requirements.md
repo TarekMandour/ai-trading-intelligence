@@ -100,3 +100,12 @@ The system should not wait for every higher-timeframe candle to close before rea
 - Maximum holding-time definition for scalping
 - Signal latency and data-freshness service objectives
 - Fee tier assumptions and funding treatment if derivatives are selected
+
+## 10. Approved MVP product constraints — Spot
+- MVP instruments are centralized-exchange spot pairs only.
+- Margin, borrowing, leverage, perpetual/futures, options, funding, and liquidation are excluded.
+- The platform is an analysis and alerting product; no automated order placement or custody is in MVP scope.
+- Signal direction is initially long/buy setups only, because spot-only without margin does not provide native short exposure. Any other exposure mechanism requires explicit approval.
+- Trade plans must model buy-side entry and sell-side exit, exchange trading fees, bid/ask spread, expected slippage, minimum order size/notional, tick size, and quantity step.
+- Do not assume subscribers use the same exchange or fee tier. The MVP must clearly state the reference venue and fee assumptions used for each signal.
+- Venue availability and legal eligibility must be checked for the intended operating company and subscriber jurisdictions before launch.
