@@ -3,7 +3,7 @@
 Last updated: 2026-11-09
 
 ## Current phase
-**Phase 0 — Project Foundation**
+**Phase 0 — Project Foundation.** Documentation and decisions only; production implementation is not yet approved.
 
 ## Repository
 - Repository: TarekMandour/ai-trading-intelligence
@@ -11,43 +11,64 @@ Last updated: 2026-11-09
 - Default branch: main
 - Working branch: phase-0-foundation
 
-## Confirmed decisions
-- Product is a centralized trading-intelligence SaaS platform.
-- Core value is discovering actionable opportunities and monitoring their lifecycle, not primarily providing a strategy builder.
-- Analysis is performed centrally; the same stored opportunity can be distributed to many eligible subscribers.
-- Subscriber plans control access/distribution, not repeated AI analysis.
-- One centrally managed OpenAI API integration is intended for model tasks where needed. API usage is billed separately from ChatGPT/Codex usage.
-- Routine notifications of already stored opportunities do not require an OpenAI API call.
-- AI output cannot override deterministic risk gates.
-- Historical opportunity snapshots and decision events must remain auditable.
-- System must support abstention and NO OPPORTUNITY.
-- Initial repository documentation is the project source of truth.
+## Confirmed product decisions
+- Product: centralized trading-intelligence SaaS for discovering actionable opportunities, monitoring their lifecycle, and distributing them to eligible subscribers.
+- MVP market: **Crypto**.
+- MVP trading style: **Regular Scalping**. Ultra-scalping/HFT is out of initial scope.
+- Analysis is performed centrally; a stored opportunity is distributed to eligible subscribers without rerunning the same analysis per subscriber.
+- Subscription plans determine entitlements and delivery eligibility.
+- One centrally managed OpenAI API integration is intended for bounded model reasoning where it adds value. API usage is billed separately from ChatGPT/Codex.
+- Routine notification formatting and delivery do not require an AI call when the opportunity is already stored.
+- Deterministic calculations, risk gates, and lifecycle transitions are authoritative; AI cannot bypass them.
+- The system may abstain and return NO OPPORTUNITY.
+- Historical signal snapshots and decision events must remain auditable and immutable.
 
-## Not yet decided
-- MVP market and jurisdiction
-- Instruments/universe and exclusions
-- Trading styles and precise holding-period definitions
-- Timeframes and entry timing model
-- Market data provider(s), licensing, and coverage
-- Liquidity and execution thresholds
-- Exact signal states and subscriber-facing event policy
-- Subscription tiers and entitlements
-- Notification channels
-- Initial application stack and deployment topology
-- Regulatory/legal requirements for launch markets
+## Proposed timeframe stack (pending validation)
+| Timeframe | Role |
+|---|---|
+| 1H | Regime and directional context |
+| 15m | Market structure and key levels |
+| 5m | Setup development and confirmation |
+| 1m | Entry timing and immediate monitoring |
 
-## Work completed in this branch
-- Initial repository README
-- AGENTS.md operating rules
-- Product, requirements, architecture, methodology, AI, lifecycle, data, risk, validation, and roadmap documents
+These are proposed roles, not final approved trading rules. Validation must include realistic latency, fees, spread, slippage, liquidity, and entry-fill assumptions.
+
+## Open decisions / blockers
+- Spot vs perpetual futures; leverage policy
+- Initial exchange/venue and fallback data provider
+- Initial symbol universe, quote assets, long/short policy
+- Commercial redistribution rights and target user jurisdictions
+- Exact holding-time definition for regular scalping
+- Final timeframe and intrabar decision rules
+- WebSocket/REST data coverage, historical trades/depth availability
+- Data freshness and end-to-end latency service objectives
+- Spread, liquidity, slippage, fees, and risk thresholds
+- Subscriber plans, entitlements, channels, and event notification policy
+- Initial technology stack, deployment topology, regulatory/legal review
+
+## Data requirements identified
+- Instrument metadata and symbol status
+- Real-time trades and best bid/ask
+- 1m, 5m, 15m, 1h candles with explicit closed/forming status
+- Historical candles and preferably historical trades for replay and execution validation
+- Order-book depth snapshots/deltas strongly preferred for liquidity-aware scalping
+- Source event timestamp and receive timestamp on every real-time observation
+- Funding, mark/index price, open interest, and liquidation data only if perpetuals are selected
+
+## Work completed
+- README.md and AGENTS.md
+- Product overview, vision, PRD, architecture, analysis methodology, AI responsibilities, lifecycle, data sources, risk, validation, roadmap, and project status
+- ADR 0001: centralized analysis and entitlement-aware distribution
+- MVP scope addendum: crypto regular scalping and proposed timeframe roles
+- Crypto scalping data requirements and validation considerations
 
 ## Next actions
-1. Review all Phase 0 documents for consistency.
-2. Resolve MVP market, trading style, and asset universe.
-3. Evaluate data-provider coverage and commercial redistribution rights.
-4. Define signal and risk policies.
-5. Approve the initial technology stack and deployment model.
-6. Update this status and create an explicit Phase 0 approval record.
+1. Decide spot or perpetual futures.
+2. Select candidate exchange/venue and validate WebSocket, historical data, and commercial terms.
+3. Define initial tradable symbol universe and direction policy.
+4. Validate the proposed 1H/15m/5m/1m timeframe hierarchy.
+5. Set latency, freshness, spread, fee, slippage, and liquidity gates.
+6. Complete remaining Phase 0 architecture and stack decisions.
 
 ## Current gate
-**Not approved for production implementation.** Documentation and decision work only.
+**Not approved for production implementation.** Continue Phase 0 decisions and review.
