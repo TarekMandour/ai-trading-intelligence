@@ -50,7 +50,7 @@ The project is in Phase 0. Market, asset universe, timeframes, provider, and imp
 ## MVP scope decision — Crypto Scalping
 The first MVP market is **crypto** and the first trading style is **regular scalping**. The initial release is not intended to target ultra-low-latency/HFT execution. The product remains architecturally extensible to additional markets and trading styles after the MVP.
 
-The exact venue, instrument type (spot or perpetual derivatives), symbol universe, jurisdiction, data provider, and holding-period boundaries remain open decisions. No exchange is approved by this scope decision alone.
+The MVP venue/data source is **Binance Spot** and the instrument universe policy is **`top_liquid`**: a dynamic, liquidity-ranked subset of eligible active spot pairs. The commercial licensing gate and operating/subscriber jurisdiction review remain open; technical selection does not grant redistribution rights.
 
 ### Initial timeframe proposal (pending validation)
 - **1H:** broader intraday market regime and directional context.
@@ -62,3 +62,12 @@ These are proposed analysis roles, not yet hard-coded requirements. They must be
 
 ## MVP product decision — Spot only
 The first MVP is **crypto spot scalping**. Margin, leveraged spot, perpetual futures, futures, options, funding-rate logic, liquidation logic, and automated order execution are outside the approved MVP scope unless separately approved through an ADR. The product provides analysis and alerts; subscribers execute trades independently on their chosen venue.
+
+
+## MVP data-source and universe decision — Binance Spot / top_liquid
+- Reference venue and primary feed: **Binance Spot**.
+- Universe policy: **`top_liquid`**, dynamically selected from eligible active spot pairs using quote-volume stability, spread, executable order-book depth, estimated slippage, trade activity, and feed health.
+- The universe is not selected by market capitalization alone and is not a permanently fixed list.
+- Initial operating target is a configurable cohort (planning range: 30–50 pairs); the final count and quote-asset whitelist remain subject to capacity, liquidity, and execution validation.
+- Numeric liquidity and latency thresholds are provisional Phase 0 hypotheses in `docs/13-top-liquid-universe-and-latency.md`, not validated performance claims.
+- Binance Spot is the technical reference venue. Commercial SaaS display/derived-signal/subscriber distribution rights and jurisdiction eligibility must be cleared in writing before production distribution.
