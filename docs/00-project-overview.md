@@ -71,3 +71,17 @@ The first MVP is **crypto spot scalping**. Margin, leveraged spot, perpetual fut
 - Initial operating target is a configurable cohort (planning range: 30–50 pairs); the final count and quote-asset whitelist remain subject to capacity, liquidity, and execution validation.
 - Numeric liquidity and latency thresholds are provisional Phase 0 hypotheses in `docs/13-top-liquid-universe-and-latency.md`, not validated performance claims.
 - Binance Spot is the technical reference venue. Commercial SaaS display/derived-signal/subscriber distribution rights and jurisdiction eligibility must be cleared in writing before production distribution.
+
+
+## Approved design — market monitoring and opportunity detection (2026-11-09)
+
+The market observation and opportunity discovery design is documented in:
+- docs/14-market-monitoring-and-data-pipeline.md
+- docs/15-opportunity-detection-and-decision-pipeline.md
+- ADR 0005: docs/decisions/0005-event-driven-market-monitoring-and-opportunity-detection.md
+
+The system uses a lightweight Universe Watchlist and a deeper Active Analysis Set. Market events create candidate evaluations, never direct BUY signals. The orchestrated pipeline is data eligibility → regime/context → candidate trigger → scenario hypothesis → evidence/confirmation → optional bounded AI review → deterministic risk/entry decision → immutable persistence → entitlement-aware distribution → lifecycle monitoring.
+
+The 1H/15m/5m/1m roles remain an initial hypothesis to validate. Feature windows, candidate triggers, scenario weights, and AI review frequency are not validated production trading rules. Historical depth must be captured prospectively for book-based replay; current REST snapshots cannot recreate historical books.
+
+Phase 0 remains documentation and decision-making only. Production implementation requires the full Phase 0 exit approval.
