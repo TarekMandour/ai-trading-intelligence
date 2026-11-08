@@ -85,3 +85,11 @@ Before production or paid subscriber distribution, obtain written answers to:
 
 ## Decision gate
 Do not select a production provider based only on API latency, coverage, or sticker price. Provider approval requires a successful technical feed test, historical replay assessment, fee/slippage validation, written licensing clearance, and confirmation of venue availability for the intended operating company and subscriber jurisdictions.
+
+
+##  Current MVP decision (supersedes shortlist recommendation)
+- **Selected technical reference venue:** Binance Spot direct API.
+- **Selected universe policy:** `top_liquid` dynamic eligible Spot pairs.
+- CoinAPI and Kaiko remain alternatives for a future licensed multi-venue or historical-data expansion; they are not MVP primary feeds.
+- The selection does not close the legal/commercial gate. Do not launch paid subscriber display or derived-signal distribution until the intended use is expressly permitted in writing and the operating/subscriber jurisdictions are cleared.
+- The operational selection policy and provisional thresholds are defined in `docs/13-top-liquid-universe-and-latency.md`.
