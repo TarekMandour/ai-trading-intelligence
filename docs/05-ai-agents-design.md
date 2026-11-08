@@ -44,3 +44,14 @@ All model output must conform to a versioned schema. Include decision, scenario,
 
 ## 6. Cost policy
 Batch and cache context where appropriate. Do not call the model per subscriber or per notification. Define budgets, maximum tokens, rate limits, and model selection after workload tests.
+
+
+## 5. Approved AI boundary for opportunity evaluation
+
+AI is an optional evidence reviewer inside the orchestrated pipeline, invoked only after deterministic eligibility, candidate filtering, and evidence assembly. It is not an autonomous agent that monitors every market event and it is not on the tick/depth hot path.
+
+Allowed outputs are schema-constrained: SUPPORT, WAIT, REJECT, or INSUFFICIENT_EVIDENCE, plus concise rationale, contradictions, and missing-evidence notes. The model may compare a primary scenario with explicitly supplied alternatives.
+
+AI cannot invent market values, calculate authoritative prices or risk limits, bypass hard gates, directly mutate candidate/trade state, generate arbitrary executable strategy code, or place orders. All model output is untrusted and validated. Timeout, invalid schema, provider outage, or contradictory output follows deterministic fallback policy.
+
+Record model, prompt, schema, evidence packet, and feature versions, plus usage and latency. Deduplicate and rate-limit reviews by symbol/scenario/checkpoint. Notification formatting uses stored fields and does not call AI per subscriber.
