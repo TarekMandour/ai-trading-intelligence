@@ -60,3 +60,13 @@ Evaluate candidate venues/providers against WebSocket stability, trade/quote lat
 The first provider integration must cover centralized-exchange spot markets only. Required data: spot instrument metadata, trades, best bid/ask, order-book depth, 1m/5m/15m/1h OHLCV, and sufficient historical trades/candles for replay. No derivatives-specific feeds are required.
 
 A provider/exchange must pass a commercial rights review for the intended SaaS use before production. The review must explicitly cover display of quotes/charts, derived analytics and signals, caching/retention, subscriber distribution, geographic restrictions, attribution, and any downstream data processor. API access or a public endpoint alone is not evidence of redistribution rights.
+
+
+## 11. Binance Spot integration decision
+- Use Binance Spot market data only for the MVP; no Binance derivatives endpoints or contract data are in scope.
+- Use REST for exchange information, historical candle/trade backfill, initial depth snapshots, and recovery; use WebSocket streams for continuous trades, best bid/ask, and depth updates.
+- Normalize symbol status and exchange filters (price tick, quantity step, minimum quantity/notional, precision, and applicable order constraints).
+- Keep exchange event time and local receive time separately for every event. Do not substitute local arrival time for venue event time.
+- Reconstruct order books using the documented snapshot/delta synchronization procedure and sequence checks. A gap invalidates the local book until resynchronized.
+- The selected dynamic instrument universe is `top_liquid`; see `docs/13-top-liquid-universe-and-latency.md` for proposed ranking, gates, and service objectives.
+- The selected quote-asset whitelist is still an explicit open decision; do not silently assume every quote currency is eligible.
