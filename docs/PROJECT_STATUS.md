@@ -48,8 +48,8 @@ These are proposed roles, not final approved trading rules. Validation must incl
 - Commercial rights for display and derived signal distribution must be verified contractually
 
 ## Open decisions / blockers
-- Initial exchange/venue and fallback data provider
-- Initial symbol universe, quote assets, and minimum liquidity rules
+- Fallback data provider and venue-outage policy
+- Final cohort capacities and validated minimum liquidity/ranking thresholds
 - Venue availability and regulatory/legal eligibility for company and subscriber jurisdictions
 - Commercial data licensing: display, derived analytics, retention, caching, redistribution, attribution and downstream processors
 - Exact holding-time definition for regular scalping
@@ -70,10 +70,10 @@ These are proposed roles, not final approved trading rules. Validation must incl
 - Initial market-data provider comparison and licensing review\n- ADR 0004: Binance Spot and dynamic `top_liquid` MVP universe\n- Provisional top-liquid selection, liquidity, freshness, and latency policy
 
 ## Next actions
-1. Evaluate Binance Spot direct API as a technical candidate, subject to commercial rights and jurisdiction approval.
-2. Evaluate CoinAPI as a paid multi-exchange alternative and obtain written confirmation of downstream SaaS/derived-signal rights.
-3. Consider Kaiko for institutional-grade licensed feeds if budget and data requirements justify it.
-4. Select the initial reference venue and symbol universe.
+1. Validate Binance Spot data coverage, stream behavior, historical depth availability, and execution-cost assumptions.
+2. Obtain written confirmation of commercial rights for the intended SaaS/derived-signal distribution and verify jurisdiction eligibility.
+3. Measure and validate the Watchlist/Active Analysis cohort capacities, ranking weights, and liquidity thresholds using replay and paper trading.
+4. Evaluate a licensed fallback provider (such as CoinAPI or Kaiko) only if licensing, coverage, or resilience requirements justify it.
 5. Validate the proposed 1H/15m/5m/1m hierarchy and execution-cost model.
 6. Complete remaining Phase 0 architecture and stack decisions.
 
