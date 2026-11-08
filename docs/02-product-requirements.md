@@ -139,3 +139,19 @@ The system should not wait for every higher-timeframe candle to close before rea
 - Apply hysteresis and dwell periods to reduce churn; immediate hard safety exclusions override all hold periods.
 - All weights, cohort sizes, and timing values are configurable pilot hypotheses, not validated performance claims or final production constants. Validate by replay, sensitivity analysis, paper trading, and capacity/latency tests.
 - See `docs/13-top-liquid-universe-and-latency.md` for the detailed policy.
+
+
+## 14. Approved market monitoring and opportunity detection requirements
+
+- Maintain two operational cohorts: lightweight Universe Watchlist and intensive Active Analysis Set, using the planning ranges and promotion/demotion rules in docs/14-market-monitoring-and-data-pipeline.md.
+- Ingest normalized Binance Spot trades, best bid/ask, candles, and depth updates with source event time, local receive time, processing time, event identifiers, provenance, and data-quality flags.
+- Reconstruct local order books only through documented snapshot/delta synchronization. A sequence gap, stale book, or failed resync disables depth-dependent decisions until recovery.
+- Build deterministic multi-timeframe candles and rolling price, volatility, trade-flow, spread, depth, and structure features. Every feature must identify units, observation window, calculation version, timestamp, and quality.
+- Event triggers create candidate evaluations only. They must never directly publish a BUY signal.
+- Use an orchestrated candidate-to-opportunity pipeline with explicit scenario hypotheses, confirmation evidence, invalidation rules, entry freshness, and deterministic risk gates.
+- Keep candidate lifecycle separate from published trade lifecycle.
+- AI review is optional and bounded to structured evidence synthesis. It cannot invent data, bypass gates, change risk values, or transition states directly.
+- Every publishable plan must include executable-side entry/exit assumptions, entry condition/zone, max entry distance, stop/invalidation, targets/exit logic, costs, expiry, and data-health context.
+- Capture depth prospectively when book-based historical replay is required; do not fabricate historical depth from current snapshots.
+- Validate with event replay, chronological walk-forward/out-of-sample testing, realistic bid/ask fills, fees, spread, slippage, impact, latency, and paper/shadow trading.
+- Detailed requirements and acceptance criteria are in docs 14 and 15; ADR 0005 records the architecture decision.
