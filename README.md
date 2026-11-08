@@ -28,3 +28,11 @@ Read [`AGENTS.md`](AGENTS.md) before making changes. No production code is autho
 ## Important disclaimer
 
 This platform provides analytical information, not guaranteed returns or personalized financial advice. Trading involves risk, including loss of capital. Every opportunity must communicate its assumptions, invalidation conditions, freshness, and risk context.
+
+
+## Market monitoring and opportunity detection
+- [Market Monitoring & Data Pipeline](docs/14-market-monitoring-and-data-pipeline.md)
+- [Opportunity Detection & Decision Pipeline](docs/15-opportunity-detection-and-decision-pipeline.md)
+- [ADR 0005 — Event-Driven Monitoring & Evidence-Gated Detection](docs/decisions/0005-event-driven-market-monitoring-and-opportunity-detection.md)
+
+These documents define the Phase 0 design. They do not authorize production implementation or commercial redistribution of Binance market data.
