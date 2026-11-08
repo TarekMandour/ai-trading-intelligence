@@ -3,124 +3,80 @@
 Last updated: 2026-11-09
 
 ## Current phase
-**Phase 0 — Project Foundation.** Documentation and decisions only; production implementation is not yet approved.
+**Phase 1 — Local Manual-Analysis MVP.** The user has authorized implementation of a local research prototype on the dedicated branch. No server deployment or commercial SaaS release is authorized.
 
-## Repository
+## Repository and branch policy
 - Repository: TarekMandour/ai-trading-intelligence
-- Visibility: Public
 - Default branch: main
-- Working branch: phase-0-foundation
+- Phase 0 decision branch: phase-0-foundation
+- Active implementation branch: phase-1-local-mvp
+- Never implement directly on main or phase-0-foundation.
 
-## Confirmed product decisions
-- Product: centralized trading-intelligence SaaS for discovering actionable opportunities, monitoring their lifecycle, and distributing them to eligible subscribers.
-- MVP market: **Crypto**.
-- MVP product: **Centralized-exchange Spot only**.
-- MVP trading style: **Regular Scalping**. Ultra-scalping/HFT is out of initial scope.
-- MVP signals: **Long/buy spot opportunities only**; no native short exposure.\n- MVP reference venue/data source: **Binance Spot direct API** (technical selection; commercial licensing pending).\n- MVP instrument universe policy: **`top_liquid`**, a dynamic liquidity- and execution-quality-ranked set of eligible active Spot pairs. The initial 30–50 pair range is a planning target only.
-- Margin, borrowing, leverage, futures, perpetuals, options, funding and liquidation are excluded from MVP.
-- Automated order execution and custody are out of scope; platform provides analysis and alerts.
-- Analysis is performed centrally; a stored opportunity is distributed to eligible subscribers without rerunning the same analysis per subscriber.
-- Subscription plans determine entitlements and delivery eligibility.
-- One centrally managed OpenAI API integration is intended for bounded model reasoning where it adds value. API usage is billed separately from ChatGPT/Codex.
-- Routine notification formatting and delivery do not require an AI call when the opportunity is already stored.
-- Deterministic calculations, risk gates, and lifecycle transitions are authoritative; AI cannot bypass them.
-- The system may abstain and return NO OPPORTUNITY.
-- Historical signal snapshots and decision events must remain auditable and immutable.
+## Approved product scope
+- Crypto; Binance Spot public market data; USDT quote asset.
+- Long Spot entry / sell-to-exit only.
+- Manual, on-demand analysis.
+- Three separate reports per run:
+  - Scalping: 1–30 minutes.
+  - Intraday: 30 minutes–8 hours.
+  - Swing: 1–7 days.
+- Windows/XAMPP local development; Laravel 13 / PHP 8.3.
+- MySQL target database; verify actual installed server. XAMPP may bundle MariaDB.
+- Laravel database queue with manually started worker.
+- REST data collection only for the first milestone.
+- Deterministic regime and scenario baselines; OpenAI is not a required dependency.
 
-## Proposed timeframe stack (pending validation)
-| Timeframe | Role |
-|---|---|
-| 1H | Regime and directional context |
-| 15m | Market structure and key levels |
-| 5m | Setup development and confirmation |
-| 1m | Entry timing and immediate monitoring |
+## Approved exclusions
+No VPS/cloud deployment, continuous monitoring, Binance WebSocket, Redis, Horizon, Kafka, RabbitMQ, Docker, Kubernetes, OpenSwoole, ReactPHP, Go/Python services, Reverb, subscriptions, billing, commercial signal distribution, automated order execution, custody, margin, borrowing, leverage, futures, perpetuals, options, or short signals.
 
-These are proposed roles, not final approved trading rules. Validation must include realistic latency, fees, spread, slippage, liquidity, and entry-fill assumptions.
+## Initial research profiles (configurable hypotheses)
+| Profile | Context | Structure | Setup | Entry |
+|---|---|---|---|---|
+| Scalping | 1h | 15m | 5m | 1m |
+| Intraday | 4h | 1h | 15m | 5m |
+| Swing | 1w | 1d | 4h | 1h |
 
-## Data requirements identified
-- Spot instrument metadata and symbol status
-- Real-time trades and best bid/ask
-- 1m, 5m, 15m, 1h candles with explicit closed/forming status
-- Order-book depth and historical trades where available
-- Source event timestamp and receive timestamp on every real-time observation
-- Ask-side entry and bid-side exit execution estimates
-- Both-leg trading fees, spread, slippage, tick size, lot step and minimum notional
-- Commercial rights for display and derived signal distribution must be verified contractually
+These profiles must be tested. Candle alignment must use only completed higher-timeframe candles available at the decision timestamp.
 
-## Open decisions / blockers
-- Fallback data provider and venue-outage policy
-- Final cohort capacities and validated minimum liquidity/ranking thresholds
-- Venue availability and regulatory/legal eligibility for company and subscriber jurisdictions
-- Commercial data licensing: display, derived analytics, retention, caching, redistribution, attribution and downstream processors
-- Exact holding-time definition for regular scalping
-- Final timeframe and intrabar decision rules
-- WebSocket/REST data coverage, historical trades/depth availability
-- Data freshness and end-to-end latency service objectives
-- Spread, liquidity, slippage, fees, and risk thresholds
-- Subscriber plans, entitlements, channels, and event notification policy
-- Initial technology stack, deployment topology, regulatory/legal review
+## Market-regime contract
+The classifier has three independent dimensions:
+- Direction: BULLISH, BEARISH, RANGING, UNCERTAIN.
+- Volatility: LOW, NORMAL, HIGH.
+- Behavior: TRENDING, CHOPPY, TRANSITION, UNCERTAIN.
 
-## Work completed
-- README.md and AGENTS.md
-- Product overview, vision, PRD, architecture, analysis methodology, AI responsibilities, lifecycle, data sources, risk, validation, roadmap, and project status
-- ADR 0001: centralized analysis and entitlement-aware distribution
-- ADR 0002: crypto regular scalping MVP
-- ADR 0003: crypto spot-only MVP
-- Crypto scalping data requirements and timeframe proposal
-- Initial market-data provider comparison and licensing review\n- ADR 0004: Binance Spot and dynamic `top_liquid` MVP universe\n- Provisional top-liquid selection, liquidity, freshness, and latency policy
+Volatility is not a direction. Preserve per-timeframe classifications and conflicts. Begin with transparent deterministic features; HMM/ML is deferred research.
 
-## Next actions
-1. Validate Binance Spot data coverage, stream behavior, historical depth availability, and execution-cost assumptions.
-2. Obtain written confirmation of commercial rights for the intended SaaS/derived-signal distribution and verify jurisdiction eligibility.
-3. Measure and validate the Watchlist/Active Analysis cohort capacities, ranking weights, and liquidity thresholds using replay and paper trading.
-4. Evaluate a licensed fallback provider (such as CoinAPI or Kaiko) only if licensing, coverage, or resilience requirements justify it.
-5. Validate the proposed 1H/15m/5m/1m hierarchy and execution-cost model.
-6. Complete remaining Phase 0 architecture and stack decisions.
+## Research status
+Research sources and limitations are documented in docs/16-research-evidence-and-strategy-hypotheses.md. Scenario families remain hypotheses, not production-approved strategies. Current research does not prove profitability for Binance Spot or the selected holding windows.
 
-## Current gate
-**Not approved for production implementation.** Continue Phase 0 decisions and review.
+## Implementation documents
+- docs/17-local-mvp-implementation-plan.md
+- docs/18-market-regime-and-multitimeframe-spec.md
+- docs/decisions/0006-local-laravel-mysql-manual-analysis-mvp.md
 
+## Deferred documents
+- docs/14-market-monitoring-and-data-pipeline.md describes future continuous/event-driven monitoring, not the first local MVP.
+- docs/15-opportunity-detection-and-decision-pipeline.md remains a logical decision framework; streaming triggers and subscriber distribution are deferred.
 
-### Newly approved universe parameters
-- Quote-asset whitelist: **USDT only**.
-- Reference notional for pair liquidity qualification: **500 USDT** (not a subscriber minimum).
-- Provisional 20× order-book depth gate: **10,000 USDT ask-side and 10,000 USDT bid-side**, each within 10 bps.
-- These approvals are reflected in `docs/13-top-liquid-universe-and-latency.md`; numeric thresholds remain subject to empirical validation.
+## Definition of first local test
+- Fresh XAMPP setup and migrations succeed against verified MySQL.
+- Manual dashboard action creates an analysis run.
+- Database queue worker processes it.
+- Binance REST data is fetched, validated, and rate-limited.
+- Per-timeframe regime outputs are generated for each profile.
+- Three separate reports are rendered, including NO OPPORTUNITY where appropriate.
+- Candidate plans include entry, stop/invalidation, targets, costs, expiry, evidence, and reason codes.
+- Tests cover data quality, calculations, multi-timeframe alignment, decision gates, queue workflow, and report rendering.
+- Exact commands and test outcomes are documented.
+- No profitability claim is made from the first smoke test.
 
+## Future gates
+- Backtesting/replay harness and untouched out-of-sample validation.
+- Evidence that any strategy family has positive net expectancy after costs.
+- Prospective order-book capture only if research justifies it.
+- Optional bounded AI review only after deterministic baseline quality is measured.
+- Commercial data rights and legal/jurisdiction review before paid signal distribution.
+- Hosting, subscriptions, and SaaS only after local proof of value and separate approval.
 
-### Approved universe ranking and cohort policy (2026-11-09)
-- Universe selection is a two-stage process: **hard eligibility filters first**, then **weighted ranking** among eligible symbols. Ranking can never override a failed hard gate.
-- Initial ranking-weight hypothesis: 30% quote-volume stability/activity, 25% executable depth/resilience, 20% spread quality, 15% estimated slippage/market impact at 500 USDT reference notional, and 10% feed health/data continuity.
-- Adopt two cohorts: a lightweight **Universe Watchlist** (initial planning range 75–150 eligible symbols) and an intensive **Active Analysis Set** (initial planning range 30–50 symbols).
-- Resist temporary volume spikes using rolling 7-day robust statistics, multi-day persistence, activity/concentration checks, and capped short-window contributions.
-- Use hysteresis and dwell periods to limit membership churn; hard safety failures trigger immediate quarantine/removal from entry eligibility.
-- These weights, cohort sizes, refresh/promotion/dwell windows, and numerical gates are pilot hypotheses subject to replay, sensitivity analysis, capacity testing, and paper-trading validation.
-- Detailed approved policy: `docs/13-top-liquid-universe-and-latency.md`.
-
-
-## Market monitoring and opportunity detection design (2026-11-09)
-
-Completed documentation design:
-- docs/14-market-monitoring-and-data-pipeline.md: two-tier monitoring, Binance event contracts, local book synchronization/recovery, candle aggregation, feature families, candidate triggers, bounded workload, reliability, metrics, retention, and acceptance criteria.
-- docs/15-opportunity-detection-and-decision-pipeline.md: orchestrated candidate-to-opportunity pipeline, scenario families, evidence packet, confirmation/invalidation, bounded AI review, deterministic decision gates, candidate state machine, freshness, validation, and subscriber output.
-- ADR 0005: docs/decisions/0005-event-driven-market-monitoring-and-opportunity-detection.md.
-
-Approved design principles:
-- Lightweight Universe Watchlist and intensive Active Analysis Set; initial capacities remain planning hypotheses.
-- Event triggers create candidate evaluations, never direct BUY signals.
-- Deterministic data/risk/entry gates are authoritative; AI is optional, bounded, and not on the market-event hot path.
-- A local order book is usable only when snapshot/delta sequence synchronization is valid; gaps invalidate the book until resynchronization.
-- Capture historical depth prospectively if book-based replay is required; do not invent historical depth.
-- Candidate lifecycle is separate from published trade lifecycle.
-- Validate using event replay, chronological out-of-sample testing, realistic bid/ask execution and costs, and paper/shadow monitoring.
-
-Research references and official Binance stream contracts are included in docs/14 and docs/15. Research motivates feature testing; it does not prove profitability or replace validation on the project's own data.
-
-## Remaining Phase 0 gates
-- Final technology stack and deployment topology.
-- Final holding-time definition and validated timeframe/intrabar policy.
-- Stream/storage retention budgets and measured cohort capacities.
-- Commercial Binance data rights for storage, derived analytics, and subscriber distribution, plus target-jurisdiction eligibility.
-- Final subscription plans, entitlements, channels, and release/operational criteria.
-
-No production application code has been created or authorized. Continue documentation and approval; do not merge to main.
+## Current status
+Documentation and execution scope are prepared on phase-1-local-mvp. Production application code has not yet been verified as implemented. Do not mark the local MVP complete until the Definition of First Local Test is met and the user can run it on their machine.
