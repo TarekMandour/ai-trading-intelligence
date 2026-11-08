@@ -1,0 +1,73 @@
+# Crypto Scalping — Data Requirements and Timeframe Proposal
+
+Status: Proposed for Phase 0 review. This document does not approve a specific exchange, vendor, spot/perpetual product, or final strategy.
+
+## 1. MVP objective
+Provide regular crypto scalping opportunities with timely entry timing, explicit invalidation, realistic transaction-cost checks, and lifecycle monitoring. The MVP does not target ultra-low-latency HFT or automatic order execution.
+
+## 2. Proposed timeframe hierarchy
+| Timeframe | Role | Typical questions |
+|---|---|---|
+| 1H | Market context | Is the broader intraday environment trending, ranging, volatile, or transitioning? |
+| 15m | Structure | Where are meaningful swings, key levels, breakouts, and pullbacks? |
+| 5m | Setup | Is a defined scenario forming and receiving confirmation? |
+| 1m | Entry trigger | Is the entry currently executable, and is the invalidation still valid? |
+
+### Operating rules
+- Use UTC internally for timestamps; preserve venue event timestamps and receive timestamps.
+- Distinguish completed candles from forming candles.
+- Higher-timeframe context can update on candle close or material market events; do not force every lower-timeframe event to wait for a 1H close.
+- Record the exact candle/event versions used for every decision.
+- If a required timeframe is missing or stale, apply a defined degraded-mode or reject policy; do not silently fabricate data.
+- The hierarchy is a testable hypothesis. Compare it with alternatives (for example, 4H/1H/15m/5m or 15m/5m/1m) using out-of-sample results and realistic costs before final approval.
+
+## 3. Streaming and historical data
+### Streaming fast path
+- Trades/aggregated trades
+- Best bid and ask
+- Order-book snapshots and deltas where reliable
+- Exchange event timestamp, receive timestamp, sequence ID where provided
+- Heartbeats, connection status, reconnect and resynchronization events
+
+### Historical/research path
+- OHLCV candles at all selected resolutions
+- Historical trades for event replay and fill simulation
+- Historical order-book data where available; absence must be disclosed as a limitation
+- Instrument metadata and symbol lifecycle history
+- Fee schedule assumptions and changes over time
+
+Candle-only historical data is insufficient to fully validate scalping execution quality. If historical trades/depth are unavailable, backtest claims must be limited and paper trading must be used to evaluate execution assumptions.
+
+## 4. Data-quality checks
+- stale feed and event/receive-time lag
+- missing, duplicate, and out-of-order events
+- WebSocket disconnects and sequence gaps
+- malformed OHLC candles and inconsistent candle boundaries
+- symbol precision, tick size, quantity step, and minimum notional
+- crossed/locked or stale order book
+- sudden spread/depth deterioration
+- exchange maintenance, halts, delistings, and trading restrictions
+
+## 5. Execution-cost model
+Every candidate should be evaluated using the applicable maker/taker fees, bid/ask spread, expected slippage, depth at intended notional, market impact, and (for perpetuals) funding and contract mechanics. A signal is rejected if its expected move is too small relative to total execution costs or if the stop/target cannot be executed plausibly.
+
+## 6. Proposed freshness dimensions
+Track separately:
+- market event age
+- local receive lag
+- last successful book update
+- candle completion age
+- analysis computation time
+- signal publication time
+- notification delivery time
+
+Numeric service-level thresholds must be selected after choosing venue, instruments, infrastructure region, and trading style parameters.
+
+## 7. Decisions still required
+1. Spot or perpetual futures?
+2. Which exchange/venue is the initial execution reference?
+3. Which symbols and quote assets are in scope?
+4. Long-only or long/short?
+5. What is the intended maximum holding duration for a scalp?
+6. Is reliable order-book depth mandatory for publication, or can some scenario types operate with trades + best bid/ask?
+7. Which subscriber notification channels are required at launch?
