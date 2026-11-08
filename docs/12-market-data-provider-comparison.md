@@ -22,6 +22,9 @@ Do not use CoinGecko as the primary scalping execution feed. It is more appropri
 | Coinbase Exchange API | One venue; spot products, WebSocket trades, ticker, Level 2 order book, REST market data | Strong real-time WS; heartbeat, ticker, matches and L2 channels documented | REST candles/trades available with endpoint-specific limits; historical depth replay should be validated | Public API docs; no general commercial data subscription price identified in reviewed material | **Important restriction:** Coinbase Market Data Terms prohibit redistribution/display to third parties and dissemination of derived works without prior express written consent |
 | Kraken API | One venue; spot markets, REST and WebSocket, order book/trades/OHLC | Real-time public WebSocket; Kraken also describes L1/L2/L3 feeds and microsecond timestamps in product material | OHLC/trade history; verify exact historical tick/depth availability for target pairs | API access described publicly; no paid market-data quote identified | **Prior permission required for certain non-personal commercial use** of public API data; obtain written permission |
 
+
+| CoinGecko API | Aggregated global prices, asset metadata, market cap/volume, historical market charts, plus WebSocket market streams; not a venue-native order book/trade execution feed | Useful for broad context and metadata; aggregated prices are not a substitute for the exact exchange's bid/ask/depth when scalping | Historical price/market metrics; plan-dependent history depth. The pricing page lists 5-minute historical data depth as limited by plan | Demo $0; Basic $35/mo; Analyst $129/mo; Lite $499/mo; Pro $999/mo (monthly displayed prices; annual discounts shown on pricing page); Enterprise quote | Paid self-serve plans include commercial use/display with attribution, but redistribution/syndication and reusable data access require custom rights. It is not suitable as the sole execution feed |
+
 ## Evidence and source links
 - Binance API overview and REST/WebSocket capabilities: https://developers.binance.com/en/docs/introduction
 - Binance Spot REST reference: https://developers.binance.com/en/docs/products/spot/rest-api
@@ -35,6 +38,8 @@ Do not use CoinGecko as the primary scalping execution feed. It is more appropri
 - Coinbase WebSocket feed details: https://help.coinbase.com/en/developer-platform/websocket-feeds/exchange
 - Kraken API product capabilities: https://www.kraken.com/pro/trading-api
 - Kraken API guide / commercial use notice: https://docs-legacy.kraken.com/api/docs/guides/global-intro/
+- CoinGecko API pricing and plan limits: https://www.coingecko.com/en/api/pricing
+- CoinGecko commercial vs custom licensing: https://support.coingecko.com/articles/1043089972-what-are-the-differences-between-commercial-and-custom-licenses
 
 ## Technical assessment for this MVP
 
