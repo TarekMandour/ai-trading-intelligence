@@ -86,3 +86,13 @@ These are proposed roles, not final approved trading rules. Validation must incl
 - Reference notional for pair liquidity qualification: **500 USDT** (not a subscriber minimum).
 - Provisional 20× order-book depth gate: **10,000 USDT ask-side and 10,000 USDT bid-side**, each within 10 bps.
 - These approvals are reflected in `docs/13-top-liquid-universe-and-latency.md`; numeric thresholds remain subject to empirical validation.
+
+
+### Approved universe ranking and cohort policy (2026-11-09)
+- Universe selection is a two-stage process: **hard eligibility filters first**, then **weighted ranking** among eligible symbols. Ranking can never override a failed hard gate.
+- Initial ranking-weight hypothesis: 30% quote-volume stability/activity, 25% executable depth/resilience, 20% spread quality, 15% estimated slippage/market impact at 500 USDT reference notional, and 10% feed health/data continuity.
+- Adopt two cohorts: a lightweight **Universe Watchlist** (initial planning range 75–150 eligible symbols) and an intensive **Active Analysis Set** (initial planning range 30–50 symbols).
+- Resist temporary volume spikes using rolling 7-day robust statistics, multi-day persistence, activity/concentration checks, and capped short-window contributions.
+- Use hysteresis and dwell periods to limit membership churn; hard safety failures trigger immediate quarantine/removal from entry eligibility.
+- These weights, cohort sizes, refresh/promotion/dwell windows, and numerical gates are pilot hypotheses subject to replay, sensitivity analysis, capacity testing, and paper-trading validation.
+- Detailed approved policy: `docs/13-top-liquid-universe-and-latency.md`.
