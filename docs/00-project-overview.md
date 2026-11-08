@@ -59,3 +59,6 @@ The exact venue, instrument type (spot or perpetual derivatives), symbol univers
 - **1m:** entry timing and short-term invalidation monitoring.
 
 These are proposed analysis roles, not yet hard-coded requirements. They must be validated against data quality, signal frequency, latency, fees, spread, slippage, and realistic execution. Higher context such as 4H may be evaluated but is not mandatory for the first test.
+
+## MVP product decision — Spot only
+The first MVP is **crypto spot scalping**. Margin, leveraged spot, perpetual futures, futures, options, funding-rate logic, liquidation logic, and automated order execution are outside the approved MVP scope unless separately approved through an ADR. The product provides analysis and alerts; subscribers execute trades independently on their chosen venue.
