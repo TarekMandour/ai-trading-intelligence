@@ -71,3 +71,8 @@ Numeric service-level thresholds must be selected after choosing venue, instrume
 5. What is the intended maximum holding duration for a scalp?
 6. Is reliable order-book depth mandatory for publication, or can some scenario types operate with trades + best bid/ask?
 7. Which subscriber notification channels are required at launch?
+
+## 8. Approved product boundary — Spot
+The MVP is centralized-exchange spot only, with long/buy opportunities and sell exits. Margin, leverage, borrowing, futures, perpetuals, funding, and liquidation data are not required. Automated order execution and custody are out of scope. A future derivatives expansion requires a separate product and risk decision.
+
+For realistic long spot execution estimates, use ask-side liquidity for entries and bid-side liquidity for exits. Include fees on both legs, spread, slippage, tick/step size, minimum notional, and reference venue fee tier.
