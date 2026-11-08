@@ -28,3 +28,17 @@ Backtest, walk-forward, paper/shadow trade, controlled release, cost monitoring,
 
 ## Roadmap policy
 Phases may be reordered only through an explicit decision record. Do not treat dates or estimates as committed until scope and dependencies are known.
+
+
+## MVP scope update — Crypto Scalping
+The first release is scoped to crypto regular scalping. The proposed timeframe stack is 1H context, 15m structure, 5m setup/confirmation, and 1m entry timing. Venue, spot/perpetual product, instrument universe, and final timeframe rules remain approval gates.
+
+### Updated Phase 0 exit checklist
+- [x] Select crypto as the first market.
+- [x] Select regular scalping as the first trading style.
+- [ ] Decide spot vs perpetual derivatives.
+- [ ] Select initial exchange/venue and confirm commercial data rights.
+- [ ] Approve symbol universe and direction policy.
+- [ ] Validate timeframe roles and latency/freshness targets.
+- [ ] Define transaction-cost and liquidity gates.
+- [ ] Approve lifecycle, subscription entitlements, stack, and deployment plan.
