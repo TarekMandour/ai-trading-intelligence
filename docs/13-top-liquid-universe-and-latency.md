@@ -164,3 +164,63 @@ Every published signal must retain the universe membership and market-data conte
 - Required executable depth at the proposed 20× ratio: at least **10,000 USDT on the ask side** and **10,000 USDT on the bid side**, each within 10 bps of the respective best price.
 - This reference notional is a market-universe qualification benchmark only. It does not prescribe subscriber trade size, account size, or risk allocation.
 - Other quote assets are excluded unless a future ADR explicitly approves them.
+
+
+## 12. Approved universe selection and ranking policy (2026-11-09)
+
+The MVP universe uses a two-stage process and two operational cohorts. This policy is approved as the Phase 0 design; cohort sizes, scoring weights, windows, and thresholds remain configurable pilot hypotheses until measured and validated.
+
+### Stage 1 — hard eligibility filters
+
+A symbol must pass every mandatory eligibility and safety gate before it can be ranked:
+- Active, eligible Binance Spot instrument; USDT quote only.
+- Supported instrument filters and sufficient history for normal ranking.
+- No leveraged token or out-of-scope product.
+- Healthy, fresh, complete market data and a synchronized order book.
+- Minimum volume/activity, spread, ask depth, bid depth, and execution-cost gates defined in this document.
+- No hard safety exclusion, abnormal market condition, or unacceptable estimated execution cost.
+
+A high score or large volume must never compensate for failure of a hard gate. Hard safety exclusions (status change, stale/invalid feed, sequence-gap/unsynchronized book, or severe execution-cost deterioration) trigger immediate quarantine/removal from entry eligibility.
+
+### Stage 2 — weighted ranking
+
+Only eligible symbols receive a normalized composite rank. The approved initial weight hypothesis is:
+
+| Ranking dimension | Initial weight |
+|---|---:|
+| Quote-volume stability and trade activity | 30% |
+| Executable order-book depth and depth resilience | 25% |
+| Spread quality | 20% |
+| Estimated slippage and market impact at the 500 USDT reference notional | 15% |
+| Feed health, freshness, and data continuity | 10% |
+| **Total** | **100%** |
+
+Use robust normalized ranks/percentiles rather than adding raw values with incompatible units. The score is a universe-priority score, not a probability of a profitable trade. Avoid double-counting correlated features (especially spread, depth, and slippage); validate feature definitions, correlations, and weight sensitivity during the pilot. Hard gates remain authoritative regardless of score.
+
+### Protection against temporary volume spikes
+
+- Use rolling 7-day daily-volume distributions and median-based measures, not a single 24-hour snapshot alone.
+- Require persistence across multiple days (the existing initial test is at least 5 of 7 days above the configured floor).
+- Track volume by hour/day, trades per minute, inter-trade intervals, and concentration to distinguish sustained activity from isolated prints.
+- Cap or robustly normalize short-window activity contributions so a brief spike cannot dominate the rank.
+- Flag abnormal prints, abrupt volume anomalies, and concentrated activity for review or temporary probation.
+- Preserve the metric window and raw observations used for each ranking decision.
+
+### Two-cohort design
+
+1. **Universe Watchlist:** broader pool, initially planned at approximately 75–150 eligible symbols, monitored with lightweight market-data and health metrics. This is a capacity-planning hypothesis, not a fixed target.
+2. **Active Analysis Set:** highest-quality 30–50 symbols promoted from the Watchlist for intensive structure, multi-timeframe, and opportunity analysis. This is also a planning range, subject to measured capacity and signal quality.
+
+The Watchlist must be broad enough to discover emerging liquidity without running the full expensive analysis pipeline on every symbol. Promotion to Active Analysis requires passing all hard gates and ranking sufficiently high; demotion returns a symbol to lightweight monitoring unless a hard exclusion requires quarantine. The system must measure whether this separation improves opportunity coverage without exceeding feed, compute, storage, or latency budgets.
+
+### Hysteresis and membership stability
+
+- Retain periodic re-ranking (initially every 15 minutes) and sustained promotion checks (initial test: 30 minutes).
+- Use separate promotion and demotion boundaries, plus a minimum membership hold (initial test: 60 minutes), to prevent churn.
+- Hard safety exclusions override all hold periods and take effect immediately.
+- Record cohort transitions, score components, eligibility results, reason codes, policy version, and effective timestamps.
+- Validate the proposed windows and boundaries against historical replay and live paper monitoring before treating them as production constants.
+
+### Validation requirements
+
+Test alternative weights and cohort capacities (including Watchlist/Active combinations) against coverage of valid opportunities, execution quality, churn, feed/compute load, and latency. Perform sensitivity analysis and avoid optimizing weights solely for historical profitability. All numerical settings remain provisional until out-of-sample replay and paper-trading validation.
