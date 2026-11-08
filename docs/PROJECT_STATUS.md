@@ -96,3 +96,31 @@ These are proposed roles, not final approved trading rules. Validation must incl
 - Use hysteresis and dwell periods to limit membership churn; hard safety failures trigger immediate quarantine/removal from entry eligibility.
 - These weights, cohort sizes, refresh/promotion/dwell windows, and numerical gates are pilot hypotheses subject to replay, sensitivity analysis, capacity testing, and paper-trading validation.
 - Detailed approved policy: `docs/13-top-liquid-universe-and-latency.md`.
+
+
+## Market monitoring and opportunity detection design (2026-11-09)
+
+Completed documentation design:
+- docs/14-market-monitoring-and-data-pipeline.md: two-tier monitoring, Binance event contracts, local book synchronization/recovery, candle aggregation, feature families, candidate triggers, bounded workload, reliability, metrics, retention, and acceptance criteria.
+- docs/15-opportunity-detection-and-decision-pipeline.md: orchestrated candidate-to-opportunity pipeline, scenario families, evidence packet, confirmation/invalidation, bounded AI review, deterministic decision gates, candidate state machine, freshness, validation, and subscriber output.
+- ADR 0005: docs/decisions/0005-event-driven-market-monitoring-and-opportunity-detection.md.
+
+Approved design principles:
+- Lightweight Universe Watchlist and intensive Active Analysis Set; initial capacities remain planning hypotheses.
+- Event triggers create candidate evaluations, never direct BUY signals.
+- Deterministic data/risk/entry gates are authoritative; AI is optional, bounded, and not on the market-event hot path.
+- A local order book is usable only when snapshot/delta sequence synchronization is valid; gaps invalidate the book until resynchronization.
+- Capture historical depth prospectively if book-based replay is required; do not invent historical depth.
+- Candidate lifecycle is separate from published trade lifecycle.
+- Validate using event replay, chronological out-of-sample testing, realistic bid/ask execution and costs, and paper/shadow monitoring.
+
+Research references and official Binance stream contracts are included in docs/14 and docs/15. Research motivates feature testing; it does not prove profitability or replace validation on the project's own data.
+
+## Remaining Phase 0 gates
+- Final technology stack and deployment topology.
+- Final holding-time definition and validated timeframe/intrabar policy.
+- Stream/storage retention budgets and measured cohort capacities.
+- Commercial Binance data rights for storage, derived analytics, and subscriber distribution, plus target-jurisdiction eligibility.
+- Final subscription plans, entitlements, channels, and release/operational criteria.
+
+No production application code has been created or authorized. Continue documentation and approval; do not merge to main.
