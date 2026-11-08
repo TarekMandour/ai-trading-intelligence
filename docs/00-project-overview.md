@@ -45,3 +45,17 @@ OpenAI API is a centrally configured service used only when model reasoning adds
 
 ## Current status
 The project is in Phase 0. Market, asset universe, timeframes, provider, and implementation stack remain open pending product decisions.
+
+
+## MVP scope decision — Crypto Scalping
+The first MVP market is **crypto** and the first trading style is **regular scalping**. The initial release is not intended to target ultra-low-latency/HFT execution. The product remains architecturally extensible to additional markets and trading styles after the MVP.
+
+The exact venue, instrument type (spot or perpetual derivatives), symbol universe, jurisdiction, data provider, and holding-period boundaries remain open decisions. No exchange is approved by this scope decision alone.
+
+### Initial timeframe proposal (pending validation)
+- **1H:** broader intraday market regime and directional context.
+- **15m:** market structure and important levels.
+- **5m:** setup development and confirmation.
+- **1m:** entry timing and short-term invalidation monitoring.
+
+These are proposed analysis roles, not yet hard-coded requirements. They must be validated against data quality, signal frequency, latency, fees, spread, slippage, and realistic execution. Higher context such as 4H may be evaluated but is not mandatory for the first test.
