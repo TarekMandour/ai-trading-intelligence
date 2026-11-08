@@ -44,3 +44,32 @@ Every candidate decision should include instrument, market, direction, scenario,
 
 ## 6. Research discipline
 All definitions and thresholds must be versioned. Evaluate chronologically with train/validation/test separation, walk-forward testing, out-of-sample evaluation, realistic fees/spread/slippage, and robustness checks. Do not optimize on the final test set.
+
+
+## 7. Crypto scalping profile (MVP proposal)
+The first research profile is regular crypto scalping, not ultra-scalping. A proposed timeframe hierarchy is:
+- 1H: regime, broader momentum, and directional bias.
+- 15m: market structure, swing points, and key levels.
+- 5m: setup formation, pullback/breakout context, and confirmation.
+- 1m: entry trigger, acceptable entry distance, and immediate invalidation monitoring.
+
+The engine should use completed candles for stable context and may use live trade/book events for entry timing. Every decision must record whether its inputs were closed candles, forming candles, or live events. No historical backtest may pretend that an intrabar value was known before it actually occurred.
+
+## 8. Scalping-specific execution filters
+Before an opportunity can be actionable, evaluate:
+- bid/ask spread relative to the planned stop and target distance
+- expected fees for the relevant account/venue tier
+- estimated slippage and available depth
+- market impact for the intended notional size
+- feed latency and age of the last trade/quote/book update
+- volatility and abrupt spread expansion
+- entry distance from the original planned zone
+- venue status, trading restrictions, and symbol liquidity
+
+A setup with positive chart evidence can still be rejected when transaction costs or execution quality erase its expected edge.
+
+## 9. Scalping-specific scenario expiry
+Short-lived opportunities need a short, explicit validity window. Store detected_at, discovery_price, valid_until, max_entry_distance, and the event/candle conditions that invalidate the setup. If price leaves the entry zone or the feed becomes stale, change the state to MISSED, EXPIRED, or REJECTED as appropriate; never keep distributing an obsolete ENTER NOW alert.
+
+## 10. AI and latency
+Do not call OpenAI for every tick or every subscriber. Deterministic streaming analysis should identify and gate candidates. Invoke AI only at bounded decision points where contextual synthesis is useful, with strict timeout and fallback behavior. A delayed AI response must not turn an expired entry into a current signal.
