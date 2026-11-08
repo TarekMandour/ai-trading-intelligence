@@ -77,3 +77,26 @@ The platform does not hold subscriber assets or place orders in the MVP. Executi
 - Maintain a broader candidate monitor and a narrower intensive-analysis/monitoring set. Subscription to feeds must respect venue connection and stream limits, with sharded connections and controlled resubscription as needed.
 - On depth sequence gaps, stale books, reconnects, or failed resynchronization, mark book quality invalid and suppress decisions that require depth until a fresh snapshot plus deltas is synchronized.
 - Keep universe selection, feed-health gates, and execution-cost gates deterministic. AI may explain a candidate but cannot override exclusions or freshness gates.
+
+
+## 13. Approved event-driven monitoring and opportunity pipeline
+
+The MVP uses two market-monitoring cohorts: a broad lightweight Watchlist and a smaller intensive Active Analysis Set. The Watchlist detects emerging activity and liquidity changes; the Active set maintains synchronized local books and computes richer structure/flow features. Cohort transitions are versioned and reason-coded. Capacity ranges are planning hypotheses, not fixed production limits.
+
+The processing path is:
+1. Venue adapter ingestion and canonical event envelope.
+2. Data normalization, deduplication, timestamp/provenance retention, and health validation.
+3. Candle aggregation and rolling feature updates.
+4. Lightweight event triggers and bounded candidate queue.
+5. Market regime/context and scenario evaluation.
+6. Structured evidence packet and optional bounded AI review.
+7. Deterministic entry/risk gates.
+8. Immutable candidate/signal persistence.
+9. Entitlement resolution and notification outbox.
+10. Event-driven lifecycle monitoring.
+
+Use bounded per-symbol queues, event coalescing, backpressure, priority, and stale-candidate expiry. No AI call belongs on every tick/trade/depth event. A candidate trigger is not a signal.
+
+Depth-dependent logic is enabled only for a sequence-synchronized local book. On a sequence gap, stale book, or resync failure, mark the book invalid and suppress dependent decisions. Historical depth replay requires prospective capture and explicit retention/licensing approval.
+
+See docs/14 and docs/15 and ADR 0005 for full contracts, recovery behavior, feature families, state boundaries, and acceptance criteria.
