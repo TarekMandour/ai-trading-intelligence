@@ -44,3 +44,21 @@ Provider feeds → normalize/validate → persist market data → update market 
 
 ## 7. Deployment shape
 Initial deployment topology and technology stack are intentionally undecided. Select after confirming market latency, data volume, operating budget, and team constraints.
+
+
+## 8. Crypto scalping data path (MVP proposal)
+For regular scalping, the architecture needs a persistent streaming path in addition to REST backfill:
+- WebSocket market stream for trades and best bid/ask; order-book depth updates where available and justified.
+- REST endpoints for instrument metadata, historical candle backfill, snapshots, and recovery after disconnects.
+- Sequence-aware order-book reconstruction when the venue provides sequence numbers and snapshot/delta semantics.
+- A stream health monitor for heartbeat, reconnect, sequence gaps, timestamp drift, and stale-feed detection.
+- A candle builder or validated candle adapter for 1m, 5m, 15m, and 1h intervals, with explicit open/closed status.
+- Event-driven feature updates and candidate evaluation; do not invoke a cloud AI model for every tick or candle.
+
+The fast path should use deterministic code for freshness checks, price/volume features, spread/liquidity gates, entry distance, stop validity, and state transitions. AI is an optional bounded reasoning step and must never become a synchronous bottleneck for every market event.
+
+## 9. Initial timeframe topology
+Proposed: 1H context → 15m structure → 5m setup/confirmation → 1m entry timing. The topology is configurable and pending validation. Higher-timeframe context can be cached and updated on candle completion or material regime events; lower-timeframe monitoring is event-driven.
+
+## 10. Venue and product isolation
+Provider adapters must expose normalized domain events while retaining venue-specific provenance. Spot and perpetual contracts require separate instrument metadata and risk modules. If derivatives are later approved, funding, mark/index price, liquidation mechanics, contract multiplier, and leverage constraints must be modeled explicitly.
