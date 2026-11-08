@@ -121,3 +121,11 @@ The system should not wait for every higher-timeframe candle to close before rea
 - Initial planning cohort: configurable, with 30–50 pairs as a capacity-planning range only. Exact count and quote-asset whitelist remain open.
 - Numeric thresholds and freshness objectives are provisional and are specified in `docs/13-top-liquid-universe-and-latency.md`; they require empirical validation before becoming production gates.
 - Binance commercial rights, downstream processing permissions, subscriber display/derived-alert rights, and target-jurisdiction eligibility are mandatory release blockers.
+
+
+## 12. Approved MVP quote asset and liquidity benchmark
+- Include USDT-quoted Binance Spot pairs only.
+- Use 500 USDT as the reference notional for instrument-universe liquidity qualification.
+- Under the provisional 20× depth rule, require at least 10,000 USDT executable ask depth and 10,000 USDT executable bid depth within 10 bps.
+- This is not a minimum trade size for subscribers; subscriber sizing and risk limits are separate product/risk decisions.
+- Expanding quote assets requires a future documented decision.
