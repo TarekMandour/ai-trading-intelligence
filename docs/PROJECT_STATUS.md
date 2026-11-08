@@ -16,7 +16,7 @@ Last updated: 2026-11-09
 - MVP market: **Crypto**.
 - MVP product: **Centralized-exchange Spot only**.
 - MVP trading style: **Regular Scalping**. Ultra-scalping/HFT is out of initial scope.
-- MVP signals: **Long/buy spot opportunities only**; no native short exposure.
+- MVP signals: **Long/buy spot opportunities only**; no native short exposure.\n- MVP reference venue/data source: **Binance Spot direct API** (technical selection; commercial licensing pending).\n- MVP instrument universe policy: **`top_liquid`**, a dynamic liquidity- and execution-quality-ranked set of eligible active Spot pairs. The initial 30–50 pair range is a planning target only.
 - Margin, borrowing, leverage, futures, perpetuals, options, funding and liquidation are excluded from MVP.
 - Automated order execution and custody are out of scope; platform provides analysis and alerts.
 - Analysis is performed centrally; a stored opportunity is distributed to eligible subscribers without rerunning the same analysis per subscriber.
@@ -67,7 +67,7 @@ These are proposed roles, not final approved trading rules. Validation must incl
 - ADR 0002: crypto regular scalping MVP
 - ADR 0003: crypto spot-only MVP
 - Crypto scalping data requirements and timeframe proposal
-- Initial market-data provider comparison and licensing review
+- Initial market-data provider comparison and licensing review\n- ADR 0004: Binance Spot and dynamic `top_liquid` MVP universe\n- Provisional top-liquid selection, liquidity, freshness, and latency policy
 
 ## Next actions
 1. Evaluate Binance Spot direct API as a technical candidate, subject to commercial rights and jurisdiction approval.
