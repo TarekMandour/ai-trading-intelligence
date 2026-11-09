@@ -16,14 +16,16 @@ class BinanceSpotClient
             // ticker payload but an empty eligible universe in the local runtime, despite
             // both endpoints returning valid data when called independently.
             $exchangeResponse = Http::baseUrl($baseUrl)
-                ->connectTimeout(3)
+                ->connectTimeout(5)
                 ->timeout(config('analysis.timeout_seconds'))
+                ->retry([250, 750, 1500])
                 ->get('/api/v3/exchangeInfo')
                 ->throw();
 
             $tickerResponse = Http::baseUrl($baseUrl)
-                ->connectTimeout(3)
+                ->connectTimeout(5)
                 ->timeout(config('analysis.timeout_seconds'))
+                ->retry([250, 750, 1500])
                 ->get('/api/v3/ticker/24hr')
                 ->throw();
 
