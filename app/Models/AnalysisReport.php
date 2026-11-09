@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class AnalysisReport extends Model
 {
-    protected $fillable = ['profile', 'status', 'timeframes', 'reasons', 'data_quality_warnings', 'ai_review'];
+    protected $fillable = ['profile', 'symbol', 'status', 'timeframes', 'reasons', 'data_quality_warnings', 'ai_review'];
 
     protected function casts(): array
     {
