@@ -53,6 +53,7 @@ class ProcessAnalysisRun implements ShouldQueue
 
         $profileCount = 0;
         $aiStatuses = [];
+        $aiReviewCount = 0;
         foreach ($universe['symbols'] as $symbolData) {
             $symbol = $symbolData['symbol'];
             $candlesByInterval = [];
@@ -137,9 +138,16 @@ class ProcessAnalysisRun implements ShouldQueue
                     ))),
                     'candidate' => $candidate,
                 ];
-                $aiReview = ($decision === 'ENTERABLE' && $candidate !== null && $alignmentResult['state'] === 'ALIGNED')
-                    ? $this->reviewAi($ai, $validator, $evidence)
-                    : ['status' => config('services.openai.key') ? 'NOT_REQUIRED' : 'NOT_CONFIGURED'];
+                if ($decision === 'ENTERABLE' && $candidate !== null && $alignmentResult['state'] === 'ALIGNED') {
+                    if ($aiReviewCount < max(0, (int) config('analysis.ai_max_candidates_per_run', 5))) {
+                        $aiReview = $this->reviewAi($ai, $validator, $evidence);
+                        $aiReviewCount++;
+                    } else {
+                        $aiReview = ['status' => config('services.openai.key') ? 'SKIPPED_LIMIT' : 'NOT_CONFIGURED'];
+                    }
+                } else {
+                    $aiReview = ['status' => config('services.openai.key') ? 'NOT_REQUIRED' : 'NOT_CONFIGURED'];
+                }
                 $aiStatuses[] = $aiReview['status'];
 
                 DB::transaction(function () use ($run, $profile, $symbol, $decision, $timeframes, $evidence, $executionCosts, $aiReview, $profileWarnings, $candidate, $selectedScenario): void {
@@ -174,7 +182,7 @@ class ProcessAnalysisRun implements ShouldQueue
             'status' => 'COMPLETED',
             'ai_status' => ! config('services.openai.key') ? 'NOT_CONFIGURED' : (in_array('FAILED', $aiStatuses, true) ? 'PARTIAL_FAILURE' : (in_array('REJECTED', $aiStatuses, true) ? 'PARTIAL_REJECTED' : (in_array('COMPLETED', $aiStatuses, true) ? 'COMPLETED' : 'NOT_REQUIRED'))),
             'completed_at' => now(),
-            'audit' => ['universe_count' => count($universe['symbols']), 'reports_created' => $profileCount, 'source' => 'binance_spot_rest', 'warnings' => array_values(array_unique($warnings))],
+            'audit' => ['universe_count' => count($universe['symbols']), 'reports_processed' => $profileCount, 'ai_reviews_attempted' => $aiReviewCount, 'source' => 'binance_spot_rest', 'warnings' => array_values(array_unique($warnings))],
         ]);
     }
 
