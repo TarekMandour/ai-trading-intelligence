@@ -1,3 +1,6 @@
+> **Scope note (2026-11-09):** The logical evidence-gated decision pipeline remains a design reference, but the current local MVP is manually triggered, REST-based, and produces three independent profile reports (Scalping 1–30m, Intraday 30m–8h, Swing 1–7d). Continuous event triggers, streaming monitoring, subscriber entitlements, and distribution are deferred. The initial multi-timeframe and regime contract is in docs/18-market-regime-and-multitimeframe-spec.md; local implementation scope is in docs/17-local-mvp-implementation-plan.md.
+
+
 # Opportunity Detection and Decision Pipeline
 
 Status: Phase 0 design approved for the MVP workflow. Scenario families, features, and score weights are research candidates until validated. This document defines an orchestrated process, not a profitable strategy or a claim of predictive certainty.
