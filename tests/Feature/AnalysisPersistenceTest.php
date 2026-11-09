@@ -68,7 +68,7 @@ class AnalysisPersistenceTest extends TestCase
             'open_time' => 1, 'close_time' => 2, 'open' => 100.0, 'high' => 101.0,
             'low' => 99.0, 'close' => 100.0, 'volume' => 10.0,
         ]);
-        $binance->shouldReceive('candles')->times(24)->andReturn($candles);
+        $binance->shouldReceive('candles')->times(14)->andReturn($candles);
         $engine = $this->mock(DeterministicAnalysisEngine::class);
         $engine->shouldReceive('evaluate')->times(24)->andReturn([
             'direction' => 'RANGING',
