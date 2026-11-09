@@ -3,7 +3,7 @@
 namespace App\Services\MarketData;
 
 use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 
 class BinanceSpotClient
@@ -18,25 +18,7 @@ class BinanceSpotClient
             // both endpoints returning valid data when called independently.
             // exchangeInfo is a large (~18 MB) metadata response. Cache only its
             // symbol metadata so subsequent runs do not download the full payload again.
-            $exchangeSymbols = Cache::remember(
-                'analysis.binance.exchange_info.symbols.v1',
-                now()->addMinutes(max(1, (int) config('analysis.exchange_info_cache_minutes', 60))),
-                function () use ($baseUrl): array {
-                    $response = Http::baseUrl($baseUrl)
-                        ->connectTimeout(5)
-                        ->timeout(max(10, (int) config('analysis.exchange_info_timeout_seconds', 60)))
-                        ->retry([500, 1500, 3000])
-                        ->get('/api/v3/exchangeInfo')
-                        ->throw();
-
-                    $symbols = $response->json('symbols', []);
-                    if (! is_array($symbols) || $symbols === []) {
-                        throw new \RuntimeException('Binance exchangeInfo returned an empty symbols list.');
-                    }
-
-                    return $symbols;
-                },
-            );
+            $exchangeSymbols = $this->exchangeInfoSymbols($baseUrl);
 
             $tickerResponse = Http::baseUrl($baseUrl)
                 ->connectTimeout(5)
@@ -82,6 +64,72 @@ class BinanceSpotClient
                 previous: $exception,
             );
         }
+    }
+
+    /**
+     * Store Binance exchange metadata as JSON on disk instead of the default cache
+     * store. The exchangeInfo payload is too large for Laravel's database cache value
+     * column. Expired or invalid files are removed automatically on the next analysis.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function exchangeInfoSymbols(string $baseUrl): array
+    {
+        $cachePath = storage_path('app/cache/binance/exchange_info_symbols.json');
+        $cacheMinutes = max(1, (int) config('analysis.exchange_info_cache_minutes', 60));
+
+        if (File::exists($cachePath)) {
+            try {
+                $cached = json_decode(File::get($cachePath), true, 512, JSON_THROW_ON_ERROR);
+                $expiresAt = (int) ($cached['expires_at'] ?? 0);
+                $symbols = $cached['symbols'] ?? null;
+
+                if ($expiresAt > now()->timestamp && is_array($symbols) && $symbols !== []) {
+                    return $symbols;
+                }
+            } catch (\\Throwable) {
+                // Invalid or partially written cache: remove it and fetch fresh data.
+            }
+
+            File::delete($cachePath);
+        }
+
+        $response = Http::baseUrl($baseUrl)
+            ->connectTimeout(5)
+            ->timeout(max(10, (int) config('analysis.exchange_info_timeout_seconds', 60)))
+            ->retry([500, 1500, 3000])
+            ->get('/api/v3/exchangeInfo')
+            ->throw();
+
+        $symbols = $response->json('symbols', []);
+        if (! is_array($symbols) || $symbols === []) {
+            throw new \\RuntimeException('Binance exchangeInfo returned an empty symbols list.');
+        }
+
+        File::ensureDirectoryExists(dirname($cachePath));
+        $payload = json_encode([
+            'cached_at' => now()->toIso8601String(),
+            'expires_at' => now()->addMinutes($cacheMinutes)->timestamp,
+            'symbols' => $symbols,
+        ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+
+        $temporaryPath = tempnam(dirname($cachePath), 'exchange-info-');
+        if ($temporaryPath === false) {
+            throw new \\RuntimeException('Unable to create Binance exchangeInfo cache file.');
+        }
+
+        try {
+            if (file_put_contents($temporaryPath, $payload, LOCK_EX) === false
+                || ! rename($temporaryPath, $cachePath)) {
+                throw new \\RuntimeException('Unable to write Binance exchangeInfo JSON cache file.');
+            }
+        } finally {
+            if (File::exists($temporaryPath)) {
+                File::delete($temporaryPath);
+            }
+        }
+
+        return $symbols;
     }
 
     /** @return array<int, array{open_time:int,close_time:int,open:float,high:float,low:float,close:float,volume:float}> */
