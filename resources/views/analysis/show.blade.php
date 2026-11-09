@@ -28,6 +28,20 @@
 <li>Target 2: {{ $opportunity->target_2 }}</li>
 </ul>
 @endif
+@php($costs = $report->timeframes['execution_costs'] ?? [])
+@if(isset($costs['estimated_entry']))
+<h4>Execution estimate (current order-book snapshot)</h4>
+<ul>
+<li>Conservative estimated entry: {{ $costs['estimated_entry'] }}</li>
+<li>Buy VWAP: {{ $costs['buy_vwap'] ?? '—' }}</li>
+<li>Sell VWAP: {{ $costs['sell_vwap'] ?? '—' }}</li>
+<li>Estimated round-trip fees: {{ $costs['fee'] ?? '—' }}</li>
+<li>Spread cost: {{ $costs['spread'] ?? '—' }}</li>
+<li>Slippage estimate: {{ $costs['slippage'] ?? '—' }}</li>
+<li>Cost-adjusted reward/risk: {{ $costs['net_risk_reward'] ?? '—' }}</li>
+</ul>
+<p><small>Order-book depth is a live snapshot, not historical liquidity or a fill guarantee.</small></p>
+@endif
 <h3>Evidence</h3>
 @foreach($opportunity->evidence as $evidence)
 <details><summary>{{ $evidence->kind }}</summary><pre>{{ json_encode($evidence->payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre></details>
