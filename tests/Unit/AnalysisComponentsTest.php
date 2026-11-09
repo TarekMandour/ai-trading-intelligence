@@ -67,7 +67,7 @@ class AnalysisComponentsTest extends TestCase
         $trend = collect($results)->firstWhere('scenario', 'TREND_PULLBACK_CONTINUATION');
 
         $this->assertSame('ENTERABLE', $trend['status']);
-        $this->assertGreaterThan($trend['stop'] ?? 0, $trend['candidate']['entry']);
+        $this->assertGreaterThan($trend['candidate']['stop'], $trend['candidate']['entry']);
         $this->assertGreaterThan($trend['candidate']['entry'], $trend['candidate']['target1']);
     }
 
