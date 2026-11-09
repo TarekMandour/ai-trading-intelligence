@@ -2,47 +2,35 @@
 
 ## Objective
 
-Deliver the local, manual Laravel analysis workflow with deterministic Spot-long research decisions and advisory-only AI review.
+Deliver the local, manual Laravel 13 analysis workflow for Binance Spot USDT long-only research, with deterministic risk gates and advisory-only AI.
 
-## Completed
+## Implemented on `phase-1-local-mvp`
 
-- Laravel 13/MySQL/database-queue baseline and manual analysis-run views.
-- Analysis run/report persistence and queued job.
-- Binance exchange/ticker/kline client, closed-candle baseline, profiles, deterministic regime/scenario/alignment/cost services.
-- OpenAI HTTP adapter, contract binding, validator, and advisory queue invocation.
-- Focused unit and feature coverage for the above components.
+- Laravel local application baseline, database queue, manual run creation and report routes.
+- Binance Spot REST client for exchange metadata, 24-hour tickers, klines and order-book snapshots.
+- Eligible Spot USDT universe ranked by 24-hour quote volume before applying the configured universe limit.
+- Current, still-forming klines excluded from downstream analysis.
+- Deterministic baseline market regime, multi-timeframe alignment, scenario evaluation and execution-cost components.
+- Relational run, report, opportunity, evidence, AI-review and audit persistence.
+- Audit-event fingerprint migration for durable uniqueness.
+- Symbol-scoped report uniqueness migration: one report per run/profile/symbol.
+- Queued pipeline iterates every selected symbol and each Scalping, Intraday and Swing profile; records timeframe states, alignment, regime, scenario results, execution costs, evidence and decisions.
+- AI review is restricted to deterministic ENTERABLE candidates with aligned timeframe evidence; AI remains advisory and cannot alter deterministic levels.
 
-## Pending
+## Remaining implementation work
 
-- Task A: validated Binance order-book acquisition and deterministic cost eligibility complete.
-- Task B: relational opportunities, evidence, AI-review, and immutable audit persistence.
-- Task C: wire all services into profile pipeline.
-- Task D: complete AI reliability matrix.
-- Task E: render persisted detailed reports.
-- Task F: full validation and status update.
+- Complete scenario-specific setup confirmation and authoritative Entry/Stop/Targets logic; current deterministic engine is a conservative baseline and must not be presented as production-validated.
+- Ensure order-book depth-aware execution-cost calculation handles partial depth and both-leg VWAP rather than only top-of-book liquidity.
+- Complete retry-safe persistence semantics for mutable RUNNING jobs and verify actual duplicate retry behavior.
+- Complete AI provider metadata, response schema, usage/latency capture, prompt versioning and failure matrix.
+- Render complete symbol-level report details including candidate levels, evidence, scenario explanations, costs, warnings and AI review.
+- Review queue failure handling, per-symbol data failures, run completion state and operational safeguards.
+- Final comprehensive tests, formatting, migrations, and local smoke test.
 
-## Current task
+## Verification status
 
-Task B — add relational opportunities, evidence, AI-review, and immutable audit persistence.
+No claim of full test-suite success is made for the latest GitHub changes. The latest pipeline and migration edits have not been executed in the user's Laragon environment. Run the complete test suite and migration checks only after implementation is complete.
 
-## Files changed so far
+## Latest implementation checkpoint
 
-See `git status --short`; the Laravel baseline and Phase 1 implementation are intentionally uncommitted.
-
-## Commands and results
-
-- `php artisan test --compact --filter=OpenAiAnalysisProviderTest`: passed, 3 tests / 4 assertions.
-- `php artisan test --compact --filter=OpenAiProvider`: passed, 2 tests / 2 assertions.
-- `php artisan test --compact --filter=AnalysisRunWorkflowTest`: passed, 2 tests / 10 assertions.
-- `php artisan test --compact --filter=BinanceSpotClientTest`: passed, 1 test / 2 assertions.
-- `php artisan test --compact --filter=AnalysisRunWorkflowTest`: passed, 2 tests / 10 assertions after execution-cost wiring.
-
-## Known blockers
-
-No source-code blocker. Real external Binance/OpenAI smoke calls remain intentionally unrun; automated tests use fakes.
-
-Known deferred verification issue: the queued-job retry test currently observes only one mocked universe request after re-queuing the run. Retry idempotency implementation uses report/opportunity/evidence/review unique constraints and an audit fingerprint; the test must be corrected and rerun in the final validation pass.
-
-## Exact next action
-
-Task C: wire multi-timeframe regimes, scenarios, and persisted report evidence through the queued analysis pipeline; resolve deferred retry verification during final validation.
+The analysis job now iterates the selected Binance universe for all three profiles and persists one report per symbol/profile. A new migration adds the report symbol and composite uniqueness. The next work is scenario/risk correctness, full depth-aware execution costs, AI reliability, detailed report UI, and then final validation.
