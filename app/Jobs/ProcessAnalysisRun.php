@@ -64,8 +64,6 @@ class ProcessAnalysisRun implements ShouldQueue
             $symbol = $symbolData['symbol'];
             $candlesByInterval = [];
             foreach (config('analysis.profiles') as $profile => $timeframes) {
-                // A prior attempt may already have committed this immutable symbol/profile
-                // snapshot. Skip it on retry to avoid duplicate AI calls and stale overwrites.
                 $existingReport = $run->reports()->where('profile', $profile)->where('symbol', $symbol)->first(['id', 'ai_review']);
                 if ($existingReport !== null) {
                     $existingReview = $existingReport->ai_review ?? [];
@@ -112,8 +110,6 @@ class ProcessAnalysisRun implements ShouldQueue
                     $decision = 'WAIT';
                 }
 
-                // A candidate is not an entry signal by itself. The selected scenario must
-                // explicitly confirm ENTERABLE before execution-cost gating can pass.
                 if ($candidate !== null && $alignmentResult['state'] === 'ALIGNED') {
                     try {
                         $book = $binance->orderBook($symbol);
@@ -123,10 +119,17 @@ class ProcessAnalysisRun implements ShouldQueue
                         $executionCosts['estimated_entry'] = $estimatedEntry;
                         $risk = $estimatedEntry - (float) $candidate['stop'];
                         $reward = (float) $candidate['target1'] - $estimatedEntry;
-                        $costPerUnit = $baseQuantity > 0 ? (float) $executionCosts['total'] / $baseQuantity : INF;
-                        $netRiskReward = ($risk + $costPerUnit) > 0 ? ($reward - $costPerUnit) / ($risk + $costPerUnit) : 0.0;
+                        $entryCostPerUnit = (float) ($executionCosts['entry_cost_per_unit'] ?? 0.0);
+                        $exitCostPerUnit = (float) ($executionCosts['exit_cost_per_unit'] ?? 0.0);
+                        $roundTripCostPerUnit = $entryCostPerUnit + $exitCostPerUnit;
+                        $executionCosts['round_trip_cost_per_unit'] = $roundTripCostPerUnit;
+                        $netReward = $reward - $roundTripCostPerUnit;
+                        $netRisk = $risk + $roundTripCostPerUnit;
+                        $netRiskReward = $netRisk > 0 ? $netReward / $netRisk : 0.0;
+                        $executionCosts['net_target1_reward_per_unit'] = $netReward;
+                        $executionCosts['net_stop_risk_per_unit'] = $netRisk;
                         $executionCosts['net_risk_reward'] = $netRiskReward;
-                        $decision = $executionCosts['available'] && $netRiskReward >= (float) config('analysis.minimum_net_risk_reward', 1.5) ? 'ENTERABLE' : 'WAIT';
+                        $decision = $executionCosts['available'] && $baseQuantity > 0 && $netReward > 0 && $netRiskReward >= (float) config('analysis.minimum_net_risk_reward', 1.5) ? 'ENTERABLE' : 'WAIT';
                     } catch (\Throwable $exception) {
                         $profileWarnings[] = 'ORDER_BOOK_UNAVAILABLE';
                         $decision = 'WAIT';
