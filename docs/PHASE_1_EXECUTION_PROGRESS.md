@@ -27,6 +27,8 @@ Deliver the local, manual Laravel 13 analysis workflow for Binance Spot USDT lon
 - Database queue retry_after is now 360 seconds, above the job's 300-second timeout, to reduce duplicate concurrent processing. The selected eligible universe is persisted in the run snapshot and partially committed symbol/profile reports are skipped on retry, preventing repeated AI calls for already committed work. AI reviews are capped by AI_MAX_CANDIDATES_PER_RUN, and OpenAI output tokens are bounded. Continue reviewing retry/idempotency behavior and run completion safeguards. Retryable run-level Binance failures remain RUNNING until Laravel exhausts retries and invokes the terminal failed callback. Incomplete timeframe sets now produce REJECTED reports rather than silently becoming NO_OPPORTUNITY.
 - Final comprehensive tests, formatting, migrations, and local smoke test. Regression tests have been added/updated for escaping, depth-aware costs, scenario confirmation, unavailable market data, AI schema output, and idempotent persistence, but have not been executed. Static review found and corrected a malformed exception catch in a workflow test; all tests remain unrun.
 
+- Additional static-review fixes: corrected the AI validator namespace declaration, preserved existing AI review statuses when a queued run resumes already-committed reports, corrected the remaining XAMPP reference to Laragon, and set `gpt-4.1-mini` as the explicit `.env.example` model default.
+
 ## Verification status
 
 No claim of full test-suite success is made for the latest GitHub changes. The latest pipeline and migration edits have not been executed in the user's Laragon environment. Run the complete test suite and migration checks only after implementation is complete.
