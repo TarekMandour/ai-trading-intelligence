@@ -108,7 +108,7 @@ class ProcessAnalysisRun implements ShouldQueue
                         $costPerUnit = $baseQuantity > 0 ? (float) $executionCosts['total'] / $baseQuantity : INF;
                         $netRiskReward = ($risk + $costPerUnit) > 0 ? ($reward - $costPerUnit) / ($risk + $costPerUnit) : 0.0;
                         $executionCosts['net_risk_reward'] = $netRiskReward;
-                        $decision = $executionCosts['available'] && $netRiskReward >= 1.5 ? 'ENTERABLE' : 'WAIT';
+                        $decision = $executionCosts['available'] && $netRiskReward >= (float) config('analysis.minimum_net_risk_reward', 1.5) ? 'ENTERABLE' : 'WAIT';
                     } catch (\Throwable $exception) {
                         $profileWarnings[] = 'ORDER_BOOK_UNAVAILABLE';
                         $decision = 'WAIT';
