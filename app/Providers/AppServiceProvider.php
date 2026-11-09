@@ -17,6 +17,7 @@ class AppServiceProvider extends ServiceProvider
             config('services.openai.key'),
             config('services.openai.model'),
             config('services.openai.timeout'),
+            config('services.openai.max_output_tokens'),
         ));
     }
 
