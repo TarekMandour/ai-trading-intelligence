@@ -1,48 +1,93 @@
-# Testing and Validation Standard
+# Testing and Validation
 
-## 1. Validation layers
-1. Data contract and normalization tests
-2. Unit tests for features, structure, risk gates, and state transitions
-3. Integration tests for provider adapters, queues, persistence, and notifications
-4. Historical simulation/backtesting
-5. Walk-forward and out-of-sample evaluation
-6. Paper trading / shadow mode
-7. Controlled production rollout with monitoring
+Status: Required standards for the local MVP and later strategy approval.
 
-## 2. Backtest integrity
-- Use chronological splits; never randomly shuffle time-series observations.
-- Avoid look-ahead and survivorship bias.
-- Account for fees, spread, slippage, liquidity, latency, and realistic fills.
-- Handle corporate actions and symbol delistings where applicable.
-- Avoid using revised or future data unavailable at decision time.
-- Preserve all strategy/model versions and parameter sets.
-- Correct for multiple testing and selection bias when many hypotheses are explored.
+## 1. Two separate validation gates
 
-## 3. Metrics
-Evaluate expectancy after costs, win/loss distribution, profit factor, maximum drawdown, tail loss, exposure/time in market, trade frequency, missed opportunities, false positives, calibration, and stability across regimes. Metrics and thresholds must be chosen before final evaluation.
+### Gate A — Technical local prototype
+Proves the application fetches and validates data, classifies regimes, evaluates baseline scenarios, stores results, and renders three separate reports reliably.
 
-## 4. Operational tests
-Measure feed freshness, end-to-end signal latency, analysis failure rate, AI latency/cost, notification delay, duplicate delivery, retry behavior, and recovery after provider/channel outage.
+### Gate B — Trading-edge validation
+Proves a strategy has repeatable positive net expectancy on chronological out-of-sample data under realistic execution costs and then survives paper trading. Passing Gate A does not imply Gate B.
 
-## 5. Promotion gates
-No research strategy or model version is promoted based only on in-sample results. Require out-of-sample evidence, paper/shadow results, risk review, and explicit approval.
+## 2. Data tests
 
-## 6. Reproducibility
-A historical decision must be reproducible from stored data references, code/rule version, configuration, and model/prompt version where applicable.
+- Binance symbol eligibility and USDT Spot filtering.
+- API timeout, rate-limit, server-error, and malformed-response handling.
+- Candle completeness, duplicates, gaps, timestamp ordering, and interval mapping.
+- Closed vs forming candle status.
+- Receive-time and exchange-time provenance.
+- Decimal precision and symbol tick/lot filters.
+- No future candle leakage when aligning timeframes.
 
+## 3. Market-regime tests
 
-## 7. Market monitoring and opportunity validation
+- BULLISH, BEARISH, RANGING, and UNCERTAIN direction fixtures.
+- LOW, NORMAL, and HIGH volatility fixtures.
+- TRENDING, CHOPPY, TRANSITION, and UNCERTAIN behavior fixtures.
+- Orthogonal combinations such as BULLISH + HIGH volatility.
+- Conflicting feature and timeframe evidence.
+- Insufficient history and missing data.
+- Stable deterministic output for identical inputs/configuration.
 
-Required test layers:
-- deterministic unit tests for event normalization, decimal handling, deduplication, timestamp handling, candle aggregation, feature calculations, and state transitions;
-- order-book synchronization tests for snapshot bridging, duplicate/out-of-order updates, sequence gaps, zero-quantity deletion, reconnect, and resynchronization;
-- fault-injection tests for stale feeds, missing candles, clock drift, REST throttling, WebSocket disconnect/server shutdown, queue backpressure, and process restart;
-- deterministic event replay using recorded event order, source timestamps, receive timestamps, and policy versions;
-- candidate tests proving that a trigger alone never publishes a trade;
-- scenario tests for confirmation, contradiction, invalidation, expiry, missed entry, and duplicate suppression;
-- AI contract tests for schema validation, invented/missing fields, timeout, provider outage, and attempts to bypass hard gates;
-- end-to-end paper/shadow tests with ask-side entry, bid-side exit, both-leg fees, spread, slippage, impact, latency, and missed fills.
+## 4. Strategy and risk tests
 
-Use chronological walk-forward/out-of-sample evaluation, purging/embargo where outcome windows overlap, scenario ablations, threshold sensitivity, and regime/symbol/time-of-day breakdowns. Do not claim book-based historical performance where historical depth was not captured.
+- Scenario setup/confirmation/invalidation.
+- Entry-zone geometry.
+- Stop and target ordering.
+- Conservative reward/risk after both-leg costs.
+- Ask-side entry and bid-side exit assumptions.
+- Maximum entry distance and expiry.
+- Duplicate candidates and state transitions.
+- Hard gates cannot be overridden by a score or AI output.
+- NO_OPPORTUNITY is a valid successful result.
 
-Promotion requires reproducible evidence, realistic net-of-cost performance, stable operation, paper/shadow results, risk review, and explicit approval. Research feature usefulness is not proof of profitability.
+## 5. Application tests
+
+- Create analysis run from dashboard.
+- Database queue worker state transitions.
+- Duplicate click/idempotency protection.
+- Provider failures and bounded retry behavior.
+- Partial symbol failures do not corrupt other symbols or the whole run.
+- Three independent report views and historical run navigation.
+- Audit trail immutability.
+- Secrets never appear in logs or persisted payloads.
+
+## 6. Trading-edge validation protocol
+
+For each scenario family independently:
+- define the hypothesis and parameters before test;
+- split data chronologically into train, validation, and untouched test;
+- use walk-forward evaluation;
+- purge/embargo overlapping labels or holding windows where needed;
+- include both-leg fees, spread, slippage, market impact, latency, and missed fills;
+- simulate bid/ask execution rather than candle-close fills;
+- report net expectancy, profit factor, drawdown, win rate with sample size, MAE/MFE, time in trade, false positives, and missed opportunities;
+- break down by symbol, timeframe, profile, and regime;
+- run threshold sensitivity and feature ablation;
+- account for multiple testing and backtest overfitting;
+- retain failed experiments.
+
+Historical order-book replay is unavailable unless the relevant depth was captured historically. A current REST depth snapshot must not be used as a proxy for past depth.
+
+## 7. Paper trading
+
+Only after a strategy passes out-of-sample validation:
+- run signals without placing orders;
+- record signal timestamp and executable reference prices;
+- measure entry delay, missed fills, slippage, stop/target outcomes, and operational failures;
+- require a predeclared minimum observation period and trade count before any promotion decision.
+
+No arbitrary profitability threshold should be selected after seeing the results.
+
+## 8. Required reporting
+
+Every validation report must state:
+- dataset, venue, symbols, dates, and sampling frequency;
+- strategy/config/model version;
+- data-quality exclusions;
+- execution and cost assumptions;
+- number of trials and parameter variants;
+- in-sample, validation, and untouched out-of-sample results;
+- uncertainty/sample-size caveats;
+- limitations and reproducible commands.
