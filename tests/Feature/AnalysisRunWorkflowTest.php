@@ -35,7 +35,7 @@ class AnalysisRunWorkflowTest extends TestCase
         $client->shouldReceive('eligibleUsdtUniverse')->once()->andThrow(new \RuntimeException('offline'));
 
         $ai = $this->mock(AiAnalysisProvider::class);
-        (new ProcessAnalysisRun($run->id))->handle($client, app(DeterministicAnalysisEngine::class), app(ExecutionCostEstimator::class), $ai, app(AiReviewValidator::class));
+        (new ProcessAnalysisRun($run->id))->handle($client, app(DeterministicAnalysisEngine::class), app(ExecutionCostEstimator::class), app(MultiTimeframeAlignment::class), app(ScenarioEvaluator::class), $ai, app(AiReviewValidator::class));
 
         $this->assertDatabaseHas('analysis_runs', ['id' => $run->id, 'status' => 'COMPLETED']);
         $this->assertDatabaseCount('analysis_reports', 3);
