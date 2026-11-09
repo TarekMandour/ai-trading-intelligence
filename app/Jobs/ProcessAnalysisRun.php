@@ -151,7 +151,7 @@ class ProcessAnalysisRun implements ShouldQueue
 
         $run->update([
             'status' => 'COMPLETED',
-            'ai_status' => ! config('services.openai.key') ? 'NOT_CONFIGURED' : (in_array('FAILED', $aiStatuses, true) ? 'PARTIAL_FAILURE' : (in_array('REJECTED', $aiStatuses, true) ? 'PARTIAL_REJECTED' : 'COMPLETED')),
+            'ai_status' => ! config('services.openai.key') ? 'NOT_CONFIGURED' : (in_array('FAILED', $aiStatuses, true) ? 'PARTIAL_FAILURE' : (in_array('REJECTED', $aiStatuses, true) ? 'PARTIAL_REJECTED' : (in_array('COMPLETED', $aiStatuses, true) ? 'COMPLETED' : 'NOT_REQUIRED'))),
             'completed_at' => now(),
             'audit' => ['universe_count' => count($universe['symbols']), 'reports_created' => $profileCount, 'source' => 'binance_spot_rest', 'warnings' => array_values(array_unique($warnings))],
         ]);
