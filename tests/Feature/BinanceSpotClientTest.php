@@ -1,10 +1,10 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Services\\MarketData\\BinanceSpotClient;
-use Illuminate\\Support\\Facades\\Http;
-use Tests\\TestCase;
+use App\Services\MarketData\BinanceSpotClient;
+use Illuminate\Support\Facades\Http;
+use Tests\TestCase;
 
 class BinanceSpotClientTest extends TestCase
 {
