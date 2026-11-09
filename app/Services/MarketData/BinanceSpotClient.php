@@ -36,6 +36,7 @@ class BinanceSpotClient
             $eligible = collect($exchangeSymbols)
                 ->filter(fn (array $symbol): bool => ($symbol['status'] ?? null) === 'TRADING'
                     && ($symbol['quoteAsset'] ?? null) === 'USDT'
+                    && ! in_array(strtoupper((string) ($symbol['baseAsset'] ?? '')), config('analysis.excluded_base_assets', []), true)
                     && ($symbol['isSpotTradingAllowed'] ?? false) === true
                     && isset($tickers[$symbol['symbol']]))
                 ->map(function (array $symbol) use ($tickers): array {
