@@ -74,11 +74,14 @@ class ProcessAnalysisRun implements ShouldQueue
                 $entryState = $states['entry'] ?? null;
                 $regime = $entryState ?? ['direction' => 'UNCERTAIN', 'behavior' => 'UNCERTAIN', 'volatility' => 'NORMAL', 'reasons' => ['INSUFFICIENT_VALIDATED_CANDLE_EVIDENCE'], 'candidate' => null];
                 $scenarioResults = $scenarios->evaluate($regime);
+                $selectedScenario = collect($scenarioResults)->firstWhere('scenario', 'TREND_PULLBACK_CONTINUATION');
                 $candidate = $regime['candidate'] ?? null;
                 $decision = 'NO_OPPORTUNITY';
                 $executionCosts = ['available' => false, 'fee' => 0, 'spread' => 0, 'slippage' => 0, 'total' => 0];
 
-                if ($candidate !== null && $alignmentResult['state'] === 'ALIGNED') {
+                // A candidate is not an entry signal by itself. The selected scenario must
+                // explicitly confirm ENTERABLE before execution-cost gating can pass.
+                if ($candidate !== null && $alignmentResult['state'] === 'ALIGNED' && ($selectedScenario['status'] ?? null) === 'ENTERABLE') {
                     try {
                         $book = $binance->orderBook($symbol);
                         $executionCosts = $costs->estimateFromOrderBook($book, (float) config('analysis.trade_notional'), (float) config('analysis.fee_rate'));
@@ -116,7 +119,7 @@ class ProcessAnalysisRun implements ShouldQueue
                     );
                     $opportunity = $report->opportunity()->firstOrCreate(
                         [],
-                        ['symbol' => $symbol, 'scenario' => $candidate ? 'TREND_PULLBACK_CONTINUATION' : null, 'decision' => $decision, 'entry' => $candidate['entry'] ?? null, 'stop' => $candidate['stop'] ?? null, 'target_1' => $candidate['target1'] ?? null, 'target_2' => $candidate['target2'] ?? null, 'snapshot' => $evidence]
+                        ['symbol' => $symbol, 'scenario' => $candidate ? ($selectedScenario['scenario'] ?? null) : null, 'decision' => $decision, 'entry' => $candidate['entry'] ?? null, 'stop' => $candidate['stop'] ?? null, 'target_1' => $candidate['target1'] ?? null, 'target_2' => $candidate['target2'] ?? null, 'snapshot' => $evidence]
                     );
                     foreach (['market_regime', 'timeframe_alignment', 'scenarios', 'execution_costs', 'decision'] as $key) {
                         $opportunity->evidence()->firstOrCreate(
