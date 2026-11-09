@@ -60,7 +60,7 @@ class AnalysisPersistenceTest extends TestCase
     {
         $run = AnalysisRun::create(['idempotency_key' => (string) Str::uuid(), 'status' => 'QUEUED', 'configuration_version' => 'test', 'ai_status' => 'NOT_CONFIGURED']);
         $binance = $this->mock(BinanceSpotClient::class);
-        $binance->shouldReceive('eligibleUsdtUniverse')->twice()->andReturn([
+        $binance->shouldReceive('eligibleUsdtUniverse')->once()->andReturn([
             'symbols' => [['symbol' => 'BTCUSDT']],
             'tickers' => [],
         ]);
