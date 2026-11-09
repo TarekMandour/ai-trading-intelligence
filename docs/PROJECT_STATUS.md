@@ -24,7 +24,8 @@ Last updated: 2026-11-09
 - MySQL target database; verify actual installed server. XAMPP may bundle MariaDB.
 - Laravel database queue with manually started worker.
 - REST data collection only for the first milestone.
-- Deterministic regime and scenario baselines; OpenAI is not a required dependency.
+- Hybrid AI architecture is approved for Phase 1: deterministic Laravel analysis plus provider-neutral AI review, with OpenAI as the first provider.
+- AI review is implemented in this milestone for shortlisted candidates when credentials are configured. Deterministic reports remain available when AI is unavailable or not configured.
 
 ## Approved exclusions
 No VPS/cloud deployment, continuous monitoring, Binance WebSocket, Redis, Horizon, Kafka, RabbitMQ, Docker, Kubernetes, OpenSwoole, ReactPHP, Go/Python services, Reverb, subscriptions, billing, commercial signal distribution, automated order execution, custody, margin, borrowing, leverage, futures, perpetuals, options, or short signals.
@@ -51,6 +52,7 @@ Research sources and limitations are documented in docs/16-research-evidence-and
 
 ## Implementation documents
 - docs/17-local-mvp-implementation-plan.md
+- docs/20-ai-integration-spec.md
 - docs/18-market-regime-and-multitimeframe-spec.md
 - docs/decisions/0006-local-laravel-mysql-manual-analysis-mvp.md
 
@@ -66,7 +68,7 @@ Research sources and limitations are documented in docs/16-research-evidence-and
 - Per-timeframe regime outputs are generated for each profile.
 - Three separate reports are rendered, including NO OPPORTUNITY where appropriate.
 - Candidate plans include entry, stop/invalidation, targets, costs, expiry, evidence, and reason codes.
-- Tests cover data quality, calculations, multi-timeframe alignment, decision gates, queue workflow, and report rendering.
+- Tests cover data quality, calculations, multi-timeframe alignment, decision gates, queue workflow, report rendering, AI schema validation, provider failures, and deterministic fallback.
 - Exact commands and test outcomes are documented.
 - No profitability claim is made from the first smoke test.
 
@@ -74,7 +76,7 @@ Research sources and limitations are documented in docs/16-research-evidence-and
 - Backtesting/replay harness and untouched out-of-sample validation.
 - Evidence that any strategy family has positive net expectancy after costs.
 - Prospective order-book capture only if research justifies it.
-- Optional bounded AI review only after deterministic baseline quality is measured.
+- Validate AI review quality, cost, latency, and consistency against human-reviewed cases; AI remains advisory and cannot override deterministic gates.
 - Commercial data rights and legal/jurisdiction review before paid signal distribution.
 - Hosting, subscriptions, and SaaS only after local proof of value and separate approval.
 
