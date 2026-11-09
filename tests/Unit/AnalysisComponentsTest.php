@@ -49,6 +49,35 @@ class AnalysisComponentsTest extends TestCase
         $this->assertSame('INSUFFICIENT_ASK_DEPTH', $result['reason']);
     }
 
+    public function test_trend_pullback_requires_a_bullish_reclaim_and_volume_confirmation(): void
+    {
+        $candles = [];
+        for ($i = 0; $i < 60; $i++) {
+            $close = 100 + ($i * 0.2);
+            $candles[] = [
+                'open' => $close - 0.05,
+                'high' => $close + 0.05,
+                'low' => $close - 0.3,
+                'close' => $close,
+                'volume' => $i === 59 ? 200.0 : 100.0,
+            ];
+        }
+
+        $results = (new ScenarioEvaluator)->evaluate(['direction' => 'BULLISH', 'behavior' => 'TRENDING', 'volatility' => 'NORMAL'], $candles);
+        $trend = collect($results)->firstWhere('scenario', 'TREND_PULLBACK_CONTINUATION');
+
+        $this->assertSame('ENTERABLE', $trend['status']);
+        $this->assertGreaterThan($trend['stop'] ?? 0, $trend['candidate']['entry']);
+        $this->assertGreaterThan($trend['candidate']['entry'], $trend['candidate']['target1']);
+    }
+
+    public function test_scenario_evaluator_does_not_create_levels_without_candle_evidence(): void
+    {
+        $results = (new ScenarioEvaluator)->evaluate(['direction' => 'BULLISH', 'behavior' => 'TRENDING', 'volatility' => 'NORMAL']);
+
+        $this->assertNull(collect($results)->firstWhere('scenario', 'TREND_PULLBACK_CONTINUATION')['candidate']);
+    }
+
     public function test_all_scenarios_are_evaluated(): void
     {
         $this->assertCount(4, (new ScenarioEvaluator)->evaluate(['direction' => 'BULLISH', 'behavior' => 'TRENDING', 'volatility' => 'HIGH']));
