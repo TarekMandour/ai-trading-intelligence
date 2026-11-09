@@ -5,6 +5,7 @@
 <p><a href="{{ route('analysis-runs.index') }}">Back to runs</a></p>
 <h1>Analysis run #{{ $analysisRun->id }}</h1>
 <p>Status: <strong>{{ $analysisRun->status }}</strong> | AI: {{ $analysisRun->ai_status }}</p>
+@if($analysisRun->audit)<h2>Run audit</h2><pre>{{ json_encode($analysisRun->audit, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>@endif
 @if($analysisRun->failure_reason)<p role="alert">Failure: {{ $analysisRun->failure_reason }}</p>@endif
 @foreach($analysisRun->reports as $report)
 <section>
@@ -33,6 +34,10 @@
 @endforeach
 <h3>AI review</h3>
 <p>Status: {{ $opportunity->aiReview->status ?? 'NOT_AVAILABLE' }}</p>
+@if($opportunity->aiReview)
+<p>Provider: {{ $opportunity->aiReview->provider ?? '—' }} | Model: {{ $opportunity->aiReview->model ?? '—' }} | Latency: {{ $opportunity->aiReview->latency_ms ?? '—' }} ms</p>
+@if($opportunity->aiReview->usage)<details><summary>Provider usage</summary><pre>{{ json_encode($opportunity->aiReview->usage, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre></details>@endif
+@endif
 @if($opportunity->aiReview?->review)<pre>{{ json_encode($opportunity->aiReview->review, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>@endif
 @endif
 </section>
