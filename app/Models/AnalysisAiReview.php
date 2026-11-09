@@ -11,7 +11,7 @@ class AnalysisAiReview extends Model
 
     protected function casts(): array
     {
-        return ['review' => 'array'];
+        return ['review' => 'array', 'usage' => 'array'];
     }
 
     public function opportunity(): BelongsTo
