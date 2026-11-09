@@ -39,6 +39,7 @@ return [
         'key' => env('OPENAI_API_KEY'),
         'model' => env('OPENAI_MODEL', 'gpt-4.1-mini'),
         'timeout' => (int) env('OPENAI_TIMEOUT', 20),
+        'max_output_tokens' => (int) env('AI_MAX_OUTPUT_TOKENS', 600),
     ],
 
 ];
