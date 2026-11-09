@@ -31,7 +31,7 @@ class BinanceSpotClient
 
                     $symbols = $response->json('symbols', []);
                     if (! is_array($symbols) || $symbols === []) {
-                        throw new \\RuntimeException('Binance exchangeInfo returned an empty symbols list.');
+                        throw new \RuntimeException('Binance exchangeInfo returned an empty symbols list.');
                     }
 
                     return $symbols;
