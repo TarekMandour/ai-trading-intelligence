@@ -14,9 +14,11 @@ For each eligible Binance Spot USDT instrument, determine whether a sufficiently
 4. Multi-timeframe context and conflict assessment.
 5. Scenario-family evaluation.
 6. Entry, stop, target, cost, freshness, and risk checks.
-7. Report persistence and audit.
+7. AI evidence review for shortlisted candidates (advisory, structured, provider-neutral).
+8. Deterministic final decision/risk gates.
+9. Report persistence and audit.
 
-A regime label is context, not a trade direction or signal.
+A regime label is context, not a trade direction or signal. AI may interpret regime evidence and timeframe relationships but cannot replace the underlying classifier.
 
 ## 3. Market regime dimensions
 
