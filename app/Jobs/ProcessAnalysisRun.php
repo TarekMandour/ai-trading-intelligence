@@ -103,8 +103,10 @@ class ProcessAnalysisRun implements ShouldQueue
                         $book = $binance->orderBook($symbol);
                         $executionCosts = $costs->estimateFromOrderBook($book, (float) config('analysis.trade_notional'), (float) config('analysis.fee_rate'));
                         $baseQuantity = (float) ($executionCosts['base_quantity'] ?? 0);
-                        $risk = (float) $candidate['entry'] - (float) $candidate['stop'];
-                        $reward = (float) $candidate['target1'] - (float) $candidate['entry'];
+                        $estimatedEntry = max((float) $candidate['entry'], (float) ($executionCosts['buy_vwap'] ?? $candidate['entry']));
+                        $executionCosts['estimated_entry'] = $estimatedEntry;
+                        $risk = $estimatedEntry - (float) $candidate['stop'];
+                        $reward = (float) $candidate['target1'] - $estimatedEntry;
                         $costPerUnit = $baseQuantity > 0 ? (float) $executionCosts['total'] / $baseQuantity : INF;
                         $netRiskReward = ($risk + $costPerUnit) > 0 ? ($reward - $costPerUnit) / ($risk + $costPerUnit) : 0.0;
                         $executionCosts['net_risk_reward'] = $netRiskReward;
