@@ -3,6 +3,8 @@
 return [
     'configuration_version' => 'phase-1-baseline-1',
     'universe_limit' => (int) env('ANALYSIS_UNIVERSE_LIMIT', 20),
+    // Exclude stablecoins when they are the base asset (for example, USDCUSDT).
+    'excluded_base_assets' => array_values(array_filter(array_map('strtoupper', array_map('trim', explode(',', env('ANALYSIS_EXCLUDED_BASE_ASSETS', 'USDT,USDC,BUSD,TUSD,FDUSD,DAI,USDP,USD1,USDE,PYUSD,UST'))))),
     'binance_base_url' => env('BINANCE_BASE_URL', 'https://api.binance.com'),
     'timeout_seconds' => (int) env('BINANCE_TIMEOUT_SECONDS', 10),
     'exchange_info_timeout_seconds' => (int) env('BINANCE_EXCHANGE_INFO_TIMEOUT_SECONDS', 60),
