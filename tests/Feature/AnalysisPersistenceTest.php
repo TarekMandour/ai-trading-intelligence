@@ -61,10 +61,10 @@ class AnalysisPersistenceTest extends TestCase
         $binance->shouldReceive('eligibleUsdtUniverse')->twice()->andReturn(['symbols' => [], 'tickers' => []]);
         $ai = $this->mock(AiAnalysisProvider::class);
         $job = new ProcessAnalysisRun($run->id);
-        $job->handle($binance, app(DeterministicAnalysisEngine::class), app(ExecutionCostEstimator::class), $ai, app(AiReviewValidator::class));
+        $job->handle($binance, app(DeterministicAnalysisEngine::class), app(ExecutionCostEstimator::class), app(MultiTimeframeAlignment::class), app(ScenarioEvaluator::class), $ai, app(AiReviewValidator::class));
         $snapshot = $run->reports()->first()->opportunity->snapshot;
         $run->fresh()->update(['status' => 'QUEUED']);
-        $job->handle($binance, app(DeterministicAnalysisEngine::class), app(ExecutionCostEstimator::class), $ai, app(AiReviewValidator::class));
+        $job->handle($binance, app(DeterministicAnalysisEngine::class), app(ExecutionCostEstimator::class), app(MultiTimeframeAlignment::class), app(ScenarioEvaluator::class), $ai, app(AiReviewValidator::class));
         $this->assertDatabaseCount('analysis_reports', 3);
         $this->assertDatabaseCount('analysis_opportunities', 3);
         $this->assertDatabaseCount('analysis_evidence', 3);
