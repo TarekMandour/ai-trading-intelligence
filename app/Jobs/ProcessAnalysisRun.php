@@ -91,6 +91,9 @@ class ProcessAnalysisRun implements ShouldQueue
                 $hasUncertainTimeframe = collect($states)->contains(fn (array $state): bool => ($state['direction'] ?? 'UNCERTAIN') === 'UNCERTAIN');
                 $decision = ($profileWarnings !== [] || count($states) !== count($timeframes) || $hasUncertainTimeframe) ? 'REJECTED' : 'NO_OPPORTUNITY';
                 $executionCosts = ['available' => false, 'fee' => 0, 'spread' => 0, 'slippage' => 0, 'total' => 0];
+                if ($decision !== 'REJECTED' && collect($scenarioResults)->contains(fn (array $scenario): bool => $scenario['status'] === 'WAIT')) {
+                    $decision = 'WAIT';
+                }
 
                 // A candidate is not an entry signal by itself. The selected scenario must
                 // explicitly confirm ENTERABLE before execution-cost gating can pass.
