@@ -1,22 +1,22 @@
 <?php
 
-namespace App\\Jobs;
+namespace App\Jobs;
 
-use App\\Models\\AnalysisAuditEvent;
-use App\\Models\\AnalysisRun;
-use App\\Services\\Ai\\AiAnalysisProvider;
-use App\\Services\\Ai\\AiReviewValidator;
-use App\\Services\\Analysis\\DeterministicAnalysisEngine;
-use App\\Services\\Analysis\\ExecutionCostEstimator;
-use App\\Services\\Analysis\\MultiTimeframeAlignment;
-use App\\Services\\Analysis\\ScenarioEvaluator;
-use App\\Services\\MarketData\\BinanceSpotClient;
-use Illuminate\\Bus\\Queueable;
-use Illuminate\\Contracts\\Queue\\ShouldQueue;
-use Illuminate\\Foundation\\Bus\\Dispatchable;
-use Illuminate\\Queue\\InteractsWithQueue;
-use Illuminate\\Queue\\SerializesModels;
-use Illuminate\\Support\\Facades\\DB;
+use App\Models\AnalysisAuditEvent;
+use App\Models\AnalysisRun;
+use App\Services\Ai\AiAnalysisProvider;
+use App\Services\Ai\AiReviewValidator;
+use App\Services\Analysis\DeterministicAnalysisEngine;
+use App\Services\Analysis\ExecutionCostEstimator;
+use App\Services\Analysis\MultiTimeframeAlignment;
+use App\Services\Analysis\ScenarioEvaluator;
+use App\Services\MarketData\BinanceSpotClient;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
 
 class ProcessAnalysisRun implements ShouldQueue
 {
@@ -41,7 +41,7 @@ class ProcessAnalysisRun implements ShouldQueue
         $warnings = [];
         try {
             $universe = $binance->eligibleUsdtUniverse();
-        } catch (\\Throwable $exception) {
+        } catch (\Throwable $exception) {
             $run->update(['status' => 'FAILED', 'failure_reason' => 'BINANCE_UNAVAILABLE', 'completed_at' => now()]);
             throw $exception;
         }
@@ -62,11 +62,11 @@ class ProcessAnalysisRun implements ShouldQueue
                     foreach ($timeframes as $role => $interval) {
                         $candles = $binance->candles($symbol, $interval);
                         if (count($candles) < 20) {
-                            throw new \\RuntimeException('INSUFFICIENT_CANDLE_HISTORY');
+                            throw new \RuntimeException('INSUFFICIENT_CANDLE_HISTORY');
                         }
                         $states[$role] = $engine->evaluate($candles);
                     }
-                } catch (\\Throwable $exception) {
+                } catch (\Throwable $exception) {
                     $profileWarnings[] = 'CANDLE_DATA_UNAVAILABLE';
                 }
 
@@ -83,7 +83,7 @@ class ProcessAnalysisRun implements ShouldQueue
                         $book = $binance->orderBook($symbol);
                         $executionCosts = $costs->estimateFromOrderBook($book, (float) config('analysis.trade_notional'), (float) config('analysis.fee_rate'));
                         $decision = $executionCosts['available'] ? 'ENTERABLE' : 'WAIT';
-                    } catch (\\Throwable $exception) {
+                    } catch (\Throwable $exception) {
                         $profileWarnings[] = 'ORDER_BOOK_UNAVAILABLE';
                         $decision = 'WAIT';
                     }
@@ -104,7 +104,9 @@ class ProcessAnalysisRun implements ShouldQueue
                     'decision_reasons' => array_values(array_unique(array_merge($regime['reasons'] ?? [], $alignmentResult['reasons'] ?? [], $profileWarnings))),
                     'candidate' => $candidate,
                 ];
-                $aiReview = ($decision === 'ENTERABLE' && $candidate !== null && $alignmentResult['state'] === 'ALIGNED')\n                    ? $this->reviewAi($ai, $validator, $evidence)\n                    : ['status' => config('services.openai.key') ? 'NOT_REQUIRED' : 'NOT_CONFIGURED'];
+                $aiReview = ($decision === 'ENTERABLE' && $candidate !== null && $alignmentResult['state'] === 'ALIGNED')
+                    ? $this->reviewAi($ai, $validator, $evidence)
+                    : ['status' => config('services.openai.key') ? 'NOT_REQUIRED' : 'NOT_CONFIGURED'];
                 $aiStatuses[] = $aiReview['status'];
 
                 DB::transaction(function () use ($run, $profile, $symbol, $decision, $timeframes, $evidence, $executionCosts, $aiReview, $profileWarnings, $candidate): void {
@@ -150,7 +152,7 @@ class ProcessAnalysisRun implements ShouldQueue
         }
         try {
             $review = $ai->review($evidence);
-        } catch (\\Throwable $exception) {
+        } catch (\Throwable $exception) {
             return ['status' => 'FAILED'];
         }
 
