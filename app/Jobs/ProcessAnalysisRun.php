@@ -39,11 +39,17 @@ class ProcessAnalysisRun implements ShouldQueue
 
         $run->update(['status' => 'RUNNING', 'started_at' => $run->started_at ?? now()]);
         $warnings = [];
-        try {
-            $universe = $binance->eligibleUsdtUniverse();
-        } catch (\Throwable $exception) {
-            $run->update(['status' => 'RUNNING', 'failure_reason' => 'BINANCE_UNAVAILABLE']);
-            throw $exception;
+        $savedUniverse = $run->audit['universe_symbols'] ?? null;
+        if (is_array($savedUniverse) && $savedUniverse !== []) {
+            $universe = ['symbols' => $savedUniverse];
+        } else {
+            try {
+                $universe = $binance->eligibleUsdtUniverse();
+            } catch (\Throwable $exception) {
+                $run->update(['status' => 'RUNNING', 'failure_reason' => 'BINANCE_UNAVAILABLE']);
+                throw $exception;
+            }
+            $run->update(['audit' => ['universe_symbols' => $universe['symbols'], 'source' => 'binance_spot_rest']]);
         }
 
         if ($universe['symbols'] === []) {
@@ -191,7 +197,7 @@ class ProcessAnalysisRun implements ShouldQueue
             'status' => 'COMPLETED',
             'ai_status' => ! config('services.openai.key') ? 'NOT_CONFIGURED' : (in_array('FAILED', $aiStatuses, true) ? 'PARTIAL_FAILURE' : (in_array('REJECTED', $aiStatuses, true) ? 'PARTIAL_REJECTED' : (in_array('COMPLETED', $aiStatuses, true) ? 'COMPLETED' : (in_array('SKIPPED_LIMIT', $aiStatuses, true) ? 'PARTIAL_SKIPPED' : 'NOT_REQUIRED')))),
             'completed_at' => now(),
-            'audit' => ['universe_count' => count($universe['symbols']), 'reports_processed' => $profileCount, 'ai_reviews_attempted' => $aiReviewCount, 'source' => 'binance_spot_rest', 'warnings' => array_values(array_unique($warnings))],
+            'audit' => ['universe_count' => count($universe['symbols']), 'reports_processed' => $profileCount, 'ai_reviews_attempted' => $aiReviewCount, 'source' => 'binance_spot_rest', 'universe_symbols' => $universe['symbols'], 'warnings' => array_values(array_unique($warnings))],
         ]);
     }
 
