@@ -66,7 +66,10 @@ class ProcessAnalysisRun implements ShouldQueue
             foreach (config('analysis.profiles') as $profile => $timeframes) {
                 // A prior attempt may already have committed this immutable symbol/profile
                 // snapshot. Skip it on retry to avoid duplicate AI calls and stale overwrites.
-                if ($run->reports()->where('profile', $profile)->where('symbol', $symbol)->exists()) {
+                $existingReport = $run->reports()->where('profile', $profile)->where('symbol', $symbol)->first(['id', 'ai_review']);
+                if ($existingReport !== null) {
+                    $existingReview = $existingReport->ai_review ?? [];
+                    $aiStatuses[] = is_array($existingReview) ? ($existingReview['status'] ?? 'NOT_REQUIRED') : 'NOT_REQUIRED';
                     $profileCount++;
                     continue;
                 }
