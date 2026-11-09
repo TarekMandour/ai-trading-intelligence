@@ -6,7 +6,7 @@
 <h1>Analysis run #{{ $analysisRun->id }}</h1>
 <p>Status: <strong>{{ $analysisRun->status }}</strong> | AI: {{ $analysisRun->ai_status }}</p>
 @if($analysisRun->audit)<h2>Run audit</h2><pre>{{ json_encode($analysisRun->audit, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>@endif
-@if($analysisRun->failure_reason)<p role="alert">Failure: {{ $analysisRun->failure_reason }}</p>@endif
+@if($analysisRun->status === 'FAILED' && $analysisRun->failure_reason)<p role="alert">Failure: {{ $analysisRun->failure_reason }}</p>@endif
 @foreach($analysisRun->reports as $report)
 <section>
 <hr>
