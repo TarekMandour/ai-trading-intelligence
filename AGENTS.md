@@ -21,8 +21,8 @@ Build AI Trading Intelligence as a reliable, auditable local trading-research pr
 - Manual analysis initiated from the dashboard.
 - Laravel database queue with a manually started worker.
 - Three independent reports: Scalping (1–30m), Intraday (30m–8h), Swing (1–7d).
-- Transparent deterministic regime and scenario baselines first.
-- No OpenAI API key required for the first working baseline.
+- Hybrid AI architecture is part of the first local MVP: deterministic Laravel analysis remains authoritative; a provider-neutral AI review stage is included, with OpenAI as the first provider.
+- AI credentials are optional for deterministic-only operation, but AI integration must be implemented and testable in this milestone. When configured, AI review is executed for shortlisted candidates.
 
 ## Exclusions for this milestone
 No production deployment, always-on monitoring, Binance WebSocket, Go/Python runtime, OpenSwoole, ReactPHP, Redis, Horizon, Kafka, RabbitMQ, Docker, Kubernetes, microservices, Reverb, subscriptions, billing, commercial redistribution, order execution, custody, derivatives, margin, borrowing, leverage, or short signals.
@@ -40,6 +40,10 @@ Do not add dependencies or paid services without explaining why, alternatives, a
 - Entry assumptions use ask-side prices; exits use bid-side prices, including both-leg fees and slippage.
 - A current REST order-book snapshot is not historical depth.
 - No AI-generated prices, stops, targets, executable code, or risk-gate bypasses.
+- AI may interpret evidence, compare scenarios, explain timeframe alignment/conflicts, rank/critique shortlisted candidates, identify missing confirmation, and abstain.
+- AI output is advisory and schema-validated. Deterministic eligibility, pricing, cost, risk, and final decision gates always prevail.
+- Keep provider abstraction minimal: one contract, one OpenAI adapter initially, configuration via environment variables. Do not build a generic agent framework.
+- Never log API keys or include them in prompts, database records, exceptions, or audit payloads. Record provider/model/prompt version, latency, token usage/cost metadata when available, and status without secrets.
 
 ## Required implementation-task response
 - Context read
