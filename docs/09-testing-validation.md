@@ -40,6 +40,8 @@ Proves a strategy has repeatable positive net expectancy on chronological out-of
 - Maximum entry distance and expiry.
 - Duplicate candidates and state transitions.
 - Hard gates cannot be overridden by a score or AI output.
+- AI output schema validation, enum/length constraints, unsupported evidence references, malformed JSON, and abstention.
+- AI cannot alter deterministic entry/stop/target/cost values or override final risk status.
 - NO_OPPORTUNITY is a valid successful result.
 
 ## 5. Application tests
@@ -52,6 +54,8 @@ Proves a strategy has repeatable positive net expectancy on chronological out-of
 - Three independent report views and historical run navigation.
 - Audit trail immutability.
 - Secrets never appear in logs or persisted payloads.
+- AI provider missing credentials, timeout, rate limit, server error, invalid response, retry exhaustion, and deterministic fallback.
+- Fake-provider integration tests and a separately documented real-provider smoke test.
 
 ## 6. Trading-edge validation protocol
 
