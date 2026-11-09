@@ -138,7 +138,7 @@ class ProcessAnalysisRun implements ShouldQueue
                     }
                     $opportunity->aiReview()->firstOrCreate(
                         [],
-                        ['provider' => config('services.openai.key') ? 'openai' : null, 'model' => config('services.openai.model'), 'status' => $aiReview['status'], 'review' => $aiReview['review'] ?? null]
+                        ['provider' => $aiReview['metadata']['provider'] ?? (config('services.openai.key') ? 'openai' : null), 'model' => $aiReview['metadata']['model'] ?? config('services.openai.model'), 'status' => $aiReview['status'], 'latency_ms' => $aiReview['latency_ms'] ?? null, 'usage' => $aiReview['metadata']['usage'] ?? null, 'review' => $aiReview['review'] ?? null]
                     );
                     AnalysisAuditEvent::firstOrCreate(
                         ['analysis_run_id' => $run->id, 'fingerprint' => hash('sha256', $report->id.'|DECISION_RECORDED|'.$decision)],
@@ -162,14 +162,21 @@ class ProcessAnalysisRun implements ShouldQueue
         if (! config('services.openai.key')) {
             return ['status' => 'NOT_CONFIGURED'];
         }
+
+        $startedAt = microtime(true);
         try {
-            $review = $ai->review($evidence);
-        } catch (\Throwable $exception) {
-            return ['status' => 'FAILED'];
+            $result = $ai->review($evidence);
+            $review = $result['review'] ?? $result;
+            $metadata = $result['metadata'] ?? [];
+            $latencyMs = (int) round((microtime(true) - $startedAt) * 1000);
+        } catch (\\Throwable $exception) {
+            return ['status' => 'FAILED', 'latency_ms' => (int) round((microtime(true) - $startedAt) * 1000)];
         }
 
+        $metadata['provider'] = 'openai';
+
         return $validator->validate($review, $evidence['evidence_ids'])
-            ? ['status' => 'COMPLETED', 'review' => $review]
-            : ['status' => 'REJECTED'];
+            ? ['status' => 'COMPLETED', 'review' => $review, 'metadata' => $metadata, 'latency_ms' => $latencyMs]
+            : ['status' => 'REJECTED', 'metadata' => $metadata, 'latency_ms' => $latencyMs];
     }
 }
