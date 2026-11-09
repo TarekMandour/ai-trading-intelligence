@@ -1,6 +1,6 @@
 <?php
 
-namespace App\\Services\\Analysis;
+namespace App\Services\Analysis;
 
 /**
  * Deterministic long-only setup confirmation. This component creates candidate
@@ -46,7 +46,7 @@ class ScenarioEvaluator
         }
 
         $stop = min(array_column(array_slice($candles, -6, 5), 'low'));
-        return $this->candidateResult('TREND_PULLBACK_CONTINUATION', (float) $last['close'], (float) $stop, 1.5, 2.5);
+        return $this->candidateResult('TREND_PULLBACK_CONTINUATION', (float) $last['close'], (float) $stop, 2.0, 3.0);
     }
 
     private function breakoutRetest(array $regime, array $candles): array
@@ -69,7 +69,7 @@ class ScenarioEvaluator
         }
 
         $stop = min(array_column(array_slice($candles, -5, 4), 'low'));
-        return $this->candidateResult('BREAKOUT_RETEST', (float) $last['close'], (float) $stop, 1.5, 2.5);
+        return $this->candidateResult('BREAKOUT_RETEST', (float) $last['close'], (float) $stop, 2.0, 3.0);
     }
 
     private function rangeMeanReversion(array $regime, array $candles): array
@@ -122,7 +122,7 @@ class ScenarioEvaluator
         }
 
         $stop = min(array_column(array_slice($candles, -5, 4), 'low'));
-        return $this->candidateResult('MOMENTUM_VOLATILITY_EXPANSION', (float) $last['close'], (float) $stop, 1.5, 2.5);
+        return $this->candidateResult('MOMENTUM_VOLATILITY_EXPANSION', (float) $last['close'], (float) $stop, 2.0, 3.0);
     }
 
     private function candidateResult(string $scenario, float $entry, float $stop, float $target1R, float $target2R): array
