@@ -32,8 +32,12 @@ class AnalysisComponentsTest extends TestCase
         $this->assertTrue($result['available']);
         $this->assertGreaterThan(100.0, $result['buy_vwap']);
         $this->assertSame(99.0, $result['sell_vwap']);
-        $this->assertGreaterThan(0.0, $result['fee']);
-        $this->assertGreaterThan(0.0, $result['total']);
+        $this->assertEqualsWithDelta(0.1, $result['entry_fee'], 0.000001);
+        $this->assertGreaterThan(0.0, $result['exit_fee']);
+        $this->assertGreaterThan(0.0, $result['entry_cost']);
+        $this->assertGreaterThan(0.0, $result['exit_cost']);
+        $this->assertEqualsWithDelta($result['entry_cost'] + $result['exit_cost'], $result['total'], 0.000001);
+        $this->assertEqualsWithDelta($result['entry_cost_per_unit'] + $result['exit_cost_per_unit'], $result['total'] / $result['base_quantity'], 0.000001);
     }
 
     public function test_order_book_costs_reject_insufficient_depth(): void
