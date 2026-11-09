@@ -12,13 +12,23 @@ class BinanceSpotClient
     {
         try {
             $baseUrl = config('analysis.binance_base_url');
-            $responses = Http::pool(fn ($pool) => [
-                $pool->as('exchange')->baseUrl($baseUrl)->connectTimeout(3)->timeout(config('analysis.timeout_seconds'))->get('/api/v3/exchangeInfo'),
-                $pool->as('tickers')->baseUrl($baseUrl)->connectTimeout(3)->timeout(config('analysis.timeout_seconds'))->get('/api/v3/ticker/24hr'),
-            ]);
+            // Use sequential requests here. The pooled responses were returning a valid
+            // ticker payload but an empty eligible universe in the local runtime, despite
+            // both endpoints returning valid data when called independently.
+            $exchangeResponse = Http::baseUrl($baseUrl)
+                ->connectTimeout(3)
+                ->timeout(config('analysis.timeout_seconds'))
+                ->get('/api/v3/exchangeInfo')
+                ->throw();
 
-            $exchangeSymbols = $responses['exchange']->throw()->json('symbols');
-            $tickers = collect($responses['tickers']->throw()->json())
+            $tickerResponse = Http::baseUrl($baseUrl)
+                ->connectTimeout(3)
+                ->timeout(config('analysis.timeout_seconds'))
+                ->get('/api/v3/ticker/24hr')
+                ->throw();
+
+            $exchangeSymbols = $exchangeResponse->json('symbols', []);
+            $tickers = collect($tickerResponse->json())
                 ->filter(fn (array $ticker): bool => is_string($ticker['symbol'] ?? null) && is_numeric($ticker['quoteVolume'] ?? null))
                 ->keyBy('symbol');
 
