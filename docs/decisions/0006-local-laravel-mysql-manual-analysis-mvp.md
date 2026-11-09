@@ -21,9 +21,10 @@ The earlier continuous market-monitoring design is a possible future architectur
 7. Process runs using Laravel's database queue and a manually started queue worker.
 8. Do not use persistent Binance WebSocket connections in the first milestone.
 9. Produce separate Scalping, Intraday, and Swing reports in one analysis run.
-10. Implement transparent deterministic market-regime and scenario baselines before optional AI review.
-11. Keep the first local milestone independent of OpenAI API credentials.
-12. Keep all results, configuration versions, evidence, and state transitions auditable.
+10. Implement transparent deterministic market-regime and scenario baselines as the authoritative analytical foundation.
+11. Include a bounded hybrid AI evidence-review stage in Phase 1, behind a small provider-neutral interface, with OpenAI as the first provider.
+12. Keep AI credentials optional for deterministic-only operation; when configured, run AI review in the queued analysis workflow.
+13. Keep all results, configuration versions, evidence, AI provider/model/prompt metadata, and state transitions auditable.
 
 ## Initial trading profiles
 
@@ -37,6 +38,8 @@ Initial timeframe sets are configurable research hypotheses:
 - Swing: 1h, 4h, 1d, 1w.
 
 ## Consequences
+
+The AI review stage adds API cost, latency, and provider availability considerations. It must be isolated from deterministic calculations and final risk gates. A provider outage or missing credential must not prevent deterministic reports.
 
 ### Positive
 - No hosting, Redis, Kafka, Docker, WebSocket runtime, or extra infrastructure.
