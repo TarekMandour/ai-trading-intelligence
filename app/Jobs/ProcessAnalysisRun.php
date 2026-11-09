@@ -58,6 +58,13 @@ class ProcessAnalysisRun implements ShouldQueue
             $symbol = $symbolData['symbol'];
             $candlesByInterval = [];
             foreach (config('analysis.profiles') as $profile => $timeframes) {
+                // A prior attempt may already have committed this immutable symbol/profile
+                // snapshot. Skip it on retry to avoid duplicate AI calls and stale overwrites.
+                if ($run->reports()->where('profile', $profile)->where('symbol', $symbol)->exists()) {
+                    $profileCount++;
+                    continue;
+                }
+
                 $states = [];
                 $entryCandles = [];
                 $profileWarnings = [];
