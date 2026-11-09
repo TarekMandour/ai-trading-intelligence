@@ -124,7 +124,14 @@ class ProcessAnalysisRun implements ShouldQueue
                     'scenarios' => $scenarioResults,
                     'execution_costs' => $executionCosts,
                     'decision' => $decision,
-                    'decision_reasons' => array_values(array_unique(array_merge($regime['reasons'] ?? [], $alignmentResult['reasons'] ?? [], $profileWarnings))),
+                    'decision_reasons' => array_values(array_unique(array_merge(
+                        $regime['reasons'] ?? [],
+                        $alignmentResult['reasons'] ?? [],
+                        collect($scenarioResults)->flatMap(fn (array $scenario): array => $scenario['reasons'] ?? [])->all(),
+                        isset($executionCosts['reason']) ? [$executionCosts['reason']] : [],
+                        $decision === 'WAIT' ? ['ENTRY_GATES_NOT_FULLY_SATISFIED'] : [],
+                        $profileWarnings,
+                    ))),
                     'candidate' => $candidate,
                 ];
                 $aiReview = ($decision === 'ENTERABLE' && $candidate !== null && $alignmentResult['state'] === 'ALIGNED')
