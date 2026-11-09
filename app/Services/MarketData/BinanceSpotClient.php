@@ -1,9 +1,9 @@
 <?php
 
-namespace App\\Services\\MarketData;
+namespace App\Services\MarketData;
 
-use Illuminate\\Http\\Client\\ConnectionException;
-use Illuminate\\Support\\Facades\\Http;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Http;
 
 class BinanceSpotClient
 {
@@ -50,7 +50,7 @@ class BinanceSpotClient
                 'tickers' => $tickers->values()->all(),
             ];
         } catch (ConnectionException $exception) {
-            throw new \\RuntimeException('Binance public REST connection failed.', previous: $exception);
+            throw new \RuntimeException('Binance public REST connection failed.', previous: $exception);
         }
     }
 
@@ -82,21 +82,21 @@ class BinanceSpotClient
     {
         $limit ??= config('analysis.order_book_limit');
         if (! in_array($limit, [5, 10, 20, 50, 100, 500, 1000, 5000], true)) {
-            throw new \\InvalidArgumentException('Invalid Binance order-book limit.');
+            throw new \InvalidArgumentException('Invalid Binance order-book limit.');
         }
         try {
             $data = Http::baseUrl(config('analysis.binance_base_url'))->connectTimeout(3)->timeout(config('analysis.timeout_seconds'))->retry([100, 300])->get('/api/v3/depth', compact('symbol', 'limit'))->throw()->json();
-        } catch (\\Throwable $exception) {
-            throw new \\RuntimeException('Binance order-book request failed.', previous: $exception);
+        } catch (\Throwable $exception) {
+            throw new \RuntimeException('Binance order-book request failed.', previous: $exception);
         }
         $normalize = function (mixed $levels): array {
             if (! is_array($levels) || $levels === []) {
-                throw new \\RuntimeException('Binance order-book response is unavailable.');
+                throw new \RuntimeException('Binance order-book response is unavailable.');
             }
 
             return collect($levels)->map(function (mixed $level): array {
                 if (! is_array($level) || ! isset($level[0], $level[1]) || ! is_numeric($level[0]) || ! is_numeric($level[1]) || (float) $level[0] <= 0 || (float) $level[1] <= 0) {
-                    throw new \\RuntimeException('Binance order-book response is invalid.');
+                    throw new \RuntimeException('Binance order-book response is invalid.');
                 }
 
                 return ['price' => (float) $level[0], 'quantity' => (float) $level[1]];
@@ -105,7 +105,7 @@ class BinanceSpotClient
         $bids = $normalize($data['bids'] ?? null);
         $asks = $normalize($data['asks'] ?? null);
         if ($bids[0]['price'] >= $asks[0]['price']) {
-            throw new \\RuntimeException('Binance order-book spread is invalid.');
+            throw new \RuntimeException('Binance order-book spread is invalid.');
         }
 
         return ['bids' => $bids, 'asks' => $asks, 'last_update_id' => (int) ($data['lastUpdateId'] ?? 0)];
