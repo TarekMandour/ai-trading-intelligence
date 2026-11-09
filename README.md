@@ -16,7 +16,7 @@ A trading-research application that discovers, evaluates, and records explainabl
 - Provider-neutral AI review integration (OpenAI first provider)
 - Local dashboard with three independent reports
 
-Verify the actual database server supplied by the installed XAMPP package. Some XAMPP releases bundle MariaDB rather than Oracle MySQL. Do not mislabel one as the other.
+Verify the database server bundled with the installed Laragon environment before configuring the connection. Laragon may provide MySQL or MariaDB depending on the selected package; confirm the actual server and version rather than assuming.
 
 ## Local execution notes
 
