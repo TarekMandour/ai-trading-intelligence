@@ -26,6 +26,8 @@ class AnalysisRunController extends Controller
 
     public function show(AnalysisRun $analysisRun): View
     {
-        $analysisRun->load(['reports.opportunity.evidence', 'reports.opportunity.aiReview']);\n\n        return view('analysis.show', compact('analysisRun'));
+        $analysisRun->load(['reports.opportunity.evidence', 'reports.opportunity.aiReview']);
+
+        return view('analysis.show', compact('analysisRun'));
     }
 }
