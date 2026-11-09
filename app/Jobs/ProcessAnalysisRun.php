@@ -112,7 +112,7 @@ class ProcessAnalysisRun implements ShouldQueue
                     : ['status' => config('services.openai.key') ? 'NOT_REQUIRED' : 'NOT_CONFIGURED'];
                 $aiStatuses[] = $aiReview['status'];
 
-                DB::transaction(function () use ($run, $profile, $symbol, $decision, $timeframes, $evidence, $executionCosts, $aiReview, $profileWarnings, $candidate): void {
+                DB::transaction(function () use ($run, $profile, $symbol, $decision, $timeframes, $evidence, $executionCosts, $aiReview, $profileWarnings, $candidate, $selectedScenario): void {
                     $report = $run->reports()->firstOrCreate(
                         ['profile' => $profile, 'symbol' => $symbol],
                         ['status' => $decision, 'timeframes' => $timeframes + ['states' => $evidence['timeframe_states'], 'alignment' => $evidence['timeframe_alignment'], 'regime' => $evidence['regime'], 'scenarios' => $evidence['scenarios'], 'execution_costs' => $executionCosts], 'reasons' => $evidence['decision_reasons'], 'data_quality_warnings' => $profileWarnings, 'ai_review' => $aiReview]
