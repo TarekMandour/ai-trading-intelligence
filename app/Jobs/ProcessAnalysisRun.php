@@ -157,7 +157,7 @@ class ProcessAnalysisRun implements ShouldQueue
         ]);
     }
 
-    public function failed(\\Throwable $exception): void
+    public function failed(\Throwable $exception): void
     {
         AnalysisRun::whereKey($this->analysisRunId)->update([
             'status' => 'FAILED',
