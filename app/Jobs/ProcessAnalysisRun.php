@@ -81,11 +81,10 @@ class ProcessAnalysisRun implements ShouldQueue
                 $alignmentResult = $alignment->summarize(collect($states)->map(fn (array $state): array => ['direction' => $state['direction'], 'behavior' => $state['behavior']])->all());
                 $entryState = $states['entry'] ?? null;
                 $regime = $entryState ?? ['direction' => 'UNCERTAIN', 'behavior' => 'UNCERTAIN', 'volatility' => 'NORMAL', 'reasons' => ['INSUFFICIENT_VALIDATED_CANDLE_EVIDENCE'], 'candidate' => null];
-                $warnings = array_merge($warnings, array_map(fn (string $warning): string => $symbol.':'.$profile.':'.$warning, $profileWarnings));
                 $scenarioResults = $scenarios->evaluate($regime);
                 $selectedScenario = collect($scenarioResults)->firstWhere('scenario', 'TREND_PULLBACK_CONTINUATION');
                 $candidate = $regime['candidate'] ?? null;
-                $decision = 'NO_OPPORTUNITY';
+                $decision = ($profileWarnings !== [] || count($states) !== count($timeframes)) ? 'REJECTED' : 'NO_OPPORTUNITY';
                 $executionCosts = ['available' => false, 'fee' => 0, 'spread' => 0, 'slippage' => 0, 'total' => 0];
 
                 // A candidate is not an entry signal by itself. The selected scenario must
@@ -99,9 +98,10 @@ class ProcessAnalysisRun implements ShouldQueue
                         $profileWarnings[] = 'ORDER_BOOK_UNAVAILABLE';
                         $decision = 'WAIT';
                     }
-                } elseif ($candidate !== null) {
+                } elseif ($candidate !== null && $decision !== 'REJECTED') {
                     $decision = 'WAIT';
                 }
+                $warnings = array_merge($warnings, array_map(fn (string $warning): string => $symbol.':'.$profile.':'.$warning, $profileWarnings));
 
                 $evidence = [
                     'symbol' => $symbol,
