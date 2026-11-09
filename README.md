@@ -46,6 +46,7 @@ Initial timeframe profiles are configurable research hypotheses, not approved pr
 - [Market analysis methodology](docs/04-market-analysis-methodology.md)
 - [Validation standards](docs/09-testing-validation.md)
 - [Agent instructions](AGENTS.md)
+- [Codex execution brief](docs/19-agent-execution-brief.md)
 - [ADR 0006 — Local Laravel/MySQL manual-analysis MVP](docs/decisions/0006-local-laravel-mysql-manual-analysis-mvp.md)
 
 ## Deferred architecture
