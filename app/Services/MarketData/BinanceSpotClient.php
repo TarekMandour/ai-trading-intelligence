@@ -87,7 +87,7 @@ class BinanceSpotClient
                 if ($expiresAt > now()->timestamp && is_array($symbols) && $symbols !== []) {
                     return $symbols;
                 }
-            } catch (\\Throwable) {
+            } catch (\Throwable) {
                 // Invalid or partially written cache: remove it and fetch fresh data.
             }
 
@@ -103,7 +103,7 @@ class BinanceSpotClient
 
         $symbols = $response->json('symbols', []);
         if (! is_array($symbols) || $symbols === []) {
-            throw new \\RuntimeException('Binance exchangeInfo returned an empty symbols list.');
+            throw new \RuntimeException('Binance exchangeInfo returned an empty symbols list.');
         }
 
         File::ensureDirectoryExists(dirname($cachePath));
@@ -115,13 +115,13 @@ class BinanceSpotClient
 
         $temporaryPath = tempnam(dirname($cachePath), 'exchange-info-');
         if ($temporaryPath === false) {
-            throw new \\RuntimeException('Unable to create Binance exchangeInfo cache file.');
+            throw new \RuntimeException('Unable to create Binance exchangeInfo cache file.');
         }
 
         try {
             if (file_put_contents($temporaryPath, $payload, LOCK_EX) === false
                 || ! rename($temporaryPath, $cachePath)) {
-                throw new \\RuntimeException('Unable to write Binance exchangeInfo JSON cache file.');
+                throw new \RuntimeException('Unable to write Binance exchangeInfo JSON cache file.');
             }
         } finally {
             if (File::exists($temporaryPath)) {
