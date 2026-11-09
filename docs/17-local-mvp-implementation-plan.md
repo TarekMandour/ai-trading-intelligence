@@ -32,7 +32,10 @@ The first milestone proves that the application can collect current/historical p
 - Redis, Horizon, Kafka, RabbitMQ, Docker, Kubernetes, microservices, Reverb.
 - Futures, perpetuals, margin, borrowing, leverage, options, short signals, or order execution.
 - SaaS subscriptions, billing, tenant distribution, and commercial redistribution.
-- OpenAI API as a hard dependency for the first working analysis. AI review may be added later behind an optional adapter after deterministic baselines work.
+- A generic AI-agent framework or multi-agent orchestration.
+- AI-generated trade prices, stop-losses, targets, market data, or final risk decisions.
+
+Hybrid AI review is included in this milestone through a small provider-neutral interface. OpenAI is the first provider. The AI API credential is optional for local deterministic operation, but the adapter, queued review stage, schema validation, audit status, and fallback behavior must be implemented now.
 
 If the installed XAMPP package supplies MariaDB rather than Oracle MySQL, verify the actual server/version first. Do not silently label MariaDB as MySQL. Prefer a local MySQL 8.x service if strict MySQL is required; XAMPP Apache/PHP can connect to a separately installed local MySQL instance.
 
@@ -46,7 +49,9 @@ If the installed XAMPP package supplies MariaDB rather than Oracle MySQL, verify
 6. Data quality checks run before feature generation.
 7. Market regime is classified independently per timeframe and then summarized per profile.
 8. Scenario evaluators produce candidates; deterministic decision/risk gates produce ENTERABLE, WAIT, MISSED, REJECTED, or NO_OPPORTUNITY.
-9. Results are persisted and rendered as three separate report views/tabs.
+9. Shortlisted candidates are sent to the configured AI provider for structured evidence review within the queued job. The AI stage may assess scenario quality, timeframe alignment, supporting/contradicting evidence, missing confirmation, and abstain.
+10. Laravel validates AI output and applies deterministic final decision/risk gates; AI cannot change computed prices or bypass gates.
+11. Results are persisted and rendered as three separate report views/tabs, with AI review status clearly shown.
 10. User can reopen previous runs and inspect their data timestamps, configuration version, evidence, and reasons.
 
 The first prototype does not continuously monitor or automatically update opportunities after the run completes. A later refresh is a new analysis run.
@@ -105,7 +110,7 @@ Implement a small, transparent, versioned set only after data and regime tests p
 
 Liquidity sweep/reclaim and order-flow imbalance remain research candidates until their required historical/event data and definitions are available. A current order-book snapshot may support an execution-quality check but cannot be used as historical order flow.
 
-Each scenario must define inputs, conditions, confirmation, invalidation, entry, stop, targets, expiry, and reason codes. Use deterministic calculations; no AI-generated prices or levels.
+Each scenario must define inputs, conditions, confirmation, invalidation, entry, stop, targets, expiry, and reason codes. Use deterministic calculations; no AI-generated prices or levels. AI may review the rationale and evidence only.
 
 ## 8. Data provider and API discipline
 
@@ -126,7 +131,22 @@ Requirements:
 - validate symbol status, interval, continuity, duplicates, and malformed values;
 - do not invent historical depth from a current snapshot.
 
-## 9. Storage and audit
+## 9. AI review integration
+
+Implement the bounded hybrid AI workflow described in docs/20-ai-integration-spec.md:
+- A small provider contract and an OpenAI adapter using Laravel's HTTP client.
+- Provider/model/prompt version selected through environment configuration; API key only in local .env and never stored in DB/logs.
+- AI review runs in the existing database queue after deterministic shortlist generation, not in the browser request and not per candle.
+- Send compact structured evidence, not raw unbounded candle histories. Include data timestamps, per-timeframe regimes, alignment/conflicts, evaluated scenarios, deterministic trade plan levels, cost assumptions, and reason codes.
+- Require schema-constrained JSON output; validate types, enums, lengths, and references to supplied evidence IDs. Reject malformed or unsupported output.
+- AI may assess, compare, rank, critique, explain, request missing confirmation, or abstain. It cannot invent/modify market values, entry/stop/targets, cost assumptions, or final risk status.
+- Final ENTER/WAIT/REJECT/NO_OPPORTUNITY status is determined by Laravel hard gates. AI advisory output cannot override any gate.
+- Record NOT_CONFIGURED, PENDING, COMPLETED, FAILED, or REJECTED response state. Provider failure must not destroy deterministic analysis results.
+- Add bounded timeout/retry/backoff, token/output limits, sanitized audit, and cache/deduplication keyed by evidence + prompt + model version where appropriate.
+- Track latency and usage/cost metadata where returned. No hard-coded model name or API key.
+- No generic agent framework, tool-calling loop, or multi-agent design.
+
+## 10. Storage and audit
 
 Persist:
 - analysis run and status;
@@ -141,7 +161,7 @@ Persist:
 
 Use decimal-safe database types for prices, quantities, and costs. Avoid floating-point arithmetic for authoritative prices and quantities. Do not store secrets in database records or logs.
 
-## 10. Reports
+## 11. Reports
 
 Create three independent reports for each run:
 - Scalping Report.
@@ -152,7 +172,7 @@ Each candidate shows symbol, scenario, regime context by timeframe, status, disc
 
 Scores are rankings, not probabilities. Display NO OPPORTUNITY when no candidate passes gates. Never force a minimum number of recommendations.
 
-## 11. Local operations
+## 12. Local operations
 
 Document:
 - XAMPP/PHP/MySQL prerequisites and verified versions.
@@ -166,7 +186,7 @@ Document:
 
 Do not assume Windows process spawning or background shell execution from a web request. Use the Laravel database queue and a manually started worker.
 
-## 12. Definition of Done for first local test
+## 13. Definition of Done for first local test
 
 - Fresh local install instructions work on the target Windows/XAMPP environment.
 - Migrations run cleanly on the target MySQL version.
@@ -176,23 +196,24 @@ Do not assume Windows process spawning or background shell execution from a web 
 - Three separate profile reports are produced, even if some are NO_OPPORTUNITY.
 - Regime output is available per timeframe and retains conflicts.
 - Scenario outputs include complete evidence and reason codes.
-- No AI key is required to run the baseline.
+- AI integration is implemented and tested with a fake provider; a real provider call is verified when the user supplies a valid local API key.
+- Deterministic reports remain available when AI is not configured or the provider fails, with explicit AI status.
 - Unit tests cover indicators/features, regime labels, timeframe alignment, candle completeness, costs, entry/stop/target geometry, and state transitions.
 - Feature/integration tests cover run creation, queue processing, provider failures, retries, and report rendering.
 - php artisan test passes; exact test command and result are recorded.
 - A sample run can be repeated deterministically from stored input data/configuration.
 - No claim of profitability is made from a smoke test.
 
-## 13. Explicit next milestone after local smoke test
+## 14. Explicit next milestone after local smoke test
 
 Only after the first working prototype:
 - add historical backtesting and event/candle replay;
 - validate each strategy family independently;
 - test thresholds and timeframe hierarchy;
 - capture prospective order-book data if justified;
-- evaluate optional AI review;
+- evaluate AI review quality, latency, and cost;
 - consider WebSocket streaming only if measured manual REST analysis cannot answer the product question.
 
-## 14. Commercial/legal boundary
+## 15. Commercial/legal boundary
 
 This milestone is a local personal research prototype. It does not authorize commercial redistribution, paid subscriber signals, raw data resale, or SaaS launch. Verify current Binance terms and any applicable jurisdictional requirements before commercial use.
