@@ -78,6 +78,19 @@ class AnalysisComponentsTest extends TestCase
         $this->assertNull(collect($results)->firstWhere('scenario', 'TREND_PULLBACK_CONTINUATION')['candidate']);
     }
 
+    public function test_ai_review_rejects_malformed_evidence_id_collections(): void
+    {
+        $review = [
+            'assessment' => 'ABSTAIN',
+            'timeframe_alignment' => 'INSUFFICIENT',
+            'supporting_evidence_ids' => 'not-an-array',
+            'contradicting_evidence_ids' => [],
+            'rationale' => 'Insufficient evidence.',
+        ];
+
+        $this->assertFalse((new AiReviewValidator)->validate($review, ['known']));
+    }
+
     public function test_all_scenarios_are_evaluated(): void
     {
         $this->assertCount(4, (new ScenarioEvaluator)->evaluate(['direction' => 'BULLISH', 'behavior' => 'TRENDING', 'volatility' => 'HIGH']));
