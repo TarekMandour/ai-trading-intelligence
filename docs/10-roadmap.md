@@ -1,56 +1,55 @@
 # Roadmap
 
-## Phase 0 — Project Foundation (current)
-- Establish repository rules and source-of-truth documentation.
-- Approve product scope and MVP market.
-- Approve trading styles and timeframe approach.
-- Select data-provider evaluation criteria and candidate providers.
-- Approve signal lifecycle, risk policy, and subscription entitlement model.
-- Decide initial technology/deployment architecture.
-- Define validation and release gates.
+## Phase 0 — Foundation and research
+Completed as a design milestone for the local prototype:
+- product scope and risk boundaries;
+- Binance Spot / USDT technical data source;
+- local Laravel/MySQL/manual-analysis decision;
+- research evidence and scenario hypotheses;
+- regime and multi-timeframe specification;
+- local MVP implementation and test acceptance criteria.
 
-**Exit:** user reviews and approves the Phase 0 decision set. No production code before exit.
+Commercial data rights and legal/jurisdictional review remain blockers for any commercial redistribution or SaaS launch, not for treating the local prototype as a personal research tool subject to applicable terms.
 
-## Phase 1 — Data and platform foundation
-Subject to approval: implement instrument registry, provider adapters, normalized data contracts, storage, data-quality monitoring, and operational observability.
+## Phase 1 — Local Manual-Analysis MVP
+Goal: produce a repeatable local analysis run and three independent reports.
 
-## Phase 2 — Deterministic analysis foundation
-Implement market context, features, scenario definitions, trade-plan calculations, risk gates, and reproducible test harnesses.
+1. Inspect repository and actual local runtime; verify PHP, Laravel, MySQL server/version, frontend conventions, and dependencies.
+2. Build Binance public REST adapter and data-quality validation.
+3. Build manual analysis-run workflow and database queue worker.
+4. Build per-timeframe feature calculations and deterministic market-regime baseline.
+5. Build multi-timeframe context/conflict reporting.
+6. Implement a small number of transparent scenario baselines.
+7. Build deterministic entry/risk/cost gates and trade-plan snapshots.
+8. Build separate Scalping, Intraday, and Swing reports.
+9. Add tests, setup instructions, sample run, and reproducibility notes.
 
-## Phase 3 — Opportunity lifecycle and AI reasoning
-Add bounded AI synthesis/review, structured output validation, immutable signal registry, lifecycle monitoring, and abstention handling.
+Acceptance: docs/17-local-mvp-implementation-plan.md and docs/18-market-regime-and-multitimeframe-spec.md.
 
-## Phase 4 — Subscriber SaaS and distribution
-Implement identity/tenancy, plans, entitlements, notification channels, billing integration if approved, delivery audit, and subscriber experience.
+## Phase 1.1 — Historical validation
+- Historical candle collection and integrity checks.
+- Backtesting/replay harness with chronological walk-forward and untouched holdout.
+- Realistic bid/ask execution and cost model.
+- Scenario-by-scenario and regime-by-regime reporting.
+- Threshold sensitivity, ablations, and multiple-testing controls.
 
-## Phase 5 — Validation and controlled launch
-Backtest, walk-forward, paper/shadow trade, controlled release, cost monitoring, and operational readiness.
+## Phase 1.2 — Research extensions
+- Compare HMM/regime-switching, clustering, and change-point detection with the transparent baseline.
+- Add further scenario families only when data and tests justify them.
+- Consider prospective order-book capture only if it adds measurable value.
+- Evaluate optional bounded AI evidence review after deterministic baselines.
 
-## Roadmap policy
-Phases may be reordered only through an explicit decision record. Do not treat dates or estimates as committed until scope and dependencies are known.
+## Phase 2 — Operational monitoring
+Only if local research proves value and the user approves:
+- continuous WebSocket market monitoring;
+- robust order-book synchronization and replay capture;
+- operational recovery and feed health;
+- deployment and monitoring architecture.
 
+## Phase 3 — SaaS product
+Only after technical efficacy, operational readiness, and commercial/legal approval:
+- accounts, plans, entitlements, payments, subscriber distribution;
+- notifications and lifecycle monitoring;
+- hosting, security, support, and compliance.
 
-## MVP scope update — Crypto Scalping
-The first release is scoped to crypto regular scalping. The proposed timeframe stack is 1H context, 15m structure, 5m setup/confirmation, and 1m entry timing. Venue, spot/perpetual product, instrument universe, and final timeframe rules remain approval gates.
-
-### Updated Phase 0 exit checklist
-- [x] Select crypto as the first market.
-- [x] Select regular scalping as the first trading style.
-- [ ] Decide spot vs perpetual derivatives.
-- [ ] Select initial exchange/venue and confirm commercial data rights.
-- [ ] Approve symbol universe and direction policy.
-- [ ] Validate timeframe roles and latency/freshness targets.
-- [ ] Define transaction-cost and liquidity gates.
-- [ ] Approve lifecycle, subscription entitlements, stack, and deployment plan.
-
-
-## Phase 0 design completion — monitoring and opportunity detection
-
-The following design artifacts are now recorded:
-- docs/14-market-monitoring-and-data-pipeline.md
-- docs/15-opportunity-detection-and-decision-pipeline.md
-- ADR 0005: event-driven market monitoring and evidence-gated opportunity detection.
-
-This completes the current design pass for the monitoring-to-candidate-to-opportunity workflow. It does not complete all of Phase 0 and does not authorize production code. Remaining Phase 0 work includes final technology/deployment decisions, exact operational/retention budgets, legal/commercial data rights, jurisdiction review, final timeframe/holding-time definitions, and the remaining subscription/entitlement and release criteria.
-
-Phase 1 can begin only after the user explicitly approves the complete Phase 0 exit gate. Phase 1 should first implement data contracts, provider adapter, instrument registry, stream health, event capture/replay, and deterministic data-quality gates before any AI opportunity analyst.
+No phase implies profitability or authorizes live order execution.
