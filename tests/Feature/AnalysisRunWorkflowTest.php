@@ -40,7 +40,7 @@ class AnalysisRunWorkflowTest extends TestCase
         try {
             (new ProcessAnalysisRun($run->id))->handle($client, app(DeterministicAnalysisEngine::class), app(ExecutionCostEstimator::class), app(MultiTimeframeAlignment::class), app(ScenarioEvaluator::class), $ai, app(AiReviewValidator::class));
             $this->fail('Expected the unavailable market-data exception to be rethrown for queue retry handling.');
-        } catch (\\RuntimeException $exception) {
+        } catch (\RuntimeException $exception) {
             $this->assertSame('offline', $exception->getMessage());
         }
 
