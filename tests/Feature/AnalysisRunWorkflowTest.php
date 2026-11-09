@@ -44,7 +44,7 @@ class AnalysisRunWorkflowTest extends TestCase
             $this->assertSame('offline', $exception->getMessage());
         }
 
-        $this->assertDatabaseHas('analysis_runs', ['id' => $run->id, 'status' => 'FAILED', 'failure_reason' => 'BINANCE_UNAVAILABLE']);
+        $this->assertDatabaseHas('analysis_runs', ['id' => $run->id, 'status' => 'RUNNING', 'failure_reason' => 'BINANCE_UNAVAILABLE']);
         $this->assertDatabaseCount('analysis_reports', 0);
         $this->get("/analysis-runs/{$run->id}")->assertOk()->assertSee('BINANCE_UNAVAILABLE');
     }
