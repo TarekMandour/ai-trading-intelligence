@@ -17,7 +17,8 @@ Use a Laravel modular monolith in one repository. Keep domain boundaries clear w
 7. Multi-Timeframe Context Engine — profile-specific context/structure/setup/entry views and conflict reporting.
 8. Scenario Evaluators — small versioned deterministic baseline families.
 9. Decision & Risk Engine — entry, stop/invalidation, targets, costs, expiry, and hard gates.
-10. Report & Audit Store — immutable run, evidence, plan, and reason snapshots.
+10. AI Review Layer — provider-neutral structured review of shortlisted candidates and market context; OpenAI is the initial adapter.
+11. Report & Audit Store — immutable run, evidence, deterministic decision, AI review, and reason snapshots.
 
 ## 3. Manual data flow
 
@@ -72,9 +73,15 @@ Use decimal-safe columns for prices, quantities, and monetary values. Persist an
 
 Use Laravel's database queue. The user starts the worker manually from a terminal. Do not create a web request that shells out to a background process, and do not add Redis/Horizon. Configure timeout and retry behavior based on measured analysis duration and prevent duplicate concurrent runs.
 
-## 9. AI boundary
+## 9. AI integration boundary
 
-The first working baseline must run without an OpenAI API key. Deterministic features, scenario rules, and risk gates create the authoritative result. Optional AI evidence summarization can be considered after baseline tests; AI cannot invent levels or override gates.
+Hybrid AI review is part of the Phase 1 implementation. Laravel computes market features, regime states, multi-timeframe relationships, candidate scenarios, entry/stop/target levels, cost assumptions, and deterministic eligibility. A provider-neutral AI adapter receives a compact, validated evidence packet and returns schema-constrained interpretation: scenario assessment, supporting/contradicting evidence, timeframe alignment, missing confirmation, explanation, and advisory ranking/stance.
+
+OpenAI is the first provider. Keep the provider contract small and configuration-driven; do not build a generic agent framework or multi-agent orchestration. API calls happen inside the queued analysis workflow after deterministic shortlist creation, not in the browser request and not per candle. Cache/deduplicate by evidence/config/model/prompt fingerprint where safe.
+
+AI is not authoritative: it cannot create or alter price levels, change costs, bypass data-quality checks, override risk gates, or force ENTER. Laravel validates the response schema and evidence references, then applies deterministic final gates. AI may abstain. Persist provider/model/prompt versions, status, latency, usage/cost metadata when available, and sanitized request/response audit records. Never persist credentials.
+
+If no AI credential is configured or the provider fails, the run still produces deterministic reports and marks AI review as NOT_CONFIGURED or FAILED; it must never silently label the AI review complete. The local baseline therefore remains testable without paid API access, while the AI integration itself is implemented in this milestone.
 
 ## 10. Explicitly deferred architecture
 
