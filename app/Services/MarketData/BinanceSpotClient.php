@@ -13,8 +13,8 @@ class BinanceSpotClient
         try {
             $baseUrl = config('analysis.binance_base_url');
             $responses = Http::pool(fn ($pool) => [
-                'exchange' => $pool->baseUrl($baseUrl)->connectTimeout(3)->timeout(config('analysis.timeout_seconds'))->get('/api/v3/exchangeInfo'),
-                'tickers' => $pool->baseUrl($baseUrl)->connectTimeout(3)->timeout(config('analysis.timeout_seconds'))->get('/api/v3/ticker/24hr'),
+                $pool->as('exchange')->baseUrl($baseUrl)->connectTimeout(3)->timeout(config('analysis.timeout_seconds'))->get('/api/v3/exchangeInfo'),
+                $pool->as('tickers')->baseUrl($baseUrl)->connectTimeout(3)->timeout(config('analysis.timeout_seconds'))->get('/api/v3/ticker/24hr'),
             ]);
 
             $exchangeSymbols = $responses['exchange']->throw()->json('symbols');
