@@ -104,7 +104,7 @@ class ProcessAnalysisRun implements ShouldQueue
                     'decision_reasons' => array_values(array_unique(array_merge($regime['reasons'] ?? [], $alignmentResult['reasons'] ?? [], $profileWarnings))),
                     'candidate' => $candidate,
                 ];
-                $aiReview = $this->reviewAi($ai, $validator, $evidence);
+                $aiReview = ($decision === 'ENTERABLE' && $candidate !== null && $alignmentResult['state'] === 'ALIGNED')\n                    ? $this->reviewAi($ai, $validator, $evidence)\n                    : ['status' => config('services.openai.key') ? 'NOT_REQUIRED' : 'NOT_CONFIGURED'];
                 $aiStatuses[] = $aiReview['status'];
 
                 DB::transaction(function () use ($run, $profile, $symbol, $decision, $timeframes, $evidence, $executionCosts, $aiReview, $profileWarnings, $candidate): void {
