@@ -16,7 +16,9 @@ class OpenAiAnalysisProviderTest extends TestCase
 
         $review = (new OpenAiAnalysisProvider('test-key', 'test-model'))->review(['evidence_ids' => ['e1']]);
 
-        $this->assertSame('ABSTAIN', $review['assessment']);
+        $this->assertSame('ABSTAIN', $review['review']['assessment']);
+        $this->assertSame('test-model', $review['metadata']['model']);
+        Http::assertSent(fn ($request): bool => ($request['text']['format']['type'] ?? null) === 'json_schema' && isset($request['instructions']));
         Http::assertSentCount(1);
     }
 
