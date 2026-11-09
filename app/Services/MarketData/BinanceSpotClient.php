@@ -15,12 +15,27 @@ class BinanceSpotClient
             // Use sequential requests here. The pooled responses were returning a valid
             // ticker payload but an empty eligible universe in the local runtime, despite
             // both endpoints returning valid data when called independently.
-            $exchangeResponse = Http::baseUrl($baseUrl)
-                ->connectTimeout(5)
-                ->timeout(config('analysis.timeout_seconds'))
-                ->retry([250, 750, 1500])
-                ->get('/api/v3/exchangeInfo')
-                ->throw();
+            // exchangeInfo is a large (~18 MB) metadata response. Cache only its
+            // symbol metadata so subsequent runs do not download the full payload again.
+            $exchangeSymbols = Cache::remember(
+                'analysis.binance.exchange_info.symbols.v1',
+                now()->addMinutes(max(1, (int) config('analysis.exchange_info_cache_minutes', 60))),
+                function () use ($baseUrl): array {
+                    $response = Http::baseUrl($baseUrl)
+                        ->connectTimeout(5)
+                        ->timeout(max(10, (int) config('analysis.exchange_info_timeout_seconds', 60)))
+                        ->retry([500, 1500, 3000])
+                        ->get('/api/v3/exchangeInfo')
+                        ->throw();
+
+                    $symbols = $response->json('symbols', []);
+                    if (! is_array($symbols) || $symbols === []) {
+                        throw new \\RuntimeException('Binance exchangeInfo returned an empty symbols list.');
+                    }
+
+                    return $symbols;
+                },
+            );
 
             $tickerResponse = Http::baseUrl($baseUrl)
                 ->connectTimeout(5)
@@ -28,8 +43,6 @@ class BinanceSpotClient
                 ->retry([250, 750, 1500])
                 ->get('/api/v3/ticker/24hr')
                 ->throw();
-
-            $exchangeSymbols = $exchangeResponse->json('symbols', []);
             $tickers = collect($tickerResponse->json())
                 ->filter(fn (array $ticker): bool => is_string($ticker['symbol'] ?? null) && is_numeric($ticker['quoteVolume'] ?? null))
                 ->keyBy('symbol');
