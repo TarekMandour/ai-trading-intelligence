@@ -55,13 +55,21 @@ class ProcessAnalysisRun implements ShouldQueue
         $aiStatuses = [];
         foreach ($universe['symbols'] as $symbolData) {
             $symbol = $symbolData['symbol'];
+            $candlesByInterval = [];
             foreach (config('analysis.profiles') as $profile => $timeframes) {
                 $states = [];
                 $profileWarnings = [];
                 try {
                     foreach ($timeframes as $role => $interval) {
-                        $candles = $binance->candles($symbol, $interval);
-                        if (count($candles) < 20) {
+                        if (! array_key_exists($interval, $candlesByInterval)) {
+                            try {
+                                $candlesByInterval[$interval] = $binance->candles($symbol, $interval);
+                            } catch (\\Throwable $exception) {
+                                $candlesByInterval[$interval] = null;
+                            }
+                        }
+                        $candles = $candlesByInterval[$interval];
+                        if (! is_array($candles) || count($candles) < 20) {
                             throw new \RuntimeException('INSUFFICIENT_CANDLE_HISTORY');
                         }
                         $states[$role] = $engine->evaluate($candles);
