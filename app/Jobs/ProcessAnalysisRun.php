@@ -58,6 +58,7 @@ class ProcessAnalysisRun implements ShouldQueue
             $candlesByInterval = [];
             foreach (config('analysis.profiles') as $profile => $timeframes) {
                 $states = [];
+                $entryCandles = [];
                 $profileWarnings = [];
                 try {
                     foreach ($timeframes as $role => $interval) {
@@ -73,6 +74,9 @@ class ProcessAnalysisRun implements ShouldQueue
                             throw new \RuntimeException('INSUFFICIENT_CANDLE_HISTORY');
                         }
                         $states[$role] = $engine->evaluate($candles);
+                        if ($role === 'entry') {
+                            $entryCandles = $candles;
+                        }
                     }
                 } catch (\Throwable $exception) {
                     $profileWarnings[] = 'CANDLE_DATA_UNAVAILABLE';
@@ -81,15 +85,15 @@ class ProcessAnalysisRun implements ShouldQueue
                 $alignmentResult = $alignment->summarize(collect($states)->map(fn (array $state): array => ['direction' => $state['direction'], 'behavior' => $state['behavior']])->all());
                 $entryState = $states['entry'] ?? null;
                 $regime = $entryState ?? ['direction' => 'UNCERTAIN', 'behavior' => 'UNCERTAIN', 'volatility' => 'NORMAL', 'reasons' => ['INSUFFICIENT_VALIDATED_CANDLE_EVIDENCE'], 'candidate' => null];
-                $scenarioResults = $scenarios->evaluate($regime);
-                $selectedScenario = collect($scenarioResults)->firstWhere('scenario', 'TREND_PULLBACK_CONTINUATION');
-                $candidate = $regime['candidate'] ?? null;
+                $scenarioResults = $scenarios->evaluate($regime, $entryCandles);
+                $selectedScenario = collect($scenarioResults)->first(fn (array $scenario): bool => $scenario['status'] === 'ENTERABLE' && is_array($scenario['candidate'] ?? null));
+                $candidate = $selectedScenario['candidate'] ?? null;
                 $decision = ($profileWarnings !== [] || count($states) !== count($timeframes)) ? 'REJECTED' : 'NO_OPPORTUNITY';
                 $executionCosts = ['available' => false, 'fee' => 0, 'spread' => 0, 'slippage' => 0, 'total' => 0];
 
                 // A candidate is not an entry signal by itself. The selected scenario must
                 // explicitly confirm ENTERABLE before execution-cost gating can pass.
-                if ($candidate !== null && $alignmentResult['state'] === 'ALIGNED' && ($selectedScenario['status'] ?? null) === 'ENTERABLE') {
+                if ($candidate !== null && $alignmentResult['state'] === 'ALIGNED') {
                     try {
                         $book = $binance->orderBook($symbol);
                         $executionCosts = $costs->estimateFromOrderBook($book, (float) config('analysis.trade_notional'), (float) config('analysis.fee_rate'));
