@@ -4,7 +4,7 @@ Status: First implementation contract for the local research baseline. Feature t
 
 ## 1. Purpose
 
-Describe market behavior at each timeframe before any strategy is evaluated. The classifier must not emit a trade signal. It supplies evidence and context to independent Scalping, Intraday, and Swing evaluators.
+Describe market behavior at each timeframe before any strategy is evaluated. The classifier must not emit a trade signal. It supplies evidence and context to independent Scalping, Intraday, and Swing evaluators and to the advisory AI review stage.
 
 ## 2. Orthogonal regime dimensions
 
@@ -48,7 +48,7 @@ Every feature stores timeframe, lookback, value, unit, input candle range, calcu
 - Do not select thresholds from the final holdout.
 - Use a neutral/uncertain zone around boundaries to reduce unstable label flipping.
 - If features materially disagree, classify UNCERTAIN rather than force a majority label.
-- Do not use HMM, deep learning, or generative AI as a dependency for the initial classifier.
+- Do not use HMM, deep learning, or generative AI as a dependency for the initial classifier. A separate AI review may interpret the classifier's output but must not replace or rewrite it.
 - Return evidence/reason codes for every label.
 - Return a confidence/evidence score only as a ranking or diagnostic score, not a calibrated probability.
 - Missing or stale candles make the timeframe classification unavailable; do not fill gaps with future information.
