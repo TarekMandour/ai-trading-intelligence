@@ -60,16 +60,34 @@ class AnalysisPersistenceTest extends TestCase
     {
         $run = AnalysisRun::create(['idempotency_key' => (string) Str::uuid(), 'status' => 'QUEUED', 'configuration_version' => 'test', 'ai_status' => 'NOT_CONFIGURED']);
         $binance = $this->mock(BinanceSpotClient::class);
-        $binance->shouldReceive('eligibleUsdtUniverse')->twice()->andReturn(['symbols' => [], 'tickers' => []]);
+        $binance->shouldReceive('eligibleUsdtUniverse')->twice()->andReturn([
+            'symbols' => [['symbol' => 'BTCUSDT']],
+            'tickers' => [],
+        ]);
+        $candles = array_fill(0, 20, [
+            'open_time' => 1, 'close_time' => 2, 'open' => 100.0, 'high' => 101.0,
+            'low' => 99.0, 'close' => 100.0, 'volume' => 10.0,
+        ]);
+        $binance->shouldReceive('candles')->times(24)->andReturn($candles);
+        $engine = $this->mock(DeterministicAnalysisEngine::class);
+        $engine->shouldReceive('evaluate')->times(24)->andReturn([
+            'direction' => 'RANGING',
+            'volatility' => 'NORMAL',
+            'behavior' => 'CHOPPY',
+            'reasons' => ['NO_LONG_SCENARIO_CONFIRMATION'],
+            'candidate' => null,
+        ]);
         $ai = $this->mock(AiAnalysisProvider::class);
         $job = new ProcessAnalysisRun($run->id);
-        $job->handle($binance, app(DeterministicAnalysisEngine::class), app(ExecutionCostEstimator::class), app(MultiTimeframeAlignment::class), app(ScenarioEvaluator::class), $ai, app(AiReviewValidator::class));
+
+        $job->handle($binance, $engine, app(ExecutionCostEstimator::class), app(MultiTimeframeAlignment::class), app(ScenarioEvaluator::class), $ai, app(AiReviewValidator::class));
         $snapshot = $run->reports()->first()->opportunity->snapshot;
         $run->fresh()->update(['status' => 'QUEUED']);
-        $job->handle($binance, app(DeterministicAnalysisEngine::class), app(ExecutionCostEstimator::class), app(MultiTimeframeAlignment::class), app(ScenarioEvaluator::class), $ai, app(AiReviewValidator::class));
+        $job->handle($binance, $engine, app(ExecutionCostEstimator::class), app(MultiTimeframeAlignment::class), app(ScenarioEvaluator::class), $ai, app(AiReviewValidator::class));
+
         $this->assertDatabaseCount('analysis_reports', 3);
         $this->assertDatabaseCount('analysis_opportunities', 3);
-        $this->assertDatabaseCount('analysis_evidence', 3);
+        $this->assertDatabaseCount('analysis_evidence', 15);
         $this->assertDatabaseCount('analysis_ai_reviews', 3);
         $this->assertDatabaseCount('analysis_audit_events', 3);
         $this->assertSame($snapshot, $run->reports()->first()->fresh()->opportunity->snapshot);
