@@ -13,16 +13,15 @@ class ExecutionCostEstimator
 
         $mid = ($ask + $bid) / 2;
         $spread = ($ask - $bid) / $mid * $notional;
-        $slippage = 0.0;
         $fee = $notional * $feeRate * 2;
 
-        return ['available' => true, 'fee' => $fee, 'spread' => $spread, 'slippage' => $slippage, 'total' => $fee + $spread + $slippage];
+        return ['available' => true, 'fee' => $fee, 'spread' => $spread, 'slippage' => 0.0, 'total' => $fee + $spread];
     }
 
     /**
      * Estimate a market buy for quote notional and a market sell of the acquired
-     * base quantity using the visible depth levels. A partial book is never treated
-     * as sufficient liquidity.
+     * base quantity using visible depth. Both execution legs are costed against
+     * the same midpoint so spread and market impact are not conflated or omitted.
      *
      * @param array{bids:array<int,array{price:float,quantity:float}>,asks:array<int,array{price:float,quantity:float}>} $book
      * @return array<string,mixed>
@@ -50,21 +49,34 @@ class ExecutionCostEstimator
         }
 
         $mid = ($bestAsk + $bestBid) / 2;
-        $spread = ($bestAsk - $bestBid) * $buy['quantity'];
-        $slippage = max(0.0, $buy['vwap'] - $bestAsk) * $buy['quantity']
-            + max(0.0, $bestBid - $sell['vwap']) * $sell['quantity'];
-        $fee = ($notional + $sell['quote']) * $feeRate;
+        $quantity = $buy['quantity'];
+        $spread = ($bestAsk - $bestBid) * $quantity;
+        $slippage = max(0.0, $buy['quote'] - ($bestAsk * $quantity))
+            + max(0.0, ($bestBid * $quantity) - $sell['quote']);
+        $entryFee = $notional * $feeRate;
+        $exitFee = $sell['quote'] * $feeRate;
+        $entryExecutionCost = max(0.0, $buy['quote'] - ($mid * $quantity));
+        $exitExecutionCost = max(0.0, ($mid * $quantity) - $sell['quote']);
+        $entryCost = $entryExecutionCost + $entryFee;
+        $exitCost = $exitExecutionCost + $exitFee;
+        $fee = $entryFee + $exitFee;
 
         return [
             'available' => true,
             'fee' => $fee,
+            'entry_fee' => $entryFee,
+            'exit_fee' => $exitFee,
             'spread' => $spread,
             'slippage' => $slippage,
-            'total' => $fee + $spread + $slippage,
+            'entry_cost' => $entryCost,
+            'exit_cost' => $exitCost,
+            'entry_cost_per_unit' => $entryCost / $quantity,
+            'exit_cost_per_unit' => $exitCost / $quantity,
+            'total' => $entryCost + $exitCost,
             'buy_vwap' => $buy['vwap'],
             'sell_vwap' => $sell['vwap'],
-            'base_quantity' => $buy['quantity'],
-            'buy_quote' => $notional,
+            'base_quantity' => $quantity,
+            'buy_quote' => $buy['quote'],
             'sell_quote' => $sell['quote'],
             'reference_mid' => $mid,
         ];
@@ -89,7 +101,7 @@ class ExecutionCostEstimator
             $quantity += $takeQuantity;
             $remaining -= $takeQuote;
             if ($remaining <= max(0.00000001, $quoteTarget * 0.000000001)) {
-                return ['quantity' => $quantity, 'vwap' => $quote / $quantity];
+                return ['quantity' => $quantity, 'quote' => $quote, 'vwap' => $quote / $quantity];
             }
         }
 
