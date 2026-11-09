@@ -4,19 +4,28 @@ A trading-research application that discovers, evaluates, and records explainabl
 
 ## Current phase
 
-**Phase 1 — Local Manual-Analysis MVP.** The user runs the application on Windows/XAMPP and starts analysis manually. No server deployment or always-on market monitoring is planned for this milestone.
+**Phase 1 — Local Manual-Analysis MVP.** The user runs the application on Windows/Laragon and starts analysis manually. No server deployment or always-on market monitoring is planned for this milestone.
 
 ## Approved local stack
 
 - Laravel 13 / PHP 8.3
 - MySQL target database
-- Windows + XAMPP Apache/PHP
+- Windows + Laragon Apache/PHP
 - Laravel database queue with a manually started worker
 - Binance Spot public REST API
 - Provider-neutral AI review integration (OpenAI first provider)
 - Local dashboard with three independent reports
 
 Verify the actual database server supplied by the installed XAMPP package. Some XAMPP releases bundle MariaDB rather than Oracle MySQL. Do not mislabel one as the other.
+
+## Local execution notes
+
+- Configure MySQL credentials and Binance/optional OpenAI settings in the local `.env` file only.
+- Keep `QUEUE_CONNECTION=database` and `DB_QUEUE_RETRY_AFTER=360`.
+- Start the Laravel application normally, then run the database worker in a separate terminal:
+  `php artisan queue:work database --tries=2 --timeout=300`.
+- Analysis is manual; do not leave a worker running as a market-monitoring service if that is not desired.
+- Before the first local run, apply migrations and execute the full test suite. These final validation steps are intentionally pending until the implementation review is complete.
 
 ## Three trading reports
 
