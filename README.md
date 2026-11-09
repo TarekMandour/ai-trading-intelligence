@@ -13,6 +13,7 @@ A trading-research application that discovers, evaluates, and records explainabl
 - Windows + XAMPP Apache/PHP
 - Laravel database queue with a manually started worker
 - Binance Spot public REST API
+- Provider-neutral AI review integration (OpenAI first provider)
 - Local dashboard with three independent reports
 
 Verify the actual database server supplied by the installed XAMPP package. Some XAMPP releases bundle MariaDB rather than Oracle MySQL. Do not mislabel one as the other.
@@ -31,6 +32,8 @@ Initial timeframe profiles are configurable research hypotheses, not approved pr
 - Separate market direction, volatility, and behavior regime dimensions.
 - Preserve multi-timeframe conflicts and data-quality warnings.
 - Use deterministic calculations and risk gates as the final authority.
+- AI reviews structured evidence and shortlisted scenarios; it never invents trade levels or overrides hard gates.
+- AI provider credentials are configured locally in .env; deterministic analysis remains available if AI is unconfigured or unavailable.
 - Allow the engine to return **NO OPPORTUNITY**.
 - Scores are not success probabilities unless calibrated and validated out-of-sample.
 - Include fees, spread, slippage, and realistic entry/exit assumptions.
@@ -47,6 +50,7 @@ Initial timeframe profiles are configurable research hypotheses, not approved pr
 - [Validation standards](docs/09-testing-validation.md)
 - [Agent instructions](AGENTS.md)
 - [Codex execution brief](docs/19-agent-execution-brief.md)
+- [AI integration specification](docs/20-ai-integration-spec.md)
 - [ADR 0006 — Local Laravel/MySQL manual-analysis MVP](docs/decisions/0006-local-laravel-mysql-manual-analysis-mvp.md)
 
 ## Deferred architecture
