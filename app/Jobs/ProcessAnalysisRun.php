@@ -75,6 +75,7 @@ class ProcessAnalysisRun implements ShouldQueue
                 $states = [];
                 $entryCandles = [];
                 $profileWarnings = [];
+                $candleErrors = [];
                 try {
                     foreach ($timeframes as $role => $interval) {
                         if (! array_key_exists($interval, $candlesByInterval)) {
@@ -82,11 +83,13 @@ class ProcessAnalysisRun implements ShouldQueue
                                 $candlesByInterval[$interval] = $binance->candles($symbol, $interval);
                             } catch (\Throwable $exception) {
                                 $candlesByInterval[$interval] = null;
+                                $candleErrors[$interval] = class_basename($exception);
                             }
                         }
                         $candles = $candlesByInterval[$interval];
                         if (! is_array($candles) || count($candles) < 20) {
-                            throw new \RuntimeException('INSUFFICIENT_CANDLE_HISTORY');
+                            $reason = $candleErrors[$interval] ?? 'INSUFFICIENT_CANDLE_HISTORY';
+                            throw new \RuntimeException($role.':'.$interval.':'.$reason);
                         }
                         $states[$role] = $engine->evaluate($candles);
                         if ($role === 'entry') {
@@ -94,7 +97,7 @@ class ProcessAnalysisRun implements ShouldQueue
                         }
                     }
                 } catch (\Throwable $exception) {
-                    $profileWarnings[] = 'CANDLE_DATA_UNAVAILABLE';
+                    $profileWarnings[] = 'CANDLE_DATA_UNAVAILABLE:'.$exception->getMessage();
                 }
 
                 $alignmentResult = $alignment->summarize(collect($states)->map(fn (array $state): array => ['direction' => $state['direction'], 'behavior' => $state['behavior']])->all());
@@ -105,7 +108,7 @@ class ProcessAnalysisRun implements ShouldQueue
                 $candidate = $selectedScenario['candidate'] ?? null;
                 $hasUncertainTimeframe = collect($states)->contains(fn (array $state): bool => ($state['direction'] ?? 'UNCERTAIN') === 'UNCERTAIN');
                 $decision = ($profileWarnings !== [] || count($states) !== count($timeframes) || $hasUncertainTimeframe) ? 'REJECTED' : 'NO_OPPORTUNITY';
-                $executionCosts = ['available' => false, 'fee' => 0, 'spread' => 0, 'slippage' => 0, 'total' => 0];
+                $executionCosts = ['available' => false, 'fee' => 0, 'spread' => 0, 'slippage' => 0, 'total' => 0, 'reason' => 'NOT_REQUESTED_NO_ENTERABLE_CANDIDATE'];
                 if ($decision !== 'REJECTED' && collect($scenarioResults)->contains(fn (array $scenario): bool => $scenario['status'] === 'WAIT')) {
                     $decision = 'WAIT';
                 }
@@ -114,6 +117,9 @@ class ProcessAnalysisRun implements ShouldQueue
                     try {
                         $book = $binance->orderBook($symbol);
                         $executionCosts = $costs->estimateFromOrderBook($book, (float) config('analysis.trade_notional'), (float) config('analysis.fee_rate'));
+                        if (! ($executionCosts['available'] ?? false)) {
+                            $profileWarnings[] = 'EXECUTION_COSTS_UNAVAILABLE:'.($executionCosts['reason'] ?? 'UNKNOWN');
+                        }
                         $baseQuantity = (float) ($executionCosts['base_quantity'] ?? 0);
                         $estimatedEntry = max((float) $candidate['entry'], (float) ($executionCosts['buy_vwap'] ?? $candidate['entry']));
                         $executionCosts['estimated_entry'] = $estimatedEntry;
@@ -131,6 +137,7 @@ class ProcessAnalysisRun implements ShouldQueue
                         $executionCosts['net_risk_reward'] = $netRiskReward;
                         $decision = $executionCosts['available'] && $baseQuantity > 0 && $netReward > 0 && $netRiskReward >= (float) config('analysis.minimum_net_risk_reward', 1.5) ? 'ENTERABLE' : 'WAIT';
                     } catch (\Throwable $exception) {
+                        $executionCosts['reason'] = 'ORDER_BOOK_REQUEST_FAILED';
                         $profileWarnings[] = 'ORDER_BOOK_UNAVAILABLE';
                         $decision = 'WAIT';
                     }
@@ -203,7 +210,8 @@ class ProcessAnalysisRun implements ShouldQueue
             'status' => 'COMPLETED',
             'ai_status' => ! config('services.openai.key') ? 'NOT_CONFIGURED' : (in_array('FAILED', $aiStatuses, true) ? 'PARTIAL_FAILURE' : (in_array('REJECTED', $aiStatuses, true) ? 'PARTIAL_REJECTED' : (in_array('COMPLETED', $aiStatuses, true) ? 'COMPLETED' : (in_array('SKIPPED_LIMIT', $aiStatuses, true) ? 'PARTIAL_SKIPPED' : 'NOT_REQUIRED')))),
             'completed_at' => now(),
-            'audit' => ['universe_count' => count($universe['symbols']), 'reports_processed' => $profileCount, 'ai_reviews_attempted' => $aiReviewCount, 'source' => 'binance_spot_rest', 'universe_symbols' => $universe['symbols'], 'warnings' => array_values(array_unique($warnings))],
+            'failure_reason' => null,
+            'audit' => ['universe_count => count($universe['symbols']), 'reports_processed' => $profileCount, 'ai_reviews_attempted' => $aiReviewCount, 'source' => 'binance_spot_rest', 'universe_symbols' => $universe['symbols'], 'warnings' => array_values(array_unique($warnings))],
         ]);
     }
 
