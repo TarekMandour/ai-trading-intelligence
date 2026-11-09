@@ -88,7 +88,8 @@ class ProcessAnalysisRun implements ShouldQueue
                 $scenarioResults = $scenarios->evaluate($regime, $entryCandles);
                 $selectedScenario = collect($scenarioResults)->first(fn (array $scenario): bool => $scenario['status'] === 'ENTERABLE' && is_array($scenario['candidate'] ?? null));
                 $candidate = $selectedScenario['candidate'] ?? null;
-                $decision = ($profileWarnings !== [] || count($states) !== count($timeframes)) ? 'REJECTED' : 'NO_OPPORTUNITY';
+                $hasUncertainTimeframe = collect($states)->contains(fn (array $state): bool => ($state['direction'] ?? 'UNCERTAIN') === 'UNCERTAIN');
+                $decision = ($profileWarnings !== [] || count($states) !== count($timeframes) || $hasUncertainTimeframe) ? 'REJECTED' : 'NO_OPPORTUNITY';
                 $executionCosts = ['available' => false, 'fee' => 0, 'spread' => 0, 'slippage' => 0, 'total' => 0];
 
                 // A candidate is not an entry signal by itself. The selected scenario must
@@ -97,7 +98,13 @@ class ProcessAnalysisRun implements ShouldQueue
                     try {
                         $book = $binance->orderBook($symbol);
                         $executionCosts = $costs->estimateFromOrderBook($book, (float) config('analysis.trade_notional'), (float) config('analysis.fee_rate'));
-                        $decision = $executionCosts['available'] ? 'ENTERABLE' : 'WAIT';
+                        $baseQuantity = (float) ($executionCosts['base_quantity'] ?? 0);
+                        $risk = (float) $candidate['entry'] - (float) $candidate['stop'];
+                        $reward = (float) $candidate['target1'] - (float) $candidate['entry'];
+                        $costPerUnit = $baseQuantity > 0 ? (float) $executionCosts['total'] / $baseQuantity : INF;
+                        $netRiskReward = ($risk + $costPerUnit) > 0 ? ($reward - $costPerUnit) / ($risk + $costPerUnit) : 0.0;
+                        $executionCosts['net_risk_reward'] = $netRiskReward;
+                        $decision = $executionCosts['available'] && $netRiskReward >= 1.5 ? 'ENTERABLE' : 'WAIT';
                     } catch (\Throwable $exception) {
                         $profileWarnings[] = 'ORDER_BOOK_UNAVAILABLE';
                         $decision = 'WAIT';
