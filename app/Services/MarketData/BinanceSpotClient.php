@@ -63,7 +63,7 @@ class BinanceSpotClient
             ];
         } catch (ConnectionException $exception) {
             report($exception);
-            throw new \\RuntimeException(
+            throw new \RuntimeException(
                 'Binance public REST connection failed: '.$exception->getMessage(),
                 previous: $exception,
             );
