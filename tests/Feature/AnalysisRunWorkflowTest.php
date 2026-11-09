@@ -37,10 +37,15 @@ class AnalysisRunWorkflowTest extends TestCase
         $client->shouldReceive('eligibleUsdtUniverse')->once()->andThrow(new \RuntimeException('offline'));
 
         $ai = $this->mock(AiAnalysisProvider::class);
-        (new ProcessAnalysisRun($run->id))->handle($client, app(DeterministicAnalysisEngine::class), app(ExecutionCostEstimator::class), app(MultiTimeframeAlignment::class), app(ScenarioEvaluator::class), $ai, app(AiReviewValidator::class));
+        try {
+            (new ProcessAnalysisRun($run->id))->handle($client, app(DeterministicAnalysisEngine::class), app(ExecutionCostEstimator::class), app(MultiTimeframeAlignment::class), app(ScenarioEvaluator::class), $ai, app(AiReviewValidator::class));
+            $this->fail('Expected the unavailable market-data exception to be rethrown for queue retry handling.');
+        } catch (\\RuntimeException $exception) {
+            $this->assertSame('offline', $exception->getMessage());
+        }
 
-        $this->assertDatabaseHas('analysis_runs', ['id' => $run->id, 'status' => 'COMPLETED']);
-        $this->assertDatabaseCount('analysis_reports', 3);
-        $this->get("/analysis-runs/{$run->id}")->assertOk()->assertSee('Scalping Report')->assertSee('Intraday Report')->assertSee('Swing Report');
+        $this->assertDatabaseHas('analysis_runs', ['id' => $run->id, 'status' => 'FAILED', 'failure_reason' => 'BINANCE_UNAVAILABLE']);
+        $this->assertDatabaseCount('analysis_reports', 0);
+        $this->get("/analysis-runs/{$run->id}")->assertOk()->assertSee('BINANCE_UNAVAILABLE');
     }
 }
