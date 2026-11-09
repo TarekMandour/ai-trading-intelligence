@@ -42,7 +42,7 @@ class ProcessAnalysisRun implements ShouldQueue
         try {
             $universe = $binance->eligibleUsdtUniverse();
         } catch (\Throwable $exception) {
-            $run->update(['status' => 'FAILED', 'failure_reason' => 'BINANCE_UNAVAILABLE', 'completed_at' => now()]);
+            $run->update(['status' => 'RUNNING', 'failure_reason' => 'BINANCE_UNAVAILABLE']);
             throw $exception;
         }
 
@@ -154,6 +154,15 @@ class ProcessAnalysisRun implements ShouldQueue
             'ai_status' => ! config('services.openai.key') ? 'NOT_CONFIGURED' : (in_array('FAILED', $aiStatuses, true) ? 'PARTIAL_FAILURE' : (in_array('REJECTED', $aiStatuses, true) ? 'PARTIAL_REJECTED' : 'COMPLETED')),
             'completed_at' => now(),
             'audit' => ['universe_count' => count($universe['symbols']), 'reports_created' => $profileCount, 'source' => 'binance_spot_rest', 'warnings' => array_values(array_unique($warnings))],
+        ]);
+    }
+
+    public function failed(\\Throwable $exception): void
+    {
+        AnalysisRun::whereKey($this->analysisRunId)->update([
+            'status' => 'FAILED',
+            'failure_reason' => 'JOB_FAILED',
+            'completed_at' => now(),
         ]);
     }
 
