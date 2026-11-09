@@ -1,3 +1,6 @@
+> **Scope note (2026-11-09):** This document describes a future continuous/event-driven monitoring architecture. It is explicitly deferred from the current local manual-analysis MVP. The first implementation uses Binance REST requests on demand and a Laravel database queue; it does not build persistent WebSocket streams, watchlist/active-set daemons, or continuous order-book reconstruction. See docs/17-local-mvp-implementation-plan.md and ADR 0006.
+
+
 # Market Monitoring and Data Pipeline
 
 Status: Phase 0 design approved for the MVP workflow. Numeric trigger thresholds, capture retention, and operational capacity remain pilot parameters requiring measurement. This document does not authorize production implementation or paid redistribution of Binance data.
