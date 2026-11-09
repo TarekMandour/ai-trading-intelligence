@@ -62,7 +62,11 @@ class BinanceSpotClient
                 'tickers' => $tickers->values()->all(),
             ];
         } catch (ConnectionException $exception) {
-            throw new \RuntimeException('Binance public REST connection failed.', previous: $exception);
+            report($exception);
+            throw new \\RuntimeException(
+                'Binance public REST connection failed: '.$exception->getMessage(),
+                previous: $exception,
+            );
         }
     }
 
