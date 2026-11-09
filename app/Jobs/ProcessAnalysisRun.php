@@ -64,7 +64,7 @@ class ProcessAnalysisRun implements ShouldQueue
                         if (! array_key_exists($interval, $candlesByInterval)) {
                             try {
                                 $candlesByInterval[$interval] = $binance->candles($symbol, $interval);
-                            } catch (\\Throwable $exception) {
+                            } catch (\Throwable $exception) {
                                 $candlesByInterval[$interval] = null;
                             }
                         }
