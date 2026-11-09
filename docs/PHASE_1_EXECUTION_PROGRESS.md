@@ -17,22 +17,24 @@ Deliver the local, manual Laravel 13 analysis workflow for Binance Spot USDT lon
 - Queued pipeline iterates every selected symbol and each Scalping, Intraday and Swing profile; records timeframe states, alignment, regime, scenario results, execution costs, evidence and decisions.
 - AI review is restricted to deterministic ENTERABLE candidates with aligned timeframe evidence; AI remains advisory and cannot alter deterministic levels.
 
+## Execution-cost validation update
+
+- The order-book estimator now reports entry and exit fees separately, execution friction per leg, round-trip cost per base unit, and the reference midpoint.
+- Buy cost is measured against the midpoint using visible ask-side VWAP; sell cost is measured against the same midpoint using visible bid-side VWAP. This separates the spread component from depth-walk slippage without double counting.
+- The analysis job uses the explicit sum of entry- and exit-cost-per-unit to calculate net Target 1 reward and net stop risk. A candidate is not ENTERABLE unless net reward remains positive and net R:R meets the configured minimum.
+- The visible REST depth snapshot is an estimate, not guaranteed future liquidity. The current-book sell-side friction is a conservative proxy for target/stop exit friction; this assumption must be disclosed in reports and validated with paper trading.
+
 ## Remaining implementation work
 
-- Four deterministic long-only setup evaluators are now implemented: trend pullback continuation, breakout/retest, range mean reversion, and momentum/volatility expansion. They generate their own entry/stop/target levels from entry-timeframe candles; a candidate still must pass multi-timeframe alignment, visible order-book depth, and cost-adjusted reward-to-risk gates. These are research hypotheses, not validated profitable strategies.
-- Depth-aware execution-cost estimation now consumes visible ask depth for the buy and bid depth for the acquired base quantity on exit; it calculates both-leg VWAP, spread, slippage and fees, and rejects insufficient depth.
-- Complete retry-safe persistence semantics for mutable RUNNING jobs and verify actual duplicate retry behavior. Candle sets are cached once per symbol/interval across profiles; persistence uses unique report/evidence/audit keys to avoid duplicate rows on retries.
-- OpenAI advisory review now has explicit grounding instructions and a strict JSON schema. Provider/model, latency and response usage metadata are captured for persistence; terminal queue failure handling is separated from retryable market-data errors.
-- Report view now includes symbol/profile decisions, candidate levels, timeframe evidence, scenario reasons, current order-book VWAP/cost-adjusted R:R, run audit warnings, AI review and provider usage metadata.
-- Database queue retry_after is now 360 seconds, above the job's 300-second timeout, to reduce duplicate concurrent processing. The selected eligible universe is persisted in the run snapshot and partially committed symbol/profile reports are skipped on retry, preventing repeated AI calls for already committed work. AI reviews are capped by AI_MAX_CANDIDATES_PER_RUN, and OpenAI output tokens are bounded. Continue reviewing retry/idempotency behavior and run completion safeguards. Retryable run-level Binance failures remain RUNNING until Laravel exhausts retries and invokes the terminal failed callback. Incomplete timeframe sets now produce REJECTED reports rather than silently becoming NO_OPPORTUNITY.
-- Final comprehensive tests, formatting, migrations, and local smoke test. Regression tests have been added/updated for escaping, depth-aware costs, scenario confirmation, unavailable market data, AI schema output, and idempotent persistence, but have not been executed. Static review found and corrected a malformed exception catch in a workflow test; all tests remain unrun.
-
-- Additional static-review fixes: corrected the AI validator namespace declaration, preserved existing AI review statuses when a queued run resumes already-committed reports, corrected the remaining XAMPP reference to Laragon, and set `gpt-4.1-mini` as the explicit `.env.example` model default.
+- Four deterministic long-only setup evaluators are research hypotheses, not validated profitable strategies.
+- Complete retry-safe persistence semantics for mutable RUNNING jobs and verify actual duplicate retry behavior.
+- OpenAI advisory review remains optional and bounded per run; deterministic reports persist when AI is unavailable.
+- Final comprehensive tests, formatting, migrations, and local smoke test. Tests and migrations must be run in the user's Laragon environment; no local execution is performed by the assistant.
 
 ## Verification status
 
-No claim of full test-suite success is made for the latest GitHub changes. The latest pipeline and migration edits have not been executed in the user's Laragon environment. Run the complete test suite and migration checks only after implementation is complete.
-
-## Latest implementation checkpoint
-
-The analysis job iterates the selected Binance universe for all three profiles and persists one report per symbol/profile. Four deterministic setup evaluators now produce scenario-owned trade levels, while multi-timeframe alignment, full visible-depth execution costs, and cost-adjusted reward-to-risk gate entry decisions. AI review uses grounded instructions and strict structured output, and captures provider/model/latency/usage metadata. The next work is final static consistency review and documentation reconciliation. No automated tests, migrations, or local smoke tests have been run. The user will be notified before any test execution begins. Queue visibility timeout is aligned with job timeout, AI review count and output size are bounded, and cost-adjusted R:R uses conservative ask-side VWAP. No tests have been run yet. No profitability claim is made.
+- User confirmed that the complete local test suite passed after correcting the Binance universe mapping issue.
+- User verified live Binance connectivity: eligible Spot USDT symbols = 518; selected universe = 20; ticker count = 3,745.
+- User verified 99 closed candles for each configured timeframe and valid depth snapshots with 20 bid and 20 ask levels.
+- Execution-cost code update is committed but still requires local regression tests and inspection of first real analysis results.
+- No profitability claim is made.
