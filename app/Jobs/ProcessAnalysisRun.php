@@ -189,7 +189,7 @@ class ProcessAnalysisRun implements ShouldQueue
             $review = $result['review'] ?? $result;
             $metadata = $result['metadata'] ?? [];
             $latencyMs = (int) round((microtime(true) - $startedAt) * 1000);
-        } catch (\\Throwable $exception) {
+        } catch (\Throwable $exception) {
             return ['status' => 'FAILED', 'latency_ms' => (int) round((microtime(true) - $startedAt) * 1000)];
         }
 
