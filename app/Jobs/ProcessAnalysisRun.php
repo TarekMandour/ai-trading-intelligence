@@ -73,6 +73,7 @@ class ProcessAnalysisRun implements ShouldQueue
                 $alignmentResult = $alignment->summarize(collect($states)->map(fn (array $state): array => ['direction' => $state['direction'], 'behavior' => $state['behavior']])->all());
                 $entryState = $states['entry'] ?? null;
                 $regime = $entryState ?? ['direction' => 'UNCERTAIN', 'behavior' => 'UNCERTAIN', 'volatility' => 'NORMAL', 'reasons' => ['INSUFFICIENT_VALIDATED_CANDLE_EVIDENCE'], 'candidate' => null];
+                $warnings = array_merge($warnings, array_map(fn (string $warning): string => $symbol.':'.$profile.':'.$warning, $profileWarnings));
                 $scenarioResults = $scenarios->evaluate($regime);
                 $selectedScenario = collect($scenarioResults)->firstWhere('scenario', 'TREND_PULLBACK_CONTINUATION');
                 $candidate = $regime['candidate'] ?? null;
