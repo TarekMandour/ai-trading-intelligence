@@ -30,7 +30,7 @@ class AnalysisRunWorkflowTest extends TestCase
         Queue::assertPushed(ProcessAnalysisRun::class);
     }
 
-    public function test_job_persists_three_no_opportunity_reports_when_market_data_is_unavailable(): void
+    public function test_job_keeps_run_retryable_when_market_data_is_unavailable(): void
     {
         $run = AnalysisRun::create(['idempotency_key' => (string) Str::uuid(), 'status' => 'QUEUED', 'configuration_version' => 'test', 'ai_status' => 'NOT_CONFIGURED']);
         $client = $this->mock(BinanceSpotClient::class);
