@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Ai;
+namespace App\\Services\\Ai;
 
 class AiReviewValidator
 {
@@ -13,8 +13,15 @@ class AiReviewValidator
         if (! in_array($review['timeframe_alignment'] ?? null, ['ALIGNED', 'PARTIAL', 'CONFLICTED', 'INSUFFICIENT'], true)) {
             return false;
         }
-        foreach (array_merge($review['supporting_evidence_ids'] ?? [], $review['contradicting_evidence_ids'] ?? []) as $id) {
-            if (! in_array($id, $evidenceIds, true)) {
+
+        $supporting = $review['supporting_evidence_ids'] ?? null;
+        $contradicting = $review['contradicting_evidence_ids'] ?? null;
+        if (! is_array($supporting) || ! is_array($contradicting)) {
+            return false;
+        }
+
+        foreach (array_merge($supporting, $contradicting) as $id) {
+            if (! is_string($id) || ! in_array($id, $evidenceIds, true)) {
                 return false;
             }
         }
