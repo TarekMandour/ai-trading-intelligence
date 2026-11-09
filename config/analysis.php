@@ -5,6 +5,8 @@ return [
     'universe_limit' => (int) env('ANALYSIS_UNIVERSE_LIMIT', 20),
     'binance_base_url' => env('BINANCE_BASE_URL', 'https://api.binance.com'),
     'timeout_seconds' => (int) env('BINANCE_TIMEOUT_SECONDS', 10),
+    'exchange_info_timeout_seconds' => (int) env('BINANCE_EXCHANGE_INFO_TIMEOUT_SECONDS', 60),
+    'exchange_info_cache_minutes' => (int) env('BINANCE_EXCHANGE_INFO_CACHE_MINUTES', 60),
     'order_book_limit' => (int) env('BINANCE_ORDER_BOOK_LIMIT', 20),
     'trade_notional' => (float) env('ANALYSIS_TRADE_NOTIONAL', 100),
     'fee_rate' => (float) env('ANALYSIS_FEE_RATE', 0.001),
