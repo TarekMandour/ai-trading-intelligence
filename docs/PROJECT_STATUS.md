@@ -81,4 +81,4 @@ Research sources and limitations are documented in docs/16-research-evidence-and
 - Hosting, subscriptions, and SaaS only after local proof of value and separate approval.
 
 ## Current status
-Documentation and execution scope are prepared on phase-1-local-mvp. Production application code has not yet been verified as implemented. Do not mark the local MVP complete until the Definition of First Local Test is met and the user can run it on their machine.
+Initial vertical slice implemented: a Laravel dashboard creates an idempotency-keyed queued analysis run, the database worker persists independent Scalping, Intraday, and Swing reports, and Binance public REST failure produces auditable `NO_OPPORTUNITY` reports rather than invented plans. The first slice includes a bounded Binance exchange/ticker client and a NOT_CONFIGURED AI fallback state. Regime calculations, candle normalization, scenario/risk geometry, OpenAI adapter/schema validation, and detailed opportunity persistence remain incomplete. Do not mark the local MVP complete until the Definition of First Local Test is met and the user can run it on their machine.
