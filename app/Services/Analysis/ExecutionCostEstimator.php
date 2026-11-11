@@ -82,6 +82,43 @@ class ExecutionCostEstimator
         ];
     }
 
+    /**
+     * Apply the current order-book snapshot to a candidate without double-counting
+     * entry spread/impact: buy_vwap is already the estimated entry execution price.
+     * The remaining modeled costs are the entry fee plus the estimated exit cost.
+     *
+     * @param array{entry:float,stop:float,target1:float} $candidate
+     * @param array<string,mixed> $executionCosts
+     * @return array<string,float>
+     */
+    public function netRiskReward(array $candidate, array $executionCosts): array
+    {
+        $quantity = (float) ($executionCosts['base_quantity'] ?? 0.0);
+        if (! ($executionCosts['available'] ?? false)
+            || $quantity <= 0
+            || ! isset($executionCosts['buy_vwap'], $executionCosts['entry_fee'], $executionCosts['exit_cost_per_unit'])) {
+            throw new \\InvalidArgumentException('A complete order-book execution estimate is required.');
+        }
+
+        $estimatedEntry = max((float) $candidate['entry'], (float) $executionCosts['buy_vwap']);
+        $risk = $estimatedEntry - (float) $candidate['stop'];
+        $reward = (float) $candidate['target1'] - $estimatedEntry;
+        $entryFeePerUnit = (float) $executionCosts['entry_fee'] / $quantity;
+        $exitCostPerUnit = (float) $executionCosts['exit_cost_per_unit'];
+        $roundTripCostPerUnit = $entryFeePerUnit + $exitCostPerUnit;
+        $netReward = $reward - $roundTripCostPerUnit;
+        $netRisk = $risk + $roundTripCostPerUnit;
+
+        return [
+            'estimated_entry' => $estimatedEntry,
+            'entry_fee_per_unit' => $entryFeePerUnit,
+            'round_trip_cost_per_unit' => $roundTripCostPerUnit,
+            'net_target1_reward_per_unit' => $netReward,
+            'net_stop_risk_per_unit' => $netRisk,
+            'net_risk_reward' => $netRisk > 0 ? $netReward / $netRisk : 0.0,
+        ];
+    }
+
     /** @param array<int,array{price:float,quantity:float}> $levels */
     private function fillByQuote(array $levels, float $quoteTarget): ?array
     {
