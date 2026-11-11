@@ -48,3 +48,15 @@ Deliver the local, manual Laravel 13 analysis workflow for Binance Spot USDT lon
 - A bullish Entry with a bearish Setup is labeled PULLBACK; consolidation at Structure or Setup is labeled PARTIAL; fully bullish states are ALIGNED.
 - This is a strategy hypothesis, not a profitability claim. It requires local tests, report inspection, historical validation, and paper trading.
 - Higher-timeframe candles must remain completed/closed at decision time; no forming-candle values may enter the alignment or AI evidence.
+
+
+## AI advisory review implementation update
+
+- Expanded the OpenAI structured response to include assessment, timeframe alignment, ordinal evidence-strength label, supporting/contradicting evidence IDs, missing confirmations, risk observations and concise rationale.
+- Laravel validator now requires the exact response key set, validates enums, rejects unknown/duplicate/overlapping evidence IDs, and bounds text lists and rationale length.
+- AI remains restricted to deterministic ENTERABLE candidates and the configured per-run cap.
+- Provider failures and invalid responses are stored as AI review statuses while deterministic reports continue unchanged.
+- Added an audit migration for schema version and SHA-256 evidence hash; the existing prompt_version column is reused.
+- Reports display the AI review as advisory, including cautions and missing confirmations, separately from deterministic decision and levels.
+- Added tests for strict contract validation, malformed/failed provider responses, AI caution isolation and provider-failure fallback.
+- Automated tests use fakes. The complete test suite, migration and real OpenAI smoke test remain to be run in the user's Laragon environment.
