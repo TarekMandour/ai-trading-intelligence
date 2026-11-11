@@ -61,7 +61,7 @@ class OpenAiAnalysisProviderTest extends TestCase
         Http::fake(['api.openai.com/v1/responses' => Http::response($payload)]);
 
         $result = (new OpenAiAnalysisProvider('test-key', 'test-model'))->review([]);
-        $this->assertFalse((new \\App\\Services\\Ai\\AiReviewValidator)->validate($result['review'], []));
+        $this->assertFalse((new \App\Services\Ai\AiReviewValidator)->validate($result['review'], []));
     }
 
 }
