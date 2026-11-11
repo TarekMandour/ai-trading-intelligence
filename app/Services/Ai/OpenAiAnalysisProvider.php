@@ -3,6 +3,7 @@
 namespace App\Services\Ai;
 
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 
 class OpenAiAnalysisProvider implements AiAnalysisProvider
@@ -66,6 +67,8 @@ class OpenAiAnalysisProvider implements AiAnalysisProvider
                 ]);
         } catch (ConnectionException $exception) {
             throw new \RuntimeException('AI provider request failed.', previous: $exception);
+        } catch (RequestException $exception) {
+            throw new \RuntimeException('AI provider returned an unsuccessful response.', previous: $exception);
         }
 
         if (! $response->successful()) {
