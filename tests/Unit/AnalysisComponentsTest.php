@@ -57,7 +57,7 @@ class AnalysisComponentsTest extends TestCase
         $this->assertEqualsWithDelta($costs['buy_vwap'], $metrics['estimated_entry'], 0.000001);
         $this->assertEqualsWithDelta($expectedRoundTrip, $metrics['round_trip_cost_per_unit'], 0.000001);
         $this->assertNotEqualsWithDelta($costs['entry_cost_per_unit'] + $costs['exit_cost_per_unit'], $metrics['round_trip_cost_per_unit'], 0.000001);
-        $this->assertEqualsWithDelta(10.0 - $expectedRoundTrip, $metrics['net_target1_reward_per_unit'], 0.000001);
+        $this->assertEqualsWithDelta(9.0 - $expectedRoundTrip, $metrics['net_target1_reward_per_unit'], 0.000001);
     }
 
     public function test_order_book_costs_reject_insufficient_depth(): void
