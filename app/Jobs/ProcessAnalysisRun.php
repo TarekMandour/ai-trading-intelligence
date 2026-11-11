@@ -225,19 +225,26 @@ class ProcessAnalysisRun implements ShouldQueue
         }
 
         $startedAt = microtime(true);
+        $metadata = [
+            'provider' => 'openai',
+            'model' => config('services.openai.model'),
+            'prompt_version' => config('analysis.ai_prompt_version', 'ai-review-v2'),
+            'schema_version' => config('analysis.ai_schema_version', 'ai-review-schema-v2'),
+            'evidence_hash' => hash('sha256', json_encode($evidence, JSON_THROW_ON_ERROR)),
+        ];
+
         try {
             $result = $ai->review($evidence);
             $review = $result['review'] ?? $result;
-            $metadata = $result['metadata'] ?? [];
+            $metadata = array_merge($metadata, $result['metadata'] ?? []);
             $latencyMs = (int) round((microtime(true) - $startedAt) * 1000);
         } catch (\Throwable $exception) {
-            return ['status' => 'FAILED', 'latency_ms' => (int) round((microtime(true) - $startedAt) * 1000)];
+            return [
+                'status' => 'FAILED',
+                'metadata' => $metadata,
+                'latency_ms' => (int) round((microtime(true) - $startedAt) * 1000),
+            ];
         }
-
-        $metadata['provider'] = 'openai';
-        $metadata['prompt_version'] = config('analysis.ai_prompt_version', 'ai-review-v2');
-        $metadata['schema_version'] = config('analysis.ai_schema_version', 'ai-review-schema-v2');
-        $metadata['evidence_hash'] = hash('sha256', json_encode($evidence, JSON_THROW_ON_ERROR));
 
         return $validator->validate($review, $evidence['evidence_ids'])
             ? ['status' => 'COMPLETED', 'review' => $review, 'metadata' => $metadata, 'latency_ms' => $latencyMs]
