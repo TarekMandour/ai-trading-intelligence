@@ -42,4 +42,15 @@ return [
         'max_output_tokens' => (int) env('AI_MAX_OUTPUT_TOKENS', 600),
     ],
 
+    'ai' => [
+        'provider' => env('AI_PROVIDER', 'openai'),
+    ],
+
+    'gemini' => [
+        'key' => env('GEMINI_API_KEY'),
+        'model' => env('GEMINI_MODEL', 'gemini-2.5-flash'),
+        'timeout' => (int) env('GEMINI_TIMEOUT', 20),
+        'max_output_tokens' => (int) env('AI_MAX_OUTPUT_TOKENS', 600),
+    ],
+
 ];
