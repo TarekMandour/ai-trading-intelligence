@@ -121,21 +121,15 @@ class ProcessAnalysisRun implements ShouldQueue
                             $profileWarnings[] = 'EXECUTION_COSTS_UNAVAILABLE:'.($executionCosts['reason'] ?? 'UNKNOWN');
                         }
                         $baseQuantity = (float) ($executionCosts['base_quantity'] ?? 0);
-                        $estimatedEntry = max((float) $candidate['entry'], (float) ($executionCosts['buy_vwap'] ?? $candidate['entry']));
-                        $executionCosts['estimated_entry'] = $estimatedEntry;
-                        $risk = $estimatedEntry - (float) $candidate['stop'];
-                        $reward = (float) $candidate['target1'] - $estimatedEntry;
-                        $entryCostPerUnit = (float) ($executionCosts['entry_cost_per_unit'] ?? 0.0);
-                        $exitCostPerUnit = (float) ($executionCosts['exit_cost_per_unit'] ?? 0.0);
-                        $roundTripCostPerUnit = $entryCostPerUnit + $exitCostPerUnit;
-                        $executionCosts['round_trip_cost_per_unit'] = $roundTripCostPerUnit;
-                        $netReward = $reward - $roundTripCostPerUnit;
-                        $netRisk = $risk + $roundTripCostPerUnit;
-                        $netRiskReward = $netRisk > 0 ? $netReward / $netRisk : 0.0;
-                        $executionCosts['net_target1_reward_per_unit'] = $netReward;
-                        $executionCosts['net_stop_risk_per_unit'] = $netRisk;
-                        $executionCosts['net_risk_reward'] = $netRiskReward;
-                        $decision = $executionCosts['available'] && $baseQuantity > 0 && $netReward > 0 && $netRiskReward >= (float) config('analysis.minimum_net_risk_reward', 1.5) ? 'ENTERABLE' : 'WAIT';
+                        if ($executionCosts['available'] && $baseQuantity > 0) {
+                            $netMetrics = $costs->netRiskReward($candidate, $executionCosts);
+                            $executionCosts = array_merge($executionCosts, $netMetrics);
+                        }
+                        $decision = $executionCosts['available'] && $baseQuantity > 0
+                            && ($executionCosts['net_target1_reward_per_unit'] ?? 0) > 0
+                            && ($executionCosts['net_risk_reward'] ?? 0) >= (float) config('analysis.minimum_net_risk_reward', 1.5)
+                            ? 'ENTERABLE'
+                            : 'WAIT';
                     } catch (\Throwable $exception) {
                         $executionCosts['reason'] = 'ORDER_BOOK_REQUEST_FAILED';
                         $profileWarnings[] = 'ORDER_BOOK_UNAVAILABLE';
