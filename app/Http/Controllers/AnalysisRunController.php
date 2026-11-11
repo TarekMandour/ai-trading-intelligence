@@ -18,7 +18,19 @@ class AnalysisRunController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $run = AnalysisRun::create(['idempotency_key' => (string) Str::uuid(), 'status' => 'QUEUED', 'configuration_version' => config('analysis.configuration_version'), 'ai_status' => config('services.openai.key') ? 'PENDING' : 'NOT_CONFIGURED']);
+        $aiProvider = (string) config('services.ai.provider', 'openai');
+        $aiProviderKey = match ($aiProvider) {
+            'openai' => config('services.openai.key'),
+            'gemini' => config('services.gemini.key'),
+            default => null,
+        };
+
+        $run = AnalysisRun::create([
+            'idempotency_key' => (string) Str::uuid(),
+            'status' => 'QUEUED',
+            'configuration_version' => config('analysis.configuration_version'),
+            'ai_status' => filled($aiProviderKey) ? 'PENDING' : 'NOT_CONFIGURED',
+        ]);
         ProcessAnalysisRun::dispatch($run->id);
 
         return redirect()->route('analysis-runs.show', $run)->with('status', 'Analysis queued. Start the database queue worker to process it.');
