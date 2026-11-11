@@ -21,13 +21,14 @@ class OpenAiProviderBindingTest extends TestCase
 
     public function test_missing_key_resolves_safely_and_fails_only_when_review_is_requested(): void
     {
-        config(['services.openai.key' => null]);
+        config(['services.ai.provider' => 'openai', 'services.openai.key' => null]);
         $this->app->forgetInstance(AiAnalysisProvider::class);
         $provider = $this->app->make(AiAnalysisProvider::class);
 
         $this->expectException(\RuntimeException::class);
         $provider->review([]);
     }
+
     public function test_container_resolves_gemini_when_selected_by_configuration(): void
     {
         config([
