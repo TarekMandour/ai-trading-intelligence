@@ -97,7 +97,7 @@ class ExecutionCostEstimator
         if (! ($executionCosts['available'] ?? false)
             || $quantity <= 0
             || ! isset($executionCosts['buy_vwap'], $executionCosts['entry_fee'], $executionCosts['exit_cost_per_unit'])) {
-            throw new \\InvalidArgumentException('A complete order-book execution estimate is required.');
+            throw new \InvalidArgumentException('A complete order-book execution estimate is required.');
         }
 
         $estimatedEntry = max((float) $candidate['entry'], (float) $executionCosts['buy_vwap']);
