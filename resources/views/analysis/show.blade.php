@@ -46,13 +46,23 @@
 @foreach($opportunity->evidence as $evidence)
 <details><summary>{{ $evidence->kind }}</summary><pre>{{ json_encode($evidence->payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre></details>
 @endforeach
-<h3>AI review</h3>
-<p>Status: {{ $opportunity->aiReview->status ?? 'NOT_AVAILABLE' }}</p>
+<h3>AI advisory review</h3>
+<p><strong>Status:</strong> {{ $opportunity->aiReview->status ?? 'NOT_AVAILABLE' }}</p>
+<p><small>Advisory only. The deterministic Laravel decision and trade levels remain authoritative; AI cannot approve a rejected setup or modify prices.</small></p>
 @if($opportunity->aiReview)
 <p>Provider: {{ $opportunity->aiReview->provider ?? '—' }} | Model: {{ $opportunity->aiReview->model ?? '—' }} | Latency: {{ $opportunity->aiReview->latency_ms ?? '—' }} ms</p>
+<p>Prompt: {{ $opportunity->aiReview->prompt_version ?? '—' }} | Schema: {{ $opportunity->aiReview->schema_version ?? '—' }}</p>
+@if($opportunity->aiReview->review)
+@php($aiReview = $opportunity->aiReview->review)
+<p><strong>Assessment:</strong> {{ $aiReview['assessment'] ?? '—' }} | <strong>Evidence strength:</strong> {{ $aiReview['confidence_label'] ?? '—' }} | <strong>Timeframe alignment:</strong> {{ $aiReview['timeframe_alignment'] ?? '—' }}</p>
+<p><strong>Rationale:</strong> {{ $aiReview['rationale'] ?? '—' }}</p>
+@if(!empty($aiReview['missing_confirmations']))<p><strong>Missing confirmations:</strong> {{ implode('; ', $aiReview['missing_confirmations']) }}</p>@endif
+@if(!empty($aiReview['risk_observations']))<p><strong>Risk observations:</strong> {{ implode('; ', $aiReview['risk_observations']) }}</p>@endif
+@if(!empty($aiReview['supporting_evidence_ids']))<p><strong>Supporting evidence:</strong> {{ implode(', ', $aiReview['supporting_evidence_ids']) }}</p>@endif
+@if(!empty($aiReview['contradicting_evidence_ids']))<p><strong>Contradicting evidence:</strong> {{ implode(', ', $aiReview['contradicting_evidence_ids']) }}</p>@endif
+@endif
 @if($opportunity->aiReview->usage)<details><summary>Provider usage</summary><pre>{{ json_encode($opportunity->aiReview->usage, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre></details>@endif
 @endif
-@if($opportunity->aiReview?->review)<pre>{{ json_encode($opportunity->aiReview->review, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>@endif
 @endif
 </section>
 @endforeach
