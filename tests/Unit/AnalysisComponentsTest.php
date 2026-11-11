@@ -12,7 +12,52 @@ class AnalysisComponentsTest extends TestCase
 {
     public function test_conflicting_timeframes_are_not_flattened(): void
     {
-        $this->assertSame('CONFLICTED', (new MultiTimeframeAlignment)->summarize(['a' => ['direction' => 'BULLISH', 'behavior' => 'TRENDING'], 'b' => ['direction' => 'BEARISH', 'behavior' => 'TRENDING'], 'c' => ['direction' => 'BULLISH', 'behavior' => 'TRENDING'], 'd' => ['direction' => 'BULLISH', 'behavior' => 'TRENDING']])['state']);
+        $this->assertSame('INVALIDATED', (new MultiTimeframeAlignment)->summarize([
+            'context' => ['direction' => 'BULLISH', 'behavior' => 'TRENDING'],
+            'structure' => ['direction' => 'BEARISH', 'behavior' => 'TRENDING'],
+            'setup' => ['direction' => 'BULLISH', 'behavior' => 'TRENDING'],
+            'entry' => ['direction' => 'BULLISH', 'behavior' => 'TRENDING'],
+        ])['state']);
+    }
+
+    public function test_hierarchical_alignment_allows_bearish_setup_pullback_after_bullish_entry_reclaim(): void
+    {
+        $result = (new MultiTimeframeAlignment)->summarize([
+            'context' => ['direction' => 'BULLISH', 'behavior' => 'TRENDING'],
+            'structure' => ['direction' => 'BULLISH', 'behavior' => 'TRENDING'],
+            'setup' => ['direction' => 'BEARISH', 'behavior' => 'RANGING'],
+            'entry' => ['direction' => 'BULLISH', 'behavior' => 'TRENDING'],
+        ]);
+
+        $this->assertSame('PULLBACK', $result['state']);
+        $this->assertTrue($result['allow_entry']);
+        $this->assertContains('HEALTHY_PULLBACK', $result['reasons']);
+    }
+
+    public function test_hierarchical_alignment_rejects_bearish_context_even_when_lower_timeframes_are_bullish(): void
+    {
+        $result = (new MultiTimeframeAlignment)->summarize([
+            'context' => ['direction' => 'BEARISH', 'behavior' => 'TRENDING'],
+            'structure' => ['direction' => 'BULLISH', 'behavior' => 'TRENDING'],
+            'setup' => ['direction' => 'BULLISH', 'behavior' => 'TRENDING'],
+            'entry' => ['direction' => 'BULLISH', 'behavior' => 'TRENDING'],
+        ]);
+
+        $this->assertSame('CONFLICTED', $result['state']);
+        $this->assertFalse($result['allow_entry']);
+    }
+
+    public function test_hierarchical_alignment_requires_bullish_entry_confirmation(): void
+    {
+        $result = (new MultiTimeframeAlignment)->summarize([
+            'context' => ['direction' => 'BULLISH', 'behavior' => 'TRENDING'],
+            'structure' => ['direction' => 'BULLISH', 'behavior' => 'TRENDING'],
+            'setup' => ['direction' => 'BULLISH', 'behavior' => 'TRENDING'],
+            'entry' => ['direction' => 'BEARISH', 'behavior' => 'TRENDING'],
+        ]);
+
+        $this->assertSame('PARTIAL', $result['state']);
+        $this->assertFalse($result['allow_entry']);
     }
 
     public function test_missing_order_book_does_not_invent_costs(): void
