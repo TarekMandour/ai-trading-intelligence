@@ -107,6 +107,83 @@ class AnalysisRunWorkflowTest extends TestCase
         $this->assertSame('COMPLETED', $run->fresh()->status);
     }
 
+    public function test_enterable_candidate_waits_when_order_book_depth_is_insufficient(): void
+    {
+        config([
+            'analysis.profiles' => ['Test' => [
+                'context' => '1h',
+                'structure' => '15m',
+                'setup' => '5m',
+                'entry' => '1m',
+            ]],
+            'analysis.trade_notional' => 100,
+            'analysis.fee_rate' => 0.001,
+            'analysis.minimum_net_risk_reward' => 1.5,
+            'analysis.ai_max_candidates_per_run' => 0,
+        ]);
+
+        $run = AnalysisRun::create([
+            'idempotency_key' => (string) Str::uuid(),
+            'status' => 'QUEUED',
+            'configuration_version' => 'test',
+            'ai_status' => 'NOT_CONFIGURED',
+            'audit' => ['universe_symbols' => [['symbol' => 'BTCUSDT']]],
+        ]);
+
+        $candles = array_fill(0, 20, [
+            'open' => 100.0,
+            'high' => 101.0,
+            'low' => 99.0,
+            'close' => 100.5,
+            'volume' => 100.0,
+        ]);
+
+        $binance = $this->mock(BinanceSpotClient::class);
+        $binance->shouldReceive('candles')->times(4)->andReturn($candles);
+        $binance->shouldReceive('orderBook')->once()->with('BTCUSDT')->andReturn([
+            'asks' => [['price' => 101.0, 'quantity' => 0.1]],
+            'bids' => [['price' => 99.0, 'quantity' => 0.1]],
+            'last_update_id' => 124,
+        ]);
+
+        $engine = $this->mock(DeterministicAnalysisEngine::class);
+        $engine->shouldReceive('evaluate')->times(4)->andReturn([
+            'direction' => 'BULLISH',
+            'behavior' => 'TRENDING',
+            'volatility' => 'NORMAL',
+            'reasons' => ['TEST_BULLISH_REGIME'],
+        ]);
+
+        $scenarios = $this->mock(ScenarioEvaluator::class);
+        $scenarios->shouldReceive('evaluate')->once()->andReturn([
+            [
+                'scenario' => 'TEST_BREAKOUT',
+                'status' => 'ENTERABLE',
+                'candidate' => ['entry' => 100.0, 'stop' => 95.0, 'target1' => 125.0, 'target2' => 130.0],
+                'reasons' => ['TEST_SETUP_CONFIRMED'],
+            ],
+        ]);
+
+        $ai = $this->mock(AiAnalysisProvider::class);
+
+        (new ProcessAnalysisRun($run->id))->handle(
+            $binance,
+            $engine,
+            app(ExecutionCostEstimator::class),
+            app(MultiTimeframeAlignment::class),
+            $scenarios,
+            $ai,
+            app(AiReviewValidator::class),
+        );
+
+        $report = $run->fresh()->reports()->where('profile', 'Test')->where('symbol', 'BTCUSDT')->firstOrFail();
+        $this->assertSame('WAIT', $report->status);
+        $this->assertFalse($report->timeframes['execution_costs']['available']);
+        $this->assertSame('INSUFFICIENT_ASK_DEPTH', $report->timeframes['execution_costs']['reason']);
+        $this->assertSame('TEST_BREAKOUT', $report->opportunity->scenario);
+        $this->assertSame('COMPLETED', $run->fresh()->status);
+    }
+
     public function test_job_keeps_run_retryable_when_market_data_is_unavailable(): void
     {
         $run = AnalysisRun::create(['idempotency_key' => (string) Str::uuid(), 'status' => 'QUEUED', 'configuration_version' => 'test', 'ai_status' => 'NOT_CONFIGURED']);
