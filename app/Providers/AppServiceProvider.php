@@ -28,7 +28,7 @@ class AppServiceProvider extends ServiceProvider
                     config('services.gemini.timeout'),
                     config('services.gemini.max_output_tokens'),
                 ),
-                default => throw new \\InvalidArgumentException('Unsupported AI provider configured.'),
+                default => throw new \InvalidArgumentException('Unsupported AI provider configured.'),
             };
         });
     }
