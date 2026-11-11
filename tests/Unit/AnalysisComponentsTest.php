@@ -73,6 +73,19 @@ class AnalysisComponentsTest extends TestCase
         $this->assertSame('INSUFFICIENT_ASK_DEPTH', $result['reason']);
     }
 
+    public function test_order_book_costs_reject_insufficient_bid_depth(): void
+    {
+        $book = [
+            'asks' => [['price' => 100.0, 'quantity' => 2.0]],
+            'bids' => [['price' => 99.0, 'quantity' => 0.1]],
+        ];
+
+        $result = (new ExecutionCostEstimator)->estimateFromOrderBook($book, 100.0, 0.001);
+
+        $this->assertFalse($result['available']);
+        $this->assertSame('INSUFFICIENT_BID_DEPTH', $result['reason']);
+    }
+
     public function test_trend_pullback_requires_a_bullish_reclaim_and_volume_confirmation(): void
     {
         $candles = [];
