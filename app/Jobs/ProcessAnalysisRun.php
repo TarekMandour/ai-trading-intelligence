@@ -165,10 +165,10 @@ class ProcessAnalysisRun implements ShouldQueue
                         $aiReview = $this->reviewAi($ai, $validator, $evidence);
                         $aiReviewCount++;
                     } else {
-                        $aiReview = ['status' => config('services.openai.key') ? 'SKIPPED_LIMIT' : 'NOT_CONFIGURED'];
+                        $aiReview = ['status' => $this->aiProviderKey() ? 'SKIPPED_LIMIT' : 'NOT_CONFIGURED'];
                     }
                 } else {
-                    $aiReview = ['status' => config('services.openai.key') ? 'NOT_REQUIRED' : 'NOT_CONFIGURED'];
+                    $aiReview = ['status' => $this->aiProviderKey() ? 'NOT_REQUIRED' : 'NOT_CONFIGURED'];
                 }
                 $aiStatuses[] = $aiReview['status'];
 
@@ -189,7 +189,7 @@ class ProcessAnalysisRun implements ShouldQueue
                     }
                     $opportunity->aiReview()->firstOrCreate(
                         [],
-                        ['provider' => $aiReview['metadata']['provider'] ?? (config('services.openai.key') ? 'openai' : null), 'model' => $aiReview['metadata']['model'] ?? config('services.openai.model'), 'status' => $aiReview['status'], 'latency_ms' => $aiReview['latency_ms'] ?? null, 'usage' => $aiReview['metadata']['usage'] ?? null, 'prompt_version' => $aiReview['metadata']['prompt_version'] ?? config('analysis.ai_prompt_version'), 'schema_version' => $aiReview['metadata']['schema_version'] ?? config('analysis.ai_schema_version'), 'evidence_hash' => $aiReview['metadata']['evidence_hash'] ?? null, 'review' => $aiReview['review'] ?? null]
+                        ['provider' => $aiReview['metadata']['provider'] ?? ($this->aiProviderKey() ? $this->aiProviderName() : null), 'model' => $aiReview['metadata']['model'] ?? $this->aiProviderModel(), 'status' => $aiReview['status'], 'latency_ms' => $aiReview['latency_ms'] ?? null, 'usage' => $aiReview['metadata']['usage'] ?? null, 'prompt_version' => $aiReview['metadata']['prompt_version'] ?? config('analysis.ai_prompt_version'), 'schema_version' => $aiReview['metadata']['schema_version'] ?? config('analysis.ai_schema_version'), 'evidence_hash' => $aiReview['metadata']['evidence_hash'] ?? null, 'review' => $aiReview['review'] ?? null]
                     );
                     AnalysisAuditEvent::firstOrCreate(
                         ['analysis_run_id' => $run->id, 'fingerprint' => hash('sha256', $report->id.'|DECISION_RECORDED|'.$decision)],
@@ -202,7 +202,7 @@ class ProcessAnalysisRun implements ShouldQueue
 
         $run->update([
             'status' => 'COMPLETED',
-            'ai_status' => ! config('services.openai.key') ? 'NOT_CONFIGURED' : (in_array('FAILED', $aiStatuses, true) ? 'PARTIAL_FAILURE' : (in_array('REJECTED', $aiStatuses, true) ? 'PARTIAL_REJECTED' : (in_array('COMPLETED', $aiStatuses, true) ? 'COMPLETED' : (in_array('SKIPPED_LIMIT', $aiStatuses, true) ? 'PARTIAL_SKIPPED' : 'NOT_REQUIRED')))),
+            'ai_status' => ! $this->aiProviderKey() ? 'NOT_CONFIGURED' : (in_array('FAILED', $aiStatuses, true) ? 'PARTIAL_FAILURE' : (in_array('REJECTED', $aiStatuses, true) ? 'PARTIAL_REJECTED' : (in_array('COMPLETED', $aiStatuses, true) ? 'COMPLETED' : (in_array('SKIPPED_LIMIT', $aiStatuses, true) ? 'PARTIAL_SKIPPED' : 'NOT_REQUIRED')))),
             'completed_at' => now(),
             'failure_reason' => null,
             'audit' => ['universe_count' => count($universe['symbols']), 'reports_processed' => $profileCount, 'ai_reviews_attempted' => $aiReviewCount, 'source' => 'binance_spot_rest', 'universe_symbols' => $universe['symbols'], 'warnings' => array_values(array_unique($warnings))],
@@ -218,16 +218,39 @@ class ProcessAnalysisRun implements ShouldQueue
         ]);
     }
 
+    private function aiProviderName(): string
+    {
+        return (string) config('services.ai.provider', 'openai');
+    }
+
+    private function aiProviderKey(): ?string
+    {
+        return match ($this->aiProviderName()) {
+            'openai' => config('services.openai.key'),
+            'gemini' => config('services.gemini.key'),
+            default => null,
+        };
+    }
+
+    private function aiProviderModel(): ?string
+    {
+        return match ($this->aiProviderName()) {
+            'openai' => config('services.openai.model'),
+            'gemini' => config('services.gemini.model'),
+            default => null,
+        };
+    }
+
     private function reviewAi(AiAnalysisProvider $ai, AiReviewValidator $validator, array $evidence): array
     {
-        if (! config('services.openai.key')) {
+        if (! $this->aiProviderKey()) {
             return ['status' => 'NOT_CONFIGURED'];
         }
 
         $startedAt = microtime(true);
         $metadata = [
-            'provider' => 'openai',
-            'model' => config('services.openai.model'),
+            'provider' => $this->aiProviderName(),
+            'model' => $this->aiProviderModel(),
             'prompt_version' => config('analysis.ai_prompt_version', 'ai-review-v2'),
             'schema_version' => config('analysis.ai_schema_version', 'ai-review-schema-v2'),
             'evidence_hash' => hash('sha256', json_encode($evidence, JSON_THROW_ON_ERROR)),
