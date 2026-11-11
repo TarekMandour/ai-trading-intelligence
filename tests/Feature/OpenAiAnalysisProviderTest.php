@@ -54,14 +54,14 @@ class OpenAiAnalysisProviderTest extends TestCase
         (new OpenAiAnalysisProvider('test-key', 'test-model'))->review([]);
     }
 
-    public function test_rejects_provider_output_missing_required_contract_fields(): void
+    public function test_application_validator_rejects_provider_output_missing_required_contract_fields(): void
     {
         Http::preventStrayRequests();
         $payload = ['output' => [['content' => [['text' => '{"assessment":"ABSTAIN"}']]]]];
         Http::fake(['api.openai.com/v1/responses' => Http::response($payload)]);
 
         $result = (new OpenAiAnalysisProvider('test-key', 'test-model'))->review([]);
-        $this->assertArrayNotHasKey('confidence_label', $result['review']);
+        $this->assertFalse((new \\App\\Services\\Ai\\AiReviewValidator)->validate($result['review'], []));
     }
 
 }
