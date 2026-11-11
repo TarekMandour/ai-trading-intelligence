@@ -113,7 +113,7 @@ class ProcessAnalysisRun implements ShouldQueue
                     $decision = 'WAIT';
                 }
 
-                if ($candidate !== null && $alignmentResult['state'] === 'ALIGNED') {
+                if ($candidate !== null && ($alignmentResult['allow_entry'] ?? false)) {
                     try {
                         $book = $binance->orderBook($symbol);
                         $executionCosts = $costs->estimateFromOrderBook($book, (float) config('analysis.trade_notional'), (float) config('analysis.fee_rate'));
@@ -160,7 +160,7 @@ class ProcessAnalysisRun implements ShouldQueue
                     ))),
                     'candidate' => $candidate,
                 ];
-                if ($decision === 'ENTERABLE' && $candidate !== null && $alignmentResult['state'] === 'ALIGNED') {
+                if ($decision === 'ENTERABLE' && $candidate !== null && ($alignmentResult['allow_entry'] ?? false)) {
                     if ($aiReviewCount < max(0, (int) config('analysis.ai_max_candidates_per_run', 5))) {
                         $aiReview = $this->reviewAi($ai, $validator, $evidence);
                         $aiReviewCount++;
