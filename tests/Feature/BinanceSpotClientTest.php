@@ -3,11 +3,19 @@
 namespace Tests\Feature;
 
 use App\Services\MarketData\BinanceSpotClient;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class BinanceSpotClientTest extends TestCase
 {
+    protected function tearDown(): void
+    {
+        File::delete(storage_path('app/cache/binance/exchange_info_symbols.json'));
+
+        parent::tearDown();
+    }
+
     public function test_normalizes_a_valid_order_book(): void
     {
         Http::preventStrayRequests();
@@ -21,7 +29,7 @@ class BinanceSpotClientTest extends TestCase
     public function test_universe_is_ranked_by_quote_volume_after_spot_usdt_eligibility_filtering(): void
     {
         Http::preventStrayRequests();
-        config(['analysis.universe_limit' => 2]);
+        config(['analysis.universe_limit' => 2, 'analysis.exchange_info_min_symbols' => 1]);
         Http::fake([
             '*/api/v3/exchangeInfo' => Http::response(['symbols' => [
                 ['symbol' => 'LOWUSDT', 'status' => 'TRADING', 'quoteAsset' => 'USDT', 'isSpotTradingAllowed' => true],
