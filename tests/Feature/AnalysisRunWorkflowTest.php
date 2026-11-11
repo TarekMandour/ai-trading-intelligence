@@ -30,6 +30,25 @@ class AnalysisRunWorkflowTest extends TestCase
         Queue::assertPushed(ProcessAnalysisRun::class);
     }
 
+    public function test_manual_analysis_uses_the_selected_gemini_provider_configuration(): void
+    {
+        Queue::fake();
+
+        config([
+            'services.ai.provider' => 'gemini',
+            'services.gemini.key' => 'test-gemini-key',
+            'services.openai.key' => null,
+        ]);
+
+        $this->post('/analysis-runs')->assertRedirect();
+
+        $this->assertDatabaseHas('analysis_runs', [
+            'status' => 'QUEUED',
+            'ai_status' => 'PENDING',
+        ]);
+        Queue::assertPushed(ProcessAnalysisRun::class);
+    }
+
     public function test_enterable_candidate_fetches_order_book_and_uses_net_execution_costs(): void
     {
         config([
