@@ -11,7 +11,7 @@ class OpenAiAnalysisProviderTest extends TestCase
     public function test_returns_structured_review_from_openai_response(): void
     {
         Http::preventStrayRequests();
-        $payload = ['output' => [['content' => [['text' => '{"assessment":"ABSTAIN","timeframe_alignment":"INSUFFICIENT","supporting_evidence_ids":[],"contradicting_evidence_ids":[],"rationale":"Insufficient evidence."}']]]]];
+        $payload = ['output' => [['content' => [['text' => '{"assessment":"ABSTAIN","timeframe_alignment":"INSUFFICIENT","confidence_label":"LOW","supporting_evidence_ids":[],"contradicting_evidence_ids":[],"missing_confirmations":[],"risk_observations":[],"rationale":"Insufficient evidence."}']]]]];
         Http::fake(['api.openai.com/v1/responses' => Http::response($payload)]);
 
         $review = (new OpenAiAnalysisProvider('test-key', 'test-model'))->review(['evidence_ids' => ['e1']]);
