@@ -9,6 +9,7 @@ return [
     'timeout_seconds' => (int) env('BINANCE_TIMEOUT_SECONDS', 10),
     'exchange_info_timeout_seconds' => (int) env('BINANCE_EXCHANGE_INFO_TIMEOUT_SECONDS', 60),
     'exchange_info_cache_minutes' => (int) env('BINANCE_EXCHANGE_INFO_CACHE_MINUTES', 60),
+    'exchange_info_min_symbols' => (int) env('BINANCE_EXCHANGE_INFO_MIN_SYMBOLS', 1000),
     'order_book_limit' => (int) env('BINANCE_ORDER_BOOK_LIMIT', 20),
     'trade_notional' => (float) env('ANALYSIS_TRADE_NOTIONAL', 100),
     'fee_rate' => (float) env('ANALYSIS_FEE_RATE', 0.001),
