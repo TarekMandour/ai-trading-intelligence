@@ -82,7 +82,7 @@ class AnalysisRunWorkflowTest extends TestCase
             [
                 'scenario' => 'TEST_BREAKOUT',
                 'status' => 'ENTERABLE',
-                'candidate' => ['entry' => 100.0, 'stop' => 95.0, 'target1' => 112.0, 'target2' => 115.0],
+                'candidate' => ['entry' => 100.0, 'stop' => 95.0, 'target1' => 125.0, 'target2' => 130.0],
                 'reasons' => ['TEST_SETUP_CONFIRMED'],
             ],
         ]);
