@@ -2,7 +2,7 @@
 
 Status: Implemented for local validation; real-provider smoke test remains user-side.
 Architecture: Hybrid.
-Initial provider: OpenAI behind the narrow AiAnalysisProvider contract.
+Providers: OpenAI and Google Gemini behind the same narrow AiAnalysisProvider contract. OpenAI remains the default; Gemini is opt-in through AI_PROVIDER=gemini.
 
 ## 1. Authority and scope
 
@@ -12,7 +12,7 @@ AI review runs only for deterministic ENTERABLE candidates, in the queued manual
 
 ## 2. Current structured review contract
 
-The OpenAI adapter requests strict JSON Schema output with exactly these fields:
+Both provider adapters request JSON-schema-constrained output with exactly these fields, then Laravel independently validates the returned contract:
 
 - assessment: SUPPORT | WAIT_FOR_CONFIRMATION | WEAKEN | ABSTAIN
 - timeframe_alignment: ALIGNED | PARTIAL | CONFLICTED | INSUFFICIENT
@@ -32,7 +32,8 @@ Laravel independently validates exact keys, enums, ID membership, duplicate/over
 - Invalid response contract: REJECTED; deterministic report continues.
 - Candidate cap reached: SKIPPED_LIMIT.
 - AI assessment such as WEAKEN or WAIT_FOR_CONFIRMATION is displayed as a caution and never changes the deterministic report status or trade levels.
-- OpenAI is the only implemented provider in this stage. The interface remains the seam for a future provider; there is no silent provider substitution.
+- OpenAI remains the default provider. Gemini is an explicitly selected alternative; there is no silent provider substitution.
+- Provider selection is controlled by AI_PROVIDER=openai|gemini. Gemini credentials use GEMINI_API_KEY and are sent only in the x-goog-api-key header.
 
 The adapter uses a bounded HTTP timeout, short bounded retry, JSON response mode and an output-token cap. The API key is read from Laravel configuration and is never included in the evidence packet or persisted review metadata.
 
@@ -45,9 +46,13 @@ The AI review record stores provider, model, status, latency, token usage when r
 Set these values in the local .env file only:
 
 ```dotenv
+AI_PROVIDER=openai
 OPENAI_API_KEY=
 OPENAI_MODEL=gpt-4.1-mini
 OPENAI_TIMEOUT=20
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-2.5-flash
+GEMINI_TIMEOUT=20
 AI_MAX_OUTPUT_TOKENS=600
 AI_MAX_CANDIDATES_PER_RUN=5
 ```
@@ -60,7 +65,7 @@ php artisan migrate
 php artisan test
 ```
 
-For a real-provider smoke test, add a valid local OpenAI API key, clear config, create one manual analysis run, and inspect its AI status and review metadata. Automated tests use HTTP fakes and do not prove real API credentials, billing, model availability or live network access.
+For an OpenAI smoke test, keep AI_PROVIDER=openai and add OPENAI_API_KEY. For a Gemini smoke test, set AI_PROVIDER=gemini and add GEMINI_API_KEY. In either case, clear config, create one manual analysis run, and inspect its AI status and review metadata. Gemini's free tier has model-specific rate limits and its free-tier content may be used by Google to improve products; do not send sensitive information. Automated tests use HTTP fakes and do not prove real API credentials, billing, model availability or live network access.
 
 ## 6. Acceptance boundaries
 
