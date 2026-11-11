@@ -358,6 +358,7 @@ class AnalysisRunWorkflowTest extends TestCase
         $report = $run->fresh()->reports()->where('profile', 'Test')->where('symbol', 'BTCUSDT')->firstOrFail();
         $this->assertSame('ENTERABLE', $report->status);
         $this->assertSame('FAILED', $report->opportunity->aiReview->status);
+        $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $report->opportunity->aiReview->evidence_hash);
         $this->assertSame('COMPLETED', $run->fresh()->status);
     }
 
