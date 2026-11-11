@@ -15,6 +15,8 @@ return [
     'fee_rate' => (float) env('ANALYSIS_FEE_RATE', 0.001),
     'minimum_net_risk_reward' => (float) env('ANALYSIS_MIN_NET_RISK_REWARD', 1.5),
     'ai_max_candidates_per_run' => (int) env('AI_MAX_CANDIDATES_PER_RUN', 5),
+    'ai_prompt_version' => 'ai-review-v2',
+    'ai_schema_version' => 'ai-review-schema-v2',
     'profiles' => [
         'Scalping' => ['context' => '1h', 'structure' => '15m', 'setup' => '5m', 'entry' => '1m'],
         'Intraday' => ['context' => '4h', 'structure' => '1h', 'setup' => '15m', 'entry' => '5m'],
