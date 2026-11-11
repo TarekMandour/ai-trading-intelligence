@@ -38,3 +38,13 @@ Deliver the local, manual Laravel 13 analysis workflow for Binance Spot USDT lon
 - User verified 99 closed candles for each configured timeframe and valid depth snapshots with 20 bid and 20 ask levels.
 - Execution-cost code update is committed but still requires local regression tests and inspection of first real analysis results.
 - No profitability claim is made.
+
+## Hierarchical multi-timeframe alignment update
+
+- Replaced strict four-timeframe directional equality with role-based long-only alignment.
+- Context must be BULLISH; BEARISH or non-bullish context blocks long entries.
+- Structure may be BULLISH or RANGING; BEARISH structure invalidates the setup conservatively.
+- Setup may be BEARISH as a pullback, but Entry must be BULLISH before the alignment gate allows order-book evaluation.
+- A bullish Entry with a bearish Setup is labeled PULLBACK; consolidation at Structure or Setup is labeled PARTIAL; fully bullish states are ALIGNED.
+- This is a strategy hypothesis, not a profitability claim. It requires local tests, report inspection, historical validation, and paper trading.
+- Higher-timeframe candles must remain completed/closed at decision time; no forming-candle values may enter the alignment or AI evidence.
