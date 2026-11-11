@@ -40,6 +40,26 @@ class AnalysisComponentsTest extends TestCase
         $this->assertEqualsWithDelta($result['entry_cost_per_unit'] + $result['exit_cost_per_unit'], $result['total'] / $result['base_quantity'], 0.000001);
     }
 
+    public function test_net_risk_reward_does_not_double_count_entry_spread_or_impact(): void
+    {
+        $estimator = new ExecutionCostEstimator;
+        $book = [
+            'asks' => [['price' => 101.0, 'quantity' => 2.0]],
+            'bids' => [['price' => 99.0, 'quantity' => 2.0]],
+        ];
+        $costs = $estimator->estimateFromOrderBook($book, 100.0, 0.001);
+        $candidate = ['entry' => 100.0, 'stop' => 95.0, 'target1' => 110.0];
+
+        $metrics = $estimator->netRiskReward($candidate, $costs);
+        $expectedEntryFeePerUnit = $costs['entry_fee'] / $costs['base_quantity'];
+        $expectedRoundTrip = $expectedEntryFeePerUnit + $costs['exit_cost_per_unit'];
+
+        $this->assertEqualsWithDelta($costs['buy_vwap'], $metrics['estimated_entry'], 0.000001);
+        $this->assertEqualsWithDelta($expectedRoundTrip, $metrics['round_trip_cost_per_unit'], 0.000001);
+        $this->assertNotEqualsWithDelta($costs['entry_cost_per_unit'] + $costs['exit_cost_per_unit'], $metrics['round_trip_cost_per_unit'], 0.000001);
+        $this->assertEqualsWithDelta(10.0 - $expectedRoundTrip, $metrics['net_target1_reward_per_unit'], 0.000001);
+    }
+
     public function test_order_book_costs_reject_insufficient_depth(): void
     {
         $book = [
