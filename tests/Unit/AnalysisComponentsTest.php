@@ -173,6 +173,46 @@ class AnalysisComponentsTest extends TestCase
         $this->assertFalse((new AiReviewValidator)->validate($review, ['known']));
     }
 
+
+    public function test_ai_review_requires_exact_contract_and_bounded_explanations(): void
+    {
+        $review = [
+            'assessment' => 'WEAKEN',
+            'timeframe_alignment' => 'PARTIAL',
+            'confidence_label' => 'MODERATE',
+            'supporting_evidence_ids' => ['known'],
+            'contradicting_evidence_ids' => [],
+            'missing_confirmations' => ['Wait for a completed entry candle.'],
+            'risk_observations' => ['Visible ask depth is limited.'],
+            'rationale' => 'The higher timeframe is supportive but entry confirmation is incomplete.',
+        ];
+        $validator = new AiReviewValidator;
+
+        $this->assertTrue($validator->validate($review, ['known']));
+        $this->assertFalse($validator->validate($review + ['unexpected' => 'field'], ['known']));
+        $this->assertFalse($validator->validate(array_merge($review, ['missing_confirmations' => array_fill(0, 6, 'item')]), ['known']));
+        $this->assertFalse($validator->validate(array_merge($review, ['rationale' => str_repeat('x', 1001)]), ['known']));
+        $this->assertFalse($validator->validate(array_merge($review, ['contradicting_evidence_ids' => ['known']]), ['known']));
+    }
+
+    public function test_ai_review_rejects_duplicate_and_unknown_evidence_ids(): void
+    {
+        $review = [
+            'assessment' => 'SUPPORT',
+            'timeframe_alignment' => 'ALIGNED',
+            'confidence_label' => 'HIGH',
+            'supporting_evidence_ids' => ['known', 'known'],
+            'contradicting_evidence_ids' => [],
+            'missing_confirmations' => [],
+            'risk_observations' => [],
+            'rationale' => 'Evidence is internally consistent.',
+        ];
+
+        $this->assertFalse((new AiReviewValidator)->validate($review, ['known']));
+        $review['supporting_evidence_ids'] = ['unknown'];
+        $this->assertFalse((new AiReviewValidator)->validate($review, ['known']));
+    }
+
     public function test_all_scenarios_are_evaluated(): void
     {
         $this->assertCount(4, (new ScenarioEvaluator)->evaluate(['direction' => 'BULLISH', 'behavior' => 'TRENDING', 'volatility' => 'HIGH']));
