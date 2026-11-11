@@ -78,6 +78,7 @@ class BinanceSpotClient
     {
         $cachePath = storage_path('app/cache/binance/exchange_info_symbols.json');
         $cacheMinutes = max(1, (int) config('analysis.exchange_info_cache_minutes', 60));
+        $minimumSymbols = max(1, (int) config('analysis.exchange_info_min_symbols', 1000));
 
         if (File::exists($cachePath)) {
             try {
@@ -85,7 +86,7 @@ class BinanceSpotClient
                 $expiresAt = (int) ($cached['expires_at'] ?? 0);
                 $symbols = $cached['symbols'] ?? null;
 
-                if ($expiresAt > now()->timestamp && is_array($symbols) && $symbols !== []) {
+                if ($expiresAt > now()->timestamp && is_array($symbols) && count($symbols) >= $minimumSymbols) {
                     return $symbols;
                 }
             } catch (\Throwable) {
@@ -103,8 +104,8 @@ class BinanceSpotClient
             ->throw();
 
         $symbols = $response->json('symbols', []);
-        if (! is_array($symbols) || $symbols === []) {
-            throw new \RuntimeException('Binance exchangeInfo returned an empty symbols list.');
+        if (! is_array($symbols) || count($symbols) < $minimumSymbols) {
+            throw new \RuntimeException('Binance exchangeInfo returned an incomplete symbols list: '.(is_array($symbols) ? count($symbols) : 0).' symbols; expected at least '.$minimumSymbols.'.');
         }
 
         File::ensureDirectoryExists(dirname($cachePath));
