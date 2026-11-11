@@ -189,7 +189,7 @@ class ProcessAnalysisRun implements ShouldQueue
                     }
                     $opportunity->aiReview()->firstOrCreate(
                         [],
-                        ['provider' => $aiReview['metadata']['provider'] ?? (config('services.openai.key') ? 'openai' : null), 'model' => $aiReview['metadata']['model'] ?? config('services.openai.model'), 'status' => $aiReview['status'], 'latency_ms' => $aiReview['latency_ms'] ?? null, 'usage' => $aiReview['metadata']['usage'] ?? null, 'review' => $aiReview['review'] ?? null]
+                        ['provider' => $aiReview['metadata']['provider'] ?? (config('services.openai.key') ? 'openai' : null), 'model' => $aiReview['metadata']['model'] ?? config('services.openai.model'), 'status' => $aiReview['status'], 'latency_ms' => $aiReview['latency_ms'] ?? null, 'usage' => $aiReview['metadata']['usage'] ?? null, 'prompt_version' => $aiReview['metadata']['prompt_version'] ?? config('analysis.ai_prompt_version'), 'schema_version' => $aiReview['metadata']['schema_version'] ?? config('analysis.ai_schema_version'), 'evidence_hash' => $aiReview['metadata']['evidence_hash'] ?? null, 'review' => $aiReview['review'] ?? null]
                     );
                     AnalysisAuditEvent::firstOrCreate(
                         ['analysis_run_id' => $run->id, 'fingerprint' => hash('sha256', $report->id.'|DECISION_RECORDED|'.$decision)],
@@ -235,6 +235,9 @@ class ProcessAnalysisRun implements ShouldQueue
         }
 
         $metadata['provider'] = 'openai';
+        $metadata['prompt_version'] = config('analysis.ai_prompt_version', 'ai-review-v2');
+        $metadata['schema_version'] = config('analysis.ai_schema_version', 'ai-review-schema-v2');
+        $metadata['evidence_hash'] = hash('sha256', json_encode($evidence, JSON_THROW_ON_ERROR));
 
         return $validator->validate($review, $evidence['evidence_ids'])
             ? ['status' => 'COMPLETED', 'review' => $review, 'metadata' => $metadata, 'latency_ms' => $latencyMs]
