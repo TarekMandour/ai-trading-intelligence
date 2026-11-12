@@ -132,7 +132,12 @@ class IctAdvancedEvidenceAnalyzer
         foreach ($windows as $model => $window) {
             if (! isset($window['start'], $window['end'])) continue;
             $clock = $time->format('H:i');
-            if ($clock >= $window['start'] && $clock <= $window['end']) $active[] = (string) $model;
+            $start = (string) $window['start'];
+            $end = (string) $window['end'];
+            $inside = $start <= $end
+                ? ($clock >= $start && $clock <= $end)
+                : ($clock >= $start || $clock <= $end);
+            if ($inside) $active[] = (string) $model;
         }
         return ['status' => $active === [] ? 'OUTSIDE_CONFIGURED_WINDOWS' : 'ACTIVE', 'timezone' => $timezone, 'models' => $active, 'evaluated_at' => $time->toIso8601String()];
     }
