@@ -285,7 +285,7 @@ class AnalysisComponentsTest extends TestCase
     public function test_ict_engine_attaches_entry_plans_to_confirmed_candidates(): void
     {
         $engine = new IctComprehensiveEngine;
-        $scenario = new \\ReflectionMethod($engine, 'scenario');
+        $scenario = new \ReflectionMethod($engine, 'scenario');
         $result = $scenario->invoke(
             $engine,
             'ICT_TEST_ENTRY_PLAN',
