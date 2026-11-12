@@ -9,7 +9,8 @@ Last updated: 2026-11-12
 - Repository: TarekMandour/ai-trading-intelligence
 - Default branch: main
 - Phase 0 decision branch: phase-0-foundation
-- Active implementation branch: phase-1-local-mvp
+- Phase 1 baseline branch: phase-1-local-mvp
+- ICT implementation branch: feature/ict-comprehensive (child branch; not merged)
 - Never implement directly on main or phase-0-foundation.
 
 ## Approved product scope
@@ -93,3 +94,15 @@ Initial vertical slice implemented: a Laravel dashboard creates an idempotency-k
 - Three core scenario evaluators are present: SSL Sweep Reversal, Bullish FVG Continuation, and Bullish Order Block Reaction.
 - This is not yet a complete ICT Comprehensive delivery: advanced models, detailed event lifecycle, Market/Limit plan lifecycle, complete evidence normalization, and robust historical replay remain outstanding.
 - Tests have been added but have not been executed in this environment. Do not mark implementation or validation complete until code review and local test execution.
+
+
+## ICT Comprehensive status (feature/ict-comprehensive)
+
+- Added dedicated ICT configuration for long-only, 24-hour analysis, existing Scalping/Intraday/Swing profiles, and Market/Limit research plans.
+- Added deterministic engine and integrated it into the queued analysis workflow in place of the legacy scenario selection path.
+- Implemented the three core ICT scenario evaluators and snapshot/report persistence.
+- Added optional confluence evidence for equal liquidity levels, OTE, rejection-block candidates, breaker-block retests, and configured session windows.
+- SMT intentionally remains unavailable without a synchronized reference asset and approved pairing rule.
+- Market and Limit outputs are plans only. Exchange order submission remains disabled.
+- The implementation is not yet complete or validated: chronological event lifecycle, robust FVG/OB mitigation, advanced model gates, and historical replay/backtesting remain outstanding.
+- Tests were added but not executed here. No test pass or profitability claim is recorded.
