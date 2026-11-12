@@ -13,6 +13,12 @@
 <h2>{{ $report->symbol }} — {{ $report->profile }} — {{ $report->status }}</h2>
 <p><strong>Reasons:</strong> {{ implode(', ', $report->reasons ?? []) }}</p>
 @if($report->data_quality_warnings)<p><strong>Data warnings:</strong> {{ implode(', ', $report->data_quality_warnings) }}</p>@endif
+@php($ict = $report->timeframes['states']['ict'] ?? $report->timeframes['ict'] ?? null)
+@if(isset($report->timeframes['states']['ict']))
+<h3>ICT Comprehensive</h3>
+<p>Engine: {{ $report->timeframes['states']['ict']['engine'] ?? 'ICT_COMPREHENSIVE' }} | Version: {{ $report->timeframes['states']['ict']['version'] ?? '—' }} | Decision: {{ $report->timeframes['states']['ict']['decision'] ?? '—' }}</p>
+<details open><summary>ICT context and evidence</summary><pre>{{ json_encode($report->timeframes['states']['ict'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre></details>
+@endif
 <h3>Market context and timeframes</h3>
 <pre>{{ json_encode($report->timeframes, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>
 @if($report->opportunity)
