@@ -40,7 +40,7 @@ class IctComprehensiveEngine
 
         return [
             'engine' => 'ICT_COMPREHENSIVE',
-            'version' => config('analysis.ict.version', 'ict-v1'),
+            'version' => config('ict.version', 'ict-v1'),
             'profile' => $profile,
             'direction' => 'LONG',
             'context' => $contextEvidence,
@@ -120,9 +120,9 @@ class IctComprehensiveEngine
             'reasons' => ['ICT_REQUIRED_EVIDENCE_CONFIRMED'],
             'candidate' => [
                 'entry' => $entry, 'stop' => $stop,
-                'target1' => $entry + $risk * (float) config('analysis.ict.target_1_r', 2.0),
-                'target2' => $entry + $risk * (float) config('analysis.ict.target_2_r', 3.0),
-                'risk_reward' => (float) config('analysis.ict.target_1_r', 2.0),
+                'target1' => $entry + $risk * (float) config('ict.target_1_r', 2.0),
+                'target2' => $entry + $risk * (float) config('ict.target_2_r', 3.0),
+                'risk_reward' => (float) config('ict.target_1_r', 2.0),
                 'entry_type' => 'MARKET_OR_LIMIT', 'entry_zone' => $zone,
             ],
             'evidence' => ['zone' => $zone],
@@ -149,8 +149,8 @@ class IctComprehensiveEngine
 
     private function swings(array $candles): array
     {
-        $left = max(1, (int) config('analysis.ict.swing_left', 2));
-        $right = max(1, (int) config('analysis.ict.swing_right', 2));
+        $left = max(1, (int) config('ict.swing_left', 2));
+        $right = max(1, (int) config('ict.swing_right', 2));
         $highs = $lows = [];
         for ($i = $left; $i < count($candles) - $right; $i++) {
             $window = array_slice($candles, $i - $left, $left + $right + 1);
@@ -182,7 +182,7 @@ class IctComprehensiveEngine
         $range = (float) $last['high'] - (float) $last['low'];
         $body = (float) $last['close'] - (float) $last['open'];
         $ratio = $range > 0 ? $body / $range : 0;
-        return ['bullish' => $body > 0 && $atr > 0 && $range >= $atr * (float) config('analysis.ict.displacement_atr_multiple', 1.2) && $ratio >= (float) config('analysis.ict.displacement_body_ratio', .65), 'atr' => $atr, 'body_ratio' => $ratio];
+        return ['bullish' => $body > 0 && $atr > 0 && $range >= $atr * (float) config('ict.displacement_atr_multiple', 1.2) && $ratio >= (float) config('ict.displacement_body_ratio', .65), 'atr' => $atr, 'body_ratio' => $ratio];
     }
 
     private function bullishMss(array $candles, array $swings): array
@@ -224,7 +224,7 @@ class IctComprehensiveEngine
 
     private function dealingRange(array $candles): array
     {
-        $window = array_slice($candles, -max(10, (int) config('analysis.ict.dealing_range_lookback', 50)));
+        $window = array_slice($candles, -max(10, (int) config('ict.dealing_range_lookback', 50)));
         $high = (float) max(array_column($window, 'high'));
         $low = (float) min(array_column($window, 'low'));
         $mid = ($high + $low) / 2;
@@ -233,7 +233,7 @@ class IctComprehensiveEngine
 
     private function validSeries(array $candles): bool
     {
-        if (count($candles) < max(20, (int) config('analysis.ict.minimum_candles', 30))) return false;
+        if (count($candles) < max(20, (int) config('ict.minimum_candles', 30))) return false;
         $previous = -1;
         foreach ($candles as $c) {
             foreach (['open', 'high', 'low', 'close', 'volume', 'close_time'] as $key) if (! isset($c[$key]) || ! is_numeric($c[$key])) return false;
@@ -245,6 +245,6 @@ class IctComprehensiveEngine
 
     private function unavailable(string $profile, string $reason): array
     {
-        return ['engine' => 'ICT_COMPREHENSIVE', 'version' => config('analysis.ict.version', 'ict-v1'), 'profile' => $profile, 'direction' => 'LONG', 'scenarios' => [], 'decision' => 'REJECTED', 'reasons' => [$reason]];
+        return ['engine' => 'ICT_COMPREHENSIVE', 'version' => config('ict.version', 'ict-v1'), 'profile' => $profile, 'direction' => 'LONG', 'scenarios' => [], 'decision' => 'REJECTED', 'reasons' => [$reason]];
     }
 }
