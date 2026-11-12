@@ -406,4 +406,17 @@ class AnalysisComponentsTest extends TestCase
         $this->assertSame(1, $result['touch_count']);
     }
 
+    public function test_ict_entry_planner_rejects_invalid_zones_without_non_finite_values(): void
+    {
+        $plan = (new \\App\\Services\\Analysis\\IctEntryPlanner)->plan(
+            100.0,
+            ['low' => 101.0, 'high' => 99.0],
+            true,
+        );
+
+        $this->assertSame('WAIT', $plan['market']['status']);
+        $this->assertSame('UNAVAILABLE', $plan['limit']['status']);
+        $this->assertNull($plan['market']['distance_from_zone_bps']);
+    }
+
 }
