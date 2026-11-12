@@ -74,6 +74,19 @@ class EgxMarketController extends Controller
         return response()->json(['ok' => true, 'stocks_synced' => $count]);
     }
 
+    public function stocks(Request $request): JsonResponse
+    {
+        $query = EgxStock::query()->orderBy('symbol');
+        if ($search = trim((string) $request->query('search', ''))) {
+            $query->where(fn ($builder) => $builder
+                ->where('symbol', 'like', '%'.$search.'%')
+                ->orWhere('name', 'like', '%'.$search.'%')
+                ->orWhere('arabic_name', 'like', '%'.$search.'%'));
+        }
+
+        return response()->json($query->limit(1000)->get(['id', 'asset_id', 'symbol', 'name', 'arabic_name']));
+    }
+
     public function watchlists(): JsonResponse
     {
         return response()->json(EgxWatchlist::with('stocks')->orderBy('name')->get());
