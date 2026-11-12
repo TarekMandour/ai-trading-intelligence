@@ -15,7 +15,7 @@ class IctBullishSequenceAnalyzer
         $swings = $this->swings($candles, $left, $right);
         $count = count($candles);
 
-        for ($sweepIndex = max(14, $left + $right + 1); $sweepIndex < $count - 3; $sweepIndex++) {
+        for ($sweepIndex = $count - 4; $sweepIndex >= max(14, $left + $right + 1); $sweepIndex--) {
             $ssl = $this->latestConfirmed($swings['lows'], $sweepIndex);
             if ($ssl === null) continue;
 
