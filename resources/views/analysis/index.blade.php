@@ -192,7 +192,29 @@
                 const line=document.createElement('p');const status=result.status||result.decision||'UNKNOWN';line.innerHTML='<span class="pill">'+profile+'</span> <strong>'+status+'</strong>';
                 const reasons=result.reasons||[];if(reasons.length)line.textContent+=' · '+reasons.join(', ');
                 card.append(line);
-                if(result.signal||result.setup||result.entry){const details=document.createElement('pre');details.textContent=JSON.stringify(result,null,2);card.append(details);}
+                if(result.context){
+                    const context=document.createElement('p');
+                    context.textContent='Context: '+(result.context.bias||'—')+' | Structure: '+(result.context.structure_bias||'—');
+                    card.append(context);
+                }
+                if(Array.isArray(result.scenarios)){
+                    result.scenarios.forEach(scenario=>{
+                        const details=document.createElement('details');details.open=true;
+                        const summary=document.createElement('summary');
+                        summary.textContent=(scenario.scenario||'ICT scenario')+' — '+(scenario.status||'UNKNOWN');
+                        details.append(summary);
+                        const reasonList=document.createElement('ul');
+                        (scenario.reasons||[]).forEach(reason=>{const item=document.createElement('li');item.textContent=reason;reasonList.append(item);});
+                        if((scenario.reasons||[]).length)details.append(reasonList);
+                        if(scenario.candidate){const plan=document.createElement('pre');plan.textContent=JSON.stringify(scenario.candidate,null,2);details.append(plan);}
+                        if(scenario.evidence){const evidence=document.createElement('pre');evidence.textContent=JSON.stringify(scenario.evidence,null,2);details.append(evidence);}
+                        card.append(details);
+                    });
+                }
+                if(result.sync){const sync=document.createElement('details');const summary=document.createElement('summary');summary.textContent='Candle sync diagnostics';sync.append(summary);const pre=document.createElement('pre');pre.textContent=JSON.stringify(result.sync,null,2);sync.append(pre);card.append(sync);}
+                if(result.setup_evidence||result.entry_evidence||result.advanced_evidence){
+                    const evidence=document.createElement('details');const summary=document.createElement('summary');summary.textContent='Full ICT evidence';evidence.append(summary);const pre=document.createElement('pre');pre.textContent=JSON.stringify({setup:result.setup_evidence,entry:result.entry_evidence,advanced:result.advanced_evidence},null,2);evidence.append(pre);card.append(evidence);
+                }
             });host.append(card);
         });
         if(!(data.stocks||[]).length)host.textContent='No stock results returned.';
