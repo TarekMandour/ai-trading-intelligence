@@ -4,6 +4,7 @@ return [
     'enabled' => (bool) env('ICT_STRATEGY_ENABLED', true),
     'version' => env('ICT_STRATEGY_VERSION', 'ict-v1'),
     'minimum_candles' => (int) env('ICT_MINIMUM_CANDLES', 30),
+    'fvg_lookback' => (int) env('ICT_FVG_LOOKBACK', 30),
     'swing_left' => (int) env('ICT_SWING_LEFT', 2),
     'swing_right' => (int) env('ICT_SWING_RIGHT', 2),
     'displacement_atr_multiple' => (float) env('ICT_DISPLACEMENT_ATR_MULTIPLE', 1.2),
