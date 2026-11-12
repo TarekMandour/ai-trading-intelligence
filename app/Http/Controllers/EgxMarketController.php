@@ -155,7 +155,7 @@ class EgxMarketController extends Controller
         try {
             $results = [];
             foreach ($watchlist->stocks as $stock) {
-                $stockResult = ['asset_id' => $stock->asset_id, 'symbol' => $stock->symbol, 'profiles' => []];
+                $stockResult = ['asset_id' => $stock->asset_id, 'symbol' => $stock->symbol, 'name' => $stock->name, 'arabic_name' => $stock->arabic_name, 'profiles' => []];
                 foreach ($profiles as $profile) {
                     $series = [];
                     $syncReport = [];
@@ -176,9 +176,15 @@ class EgxMarketController extends Controller
                             break;
                         }
                     }
-                    $stockResult['profiles'][$profile] = $rejected
-                        ? ['status' => 'REJECTED', 'reasons' => [$rejected], 'sync' => $syncReport]
-                        : $ict->evaluate($series, $profile) + ['sync' => $syncReport];
+                    if ($rejected) {
+                        $profileResult = ['decision' => 'REJECTED', 'reasons' => [$rejected], 'sync' => $syncReport];
+                    } else {
+                        $profileResult = $ict->evaluate($series, $profile) + ['sync' => $syncReport];
+                    }
+                    // The ICT engine exposes its final outcome as `decision`; normalize it
+                    // to `status` as well so API consumers have one consistent status field.
+                    $profileResult['status'] = $profileResult['decision'] ?? 'UNKNOWN';
+                    $stockResult['profiles'][$profile] = $profileResult;
                 }
                 $results[] = $stockResult;
             }
