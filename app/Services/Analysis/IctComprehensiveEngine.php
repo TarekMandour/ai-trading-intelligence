@@ -69,8 +69,17 @@ class IctComprehensiveEngine
         $displacement = $this->displacement($candles);
         $mss = $this->bullishMss($candles, $swings);
         $fvg = $this->bullishFvg($candles);
+        $sequence = (new IctBullishSequenceAnalyzer)->detect($candles);
+        if (($sequence['status'] ?? null) === 'CONFIRMED') {
+            $liquidity['sweep_confirmed'] = true;
+            $liquidity['sweep_low'] = $sequence['sweep']['low'];
+            $displacement['bullish'] = true;
+            $mss['confirmed'] = true;
+            $mss['level'] = $sequence['mss']['level'];
+            $fvg = $sequence['fvg'];
+        }
         $ob = $this->bullishOrderBlock($candles, $displacement, $mss);
-        return compact('swings', 'liquidity', 'displacement', 'mss', 'fvg', 'ob');
+        return compact('swings', 'liquidity', 'displacement', 'mss', 'fvg', 'ob', 'sequence');
     }
 
     private function sweepReversal(string $profile, array $context, array $setup, array $entry): array
