@@ -20,6 +20,16 @@ Body:
 
 The endpoint stores the token in `market_settings` under `thndr_api_token`. The request must include `X-Capture-Key` matching `THNDR_CAPTURE_KEY`, and capture must be enabled by setting `thndr_capture_enabled=1` in `market_settings`, matching the legacy `doji_trade` controller behavior. Never commit the secret or token. The old Chrome extension source was not present in the doji_trade repository tree, so this endpoint preserves the observed server-side contract; only its destination URL should point to this application.
 
+## Capture controls
+
+The analysis dashboard includes Start Capture and Stop Capture controls, matching the legacy dashboard behavior. The controls call:
+
+- `GET /api/thndr/capture/status`
+- `POST /api/thndr/capture/start`
+- `POST /api/thndr/capture/stop`
+
+Starting sets `thndr_capture_enabled=1`; stopping sets it to `0`. The dashboard polls status every 15 seconds and, after Start, polls every 3 seconds for up to 30 seconds to detect a newly captured token. The token is displayed only in masked form. The capture endpoint continues to require the configured shared `X-Capture-Key`; the toggle alone does not authorize token submission.
+
 ## EGX universe and watchlists
 
 - `POST /api/egx/universe/sync` fetches Thndr marketwatch and writes `storage/app/private/markets/egx/stocks.json`; it also refreshes the queryable `egx_stocks` table.
