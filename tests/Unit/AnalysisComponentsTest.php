@@ -277,4 +277,34 @@ class AnalysisComponentsTest extends TestCase
         $this->assertContains('ICT_DATA_INCOMPLETE_entry', $result['reasons']);
     }
 
+    public function test_ict_entry_planner_exposes_market_and_limit_without_submitting_orders(): void
+    {
+        $plan = (new \\App\\Services\\Analysis\\IctEntryPlanner)->plan(
+            101.0,
+            ['low' => 99.0, 'high' => 101.0, 'ce' => 100.0],
+            true,
+            98.0,
+        );
+
+        $this->assertSame('MARKET', $plan['market']['entry_type']);
+        $this->assertSame('PLANNED', $plan['market']['status']);
+        $this->assertSame('LIMIT', $plan['limit']['entry_type']);
+        $this->assertSame(100.0, $plan['limit']['limit_price']);
+        $this->assertSame('TOUCH_IS_NOT_A_FILL', $plan['limit']['fill_policy']);
+        $this->assertFalse($plan['order_submission_enabled']);
+    }
+
+    public function test_ict_market_plan_waits_when_price_is_too_far_from_zone(): void
+    {
+        $plan = (new \\App\\Services\\Analysis\\IctEntryPlanner)->plan(
+            105.0,
+            ['low' => 99.0, 'high' => 101.0, 'ce' => 100.0],
+            true,
+            98.0,
+        );
+
+        $this->assertSame('WAIT', $plan['market']['status']);
+        $this->assertSame('PLANNED', $plan['limit']['status']);
+    }
+
 }
