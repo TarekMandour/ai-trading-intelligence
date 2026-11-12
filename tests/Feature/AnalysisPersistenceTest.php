@@ -86,7 +86,7 @@ class AnalysisPersistenceTest extends TestCase
 
         $this->assertDatabaseCount('analysis_reports', 3);
         $this->assertDatabaseCount('analysis_opportunities', 3);
-        $this->assertDatabaseCount('analysis_evidence', 15);
+        $this->assertDatabaseCount('analysis_evidence', 18);
         $this->assertDatabaseCount('analysis_ai_reviews', 3);
         $this->assertDatabaseCount('analysis_audit_events', 3);
         $this->assertSame($snapshot, $run->reports()->first()->fresh()->opportunity->snapshot);
