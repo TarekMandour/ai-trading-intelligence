@@ -106,7 +106,7 @@ class ProcessAnalysisRun implements ShouldQueue
                 $candidate = $selectedScenario['candidate'] ?? null;
                 $decision = ($profileWarnings !== [] || count($candlesByRole) !== count($timeframes)) ? 'REJECTED' : ($ictResult['decision'] ?? 'NO_OPPORTUNITY');
                 $executionCosts = ['available' => false, 'fee' => 0, 'spread' => 0, 'slippage' => 0, 'total' => 0, 'reason' => 'NOT_REQUESTED_NO_ENTERABLE_CANDIDATE'];
-                if ($decision !== 'REJECTED' && collect($scenarioResults)->contains(fn (array $scenario): bool => $scenario['status'] === 'WAIT')) {
+                if ($candidate === null && $decision !== 'REJECTED' && collect($scenarioResults)->contains(fn (array $scenario): bool => $scenario['status'] === 'WAIT')) {
                     $decision = 'WAIT';
                 }
 
