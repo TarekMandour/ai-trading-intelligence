@@ -81,6 +81,7 @@ class IctComprehensiveEngine
         $fvg = $setup['fvg'];
         $fvgLifecycle = $setup['fvg_lifecycle'] ?? null;
         if (($fvgLifecycle['status'] ?? null) === 'INVALIDATED' || ($fvgLifecycle['status'] ?? null) === 'FULLY_FILLED') $fvg = null;
+        $fvgTouched = $fvg !== null && ($fvgLifecycle['touch_count'] ?? 0) > 0;
         $contextOk = $context['bias'] === 'BULLISH' && $context['structure_bias'] !== 'BEARISH';
         $trigger = $entry['bullish_trigger'];
         $reasons = [];
@@ -99,6 +100,8 @@ class IctComprehensiveEngine
         $contextOk = $context['bias'] === 'BULLISH' && $context['structure_bias'] !== 'BEARISH';
         $displacement = $setup['displacement']['bullish'] ?? false;
         $fvg = $setup['fvg'];
+        $fvgLifecycle = $setup['fvg_lifecycle'] ?? null;
+        if (($fvgLifecycle['status'] ?? null) === 'INVALIDATED' || ($fvgLifecycle['status'] ?? null) === 'FULLY_FILLED') $fvg = null;
         $touched = $fvg !== null && ($fvgLifecycle['touch_count'] ?? 0) > 0;
         $trigger = $entry['bullish_trigger'];
         $reasons = [];
@@ -112,7 +115,7 @@ class IctComprehensiveEngine
 
     private function orderBlockReaction(string $profile, array $context, array $setup, array $entry): array
     {
-        $contextOk = $context['bias'] === 'BULLISH';
+        $contextOk = $context['bias'] === 'BULLISH' && $context['structure_bias'] !== 'BEARISH';
         $ob = $setup['ob'];
         $obLifecycle = $setup['ob_lifecycle'] ?? null;
         if (($obLifecycle['status'] ?? null) === 'INVALIDATED') $ob = null;
