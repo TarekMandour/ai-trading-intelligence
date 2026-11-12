@@ -252,13 +252,15 @@ class AnalysisComponentsTest extends TestCase
 
         $this->assertSame('ICT_COMPREHENSIVE', $result['engine']);
         $this->assertSame('LONG', $result['direction']);
-        $this->assertCount(5, $result['scenarios']);
+        $this->assertCount(7, $result['scenarios']);
         $this->assertSame([
             'ICT_01_SELL_SIDE_LIQUIDITY_SWEEP_REVERSAL',
             'ICT_02_BULLISH_FVG_CONTINUATION',
             'ICT_03_BULLISH_ORDER_BLOCK_REACTION',
             'ICT_04_BULLISH_BREAKER_BLOCK_REACTION',
             'ICT_05_BULLISH_REJECTION_BLOCK_REACTION',
+            'ICT_06_SILVER_BULLET_LONG',
+            'ICT_07_JUDAS_SWING_LONG',
         ], array_column($result['scenarios'], 'scenario'));
         foreach ($result['scenarios'] as $scenario) {
             $this->assertSame('LONG', $scenario['direction']);
