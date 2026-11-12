@@ -17,7 +17,7 @@ App\Services\Analysis\IctComprehensiveEngine::evaluate(array $candlesByRole, str
 
 Required roles: context, structure, setup, entry. Every series requires at least 30 strictly time-ordered, completed OHLCV candles with valid high/low geometry.
 
-The engine returns context, setup evidence, entry evidence, three core scenario results, and a deterministic decision.
+The engine returns context, setup evidence, entry evidence, three core scenario results, deterministic decisions, and research-only Market/Limit plans with distance and expiry metadata. No exchange orders are submitted.
 
 ## Core models
 
@@ -31,6 +31,6 @@ The first implementation uses deterministic pivot, liquidity, displacement, MSS,
 
 - Current setup evidence uses the latest completed setup candle for some confirmations; production-quality event sequencing, evidence persistence, and replay-safe lifecycle transitions still require integration work.
 - Equal highs/lows clustering, multi-candle displacement, zone touch history, FVG partial/full fill lifecycle, breaker/rejection blocks, OTE confluence, Silver Bullet/Judas session windows, and SMT reference assets are not integrated.
-- Market/Limit are represented as research entry methods; no order placement is implemented or authorized.
+- Market/Limit are represented as research entry plans with Ask-side execution reference, zone-distance guard, expiry, and explicit touch-is-not-fill semantics; no order placement is implemented or authorized.
 - Historical fill accuracy cannot be inferred from OHLCV alone.
 - No historical backtest or profitability validation has been performed.
