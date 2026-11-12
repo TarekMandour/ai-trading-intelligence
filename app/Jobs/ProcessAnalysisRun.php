@@ -9,8 +9,6 @@ use App\Services\Ai\AiReviewValidator;
 use App\Services\Analysis\DeterministicAnalysisEngine;
 use App\Services\Analysis\ExecutionCostEstimator;
 use App\Services\Analysis\IctComprehensiveEngine;
-use App\Services\Analysis\MultiTimeframeAlignment;
-use App\Services\Analysis\ScenarioEvaluator;
 use App\Services\MarketData\BinanceSpotClient;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -31,7 +29,7 @@ class ProcessAnalysisRun implements ShouldQueue
 
     public function __construct(public int $analysisRunId) {}
 
-    public function handle(BinanceSpotClient $binance, DeterministicAnalysisEngine $engine, ExecutionCostEstimator $costs, MultiTimeframeAlignment $alignment, ScenarioEvaluator $scenarios, IctComprehensiveEngine $ict, AiAnalysisProvider $ai, AiReviewValidator $validator): void
+    public function handle(BinanceSpotClient $binance, DeterministicAnalysisEngine $engine, ExecutionCostEstimator $costs, IctComprehensiveEngine $ict, AiAnalysisProvider $ai, AiReviewValidator $validator): void
     {
         $run = AnalysisRun::findOrFail($this->analysisRunId);
         if (in_array($run->status, ['COMPLETED', 'FAILED'], true)) {
@@ -64,7 +62,6 @@ class ProcessAnalysisRun implements ShouldQueue
         foreach ($universe['symbols'] as $symbolData) {
             $symbol = $symbolData['symbol'];
             $candlesByInterval = [];
-            $candlesByRole = [];
             foreach (config('analysis.profiles') as $profile => $timeframes) {
                 $existingReport = $run->reports()->where('profile', $profile)->where('symbol', $symbol)->first(['id', 'ai_review']);
                 if ($existingReport !== null) {
@@ -74,8 +71,8 @@ class ProcessAnalysisRun implements ShouldQueue
                     continue;
                 }
 
+                $candlesByRole = [];
                 $states = [];
-                $entryCandles = [];
                 $profileWarnings = [];
                 $candleErrors = [];
                 try {
@@ -95,15 +92,11 @@ class ProcessAnalysisRun implements ShouldQueue
                         }
                         $candlesByRole[$role] = $candles;
                         $states[$role] = $engine->evaluate($candles);
-                        if ($role === 'entry') {
-                            $entryCandles = $candles;
-                        }
                     }
                 } catch (\Throwable $exception) {
                     $profileWarnings[] = 'CANDLE_DATA_UNAVAILABLE:'.$exception->getMessage();
                 }
 
-                $alignmentResult = $alignment->summarize(collect($states)->map(fn (array $state): array => ['direction' => $state['direction'], 'behavior' => $state['behavior']])->all());
                 $ictResult = config('ict.enabled', true) ? $ict->evaluate($candlesByRole, $profile) : ['scenarios' => [], 'decision' => 'NO_OPPORTUNITY', 'reasons' => ['ICT_STRATEGY_DISABLED']];
                 $alignmentResult = ['state' => $ictResult['context']['bias'] ?? 'INSUFFICIENT', 'allow_entry' => ($ictResult['context']['bias'] ?? null) === 'BULLISH' && ($ictResult['context']['structure_bias'] ?? null) !== 'BEARISH', 'reasons' => $ictResult['reasons'] ?? []];
                 $entryState = $states['entry'] ?? null;
