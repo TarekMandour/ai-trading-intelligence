@@ -64,7 +64,7 @@ class EgxMarketController extends Controller
         $watchlist->stocks()->sync($pivot);
     }
 
-    public function scan(Request $request, ThndrApiClient $api, EgxCandleSyncService $sync, IctComprehensiveEngine $ict): JsonResponse
+    public function scanHistory(EgxWatchlist $watchlist): JsonResponse\n    {\n        return response()->json(EgxScanRun::where('egx_watchlist_id', $watchlist->id)->latest()->paginate(20));\n    }\n\n    public function scan(Request $request, ThndrApiClient $api, EgxCandleSyncService $sync, IctComprehensiveEngine $ict): JsonResponse
     {
         $data = $request->validate([
             'watchlist_id' => ['required','integer','exists:egx_watchlists,id'],
@@ -102,6 +102,6 @@ class EgxMarketController extends Controller
             }
             $results[] = $stockResult;
         }
-        return response()->json(['watchlist_id'=>$watchlist->id,'watchlist'=>$watchlist->name,'market'=>'EGX','source'=>'thndr','stocks'=>$results]);
+        $run->update(['status' => 'COMPLETED', 'results' => $results, 'completed_at' => now()]);\n        return response()->json(['run_id' => $run->id, 'watchlist_id'=>$watchlist->id,'watchlist'=>$watchlist->name,'market'=>'EGX','source'=>'thndr','stocks'=>$results]);
     }
 }
