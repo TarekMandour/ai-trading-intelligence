@@ -25,4 +25,5 @@ return [
     'session_timezone' => env('ICT_SESSION_TIMEZONE', 'UTC'),
     'session_windows' => json_decode((string) env('ICT_SESSION_WINDOWS', '[]'), true) ?: [],
     'smt_index_tolerance' => (int) env('ICT_SMT_INDEX_TOLERANCE', 3),
+    'smt_reference_symbol' => env('ICT_SMT_REFERENCE_SYMBOL'),
 ];
