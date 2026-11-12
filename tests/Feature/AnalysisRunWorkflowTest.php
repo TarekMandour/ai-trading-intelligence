@@ -173,8 +173,7 @@ class AnalysisRunWorkflowTest extends TestCase
             $binance,
             $engine,
             app(ExecutionCostEstimator::class),
-            app(MultiTimeframeAlignment::class),
-            $scenarios,
+            $ict,
             $ai,
             app(AiReviewValidator::class),
         );
@@ -275,8 +274,7 @@ class AnalysisRunWorkflowTest extends TestCase
             $binance,
             $engine,
             app(ExecutionCostEstimator::class),
-            app(MultiTimeframeAlignment::class),
-            $scenarios,
+            $ict,
             $ai,
             app(AiReviewValidator::class),
         );
@@ -342,8 +340,7 @@ class AnalysisRunWorkflowTest extends TestCase
             $binance,
             $engine,
             app(ExecutionCostEstimator::class),
-            app(MultiTimeframeAlignment::class),
-            $scenarios,
+            $ict,
             $ai,
             app(AiReviewValidator::class),
         );
