@@ -141,6 +141,41 @@ class IctAdvancedEvidenceAnalyzer
     {
         if ($referenceCandles === []) return ['status' => 'NOT_CONFIGURED', 'reason' => 'SMT_REFERENCE_ASSET_REQUIRED'];
         if (count($referenceCandles) !== count($candles)) return ['status' => 'UNAVAILABLE', 'reason' => 'SMT_SERIES_NOT_SYNCHRONIZED'];
-        return ['status' => 'REQUIRES_REFERENCE_SWING_COMPARISON', 'reason' => 'REFERENCE_SERIES_AVAILABLE_BUT_NO_APPROVED_PAIRING_RULE'];
+
+        foreach ($candles as $index => $candle) {
+            if ((int) ($candle['close_time'] ?? -1) !== (int) ($referenceCandles[$index]['close_time'] ?? -2)) {
+                return ['status' => 'UNAVAILABLE', 'reason' => 'SMT_CLOSE_TIMESTAMPS_NOT_ALIGNED'];
+            }
+        }
+
+        $assetSwings = $this->swings($candles)['lows'];
+        $referenceSwings = $this->swings($referenceCandles)['lows'];
+        if (count($assetSwings) < 2 || count($referenceSwings) < 2) {
+            return ['status' => 'INSUFFICIENT', 'reason' => 'SMT_REQUIRES_TWO_CONFIRMED_SWING_LOWS_PER_SERIES'];
+        }
+
+        $assetPair = array_slice($assetSwings, -2);
+        $referencePair = array_slice($referenceSwings, -2);
+        $indexTolerance = max(0, (int) config('ict.smt_index_tolerance', 3));
+        foreach ([0, 1] as $position) {
+            if (abs($assetPair[$position]['index'] - $referencePair[$position]['index']) > $indexTolerance) {
+                return ['status' => 'UNAVAILABLE', 'reason' => 'SMT_SWING_POINTS_NOT_TIME_PAIRED'];
+            }
+        }
+
+        $assetLowerLow = $assetPair[1]['price'] < $assetPair[0]['price'];
+        $referenceLowerLow = $referencePair[1]['price'] < $referencePair[0]['price'];
+        $bullishDivergence = $assetLowerLow && ! $referenceLowerLow;
+
+        return [
+            'status' => $bullishDivergence ? 'BULLISH_DIVERGENCE' : 'NO_BULLISH_DIVERGENCE',
+            'direction' => $bullishDivergence ? 'BULLISH' : null,
+            'asset_lower_low' => $assetLowerLow,
+            'reference_lower_low' => $referenceLowerLow,
+            'asset_swing_indices' => array_column($assetPair, 'index'),
+            'reference_swing_indices' => array_column($referencePair, 'index'),
+            'reference_comparison' => 'POSITIVE_CORRELATION_ASSUMED',
+            'trade_gate' => false,
+        ];
     }
 }
