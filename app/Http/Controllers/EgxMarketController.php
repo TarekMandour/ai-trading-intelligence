@@ -76,7 +76,7 @@ class EgxMarketController extends Controller
         $profiles = $data['profiles'] ?? ['Scalping','Intraday','Swing'];
         $profileFrames = [
             'Scalping' => ['context'=>'1h','structure'=>'15m','setup'=>'5m','entry'=>'1m'],
-            'Intraday' => ['context'=>'1d','structure'=>'1h','setup'=>'15m','entry'=>'5m'],
+            'Intraday' => ['context'=>'4h','structure'=>'1h','setup'=>'15m','entry'=>'5m'],
             'Swing' => ['context'=>'1w','structure'=>'1d','setup'=>'4h','entry'=>'1h'],
         ];
         $results = [];
