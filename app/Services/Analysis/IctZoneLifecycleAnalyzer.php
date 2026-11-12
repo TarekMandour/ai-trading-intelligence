@@ -15,7 +15,7 @@ class IctZoneLifecycleAnalyzer
 
         foreach ($candles as $candle) {
             if ((int) ($candle['close_time'] ?? 0) <= $createdAt) continue;
-            if (in_array($status, ['FULLY_FILLED', 'INVALIDATED'], true)) continue;
+            if ($status === 'INVALIDATED') continue;
 
             $low = (float) $candle['low'];
             if ((float) $candle['close'] < (float) $zone['low']) {
@@ -25,6 +25,7 @@ class IctZoneLifecycleAnalyzer
                 $invalidationClose = (float) $candle['close'];
                 continue;
             }
+            if ($status === 'FULLY_FILLED') continue;
             if ($low <= (float) $zone['high']) {
                 $touches++;
                 $deepestPrice = $deepestPrice === null ? $low : min($deepestPrice, $low);
