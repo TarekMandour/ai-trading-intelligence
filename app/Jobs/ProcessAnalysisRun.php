@@ -8,6 +8,7 @@ use App\Services\Ai\AiAnalysisProvider;
 use App\Services\Ai\AiReviewValidator;
 use App\Services\Analysis\DeterministicAnalysisEngine;
 use App\Services\Analysis\ExecutionCostEstimator;
+use App\Services\Analysis\IctComprehensiveEngine;
 use App\Services\Analysis\MultiTimeframeAlignment;
 use App\Services\Analysis\ScenarioEvaluator;
 use App\Services\MarketData\BinanceSpotClient;
@@ -30,7 +31,7 @@ class ProcessAnalysisRun implements ShouldQueue
 
     public function __construct(public int $analysisRunId) {}
 
-    public function handle(BinanceSpotClient $binance, DeterministicAnalysisEngine $engine, ExecutionCostEstimator $costs, MultiTimeframeAlignment $alignment, ScenarioEvaluator $scenarios, AiAnalysisProvider $ai, AiReviewValidator $validator): void
+    public function handle(BinanceSpotClient $binance, DeterministicAnalysisEngine $engine, ExecutionCostEstimator $costs, MultiTimeframeAlignment $alignment, ScenarioEvaluator $scenarios, IctComprehensiveEngine $ict, AiAnalysisProvider $ai, AiReviewValidator $validator): void
     {
         $run = AnalysisRun::findOrFail($this->analysisRunId);
         if (in_array($run->status, ['COMPLETED', 'FAILED'], true)) {
@@ -63,6 +64,7 @@ class ProcessAnalysisRun implements ShouldQueue
         foreach ($universe['symbols'] as $symbolData) {
             $symbol = $symbolData['symbol'];
             $candlesByInterval = [];
+            $candlesByRole = [];
             foreach (config('analysis.profiles') as $profile => $timeframes) {
                 $existingReport = $run->reports()->where('profile', $profile)->where('symbol', $symbol)->first(['id', 'ai_review']);
                 if ($existingReport !== null) {
@@ -91,6 +93,7 @@ class ProcessAnalysisRun implements ShouldQueue
                             $reason = $candleErrors[$interval] ?? 'INSUFFICIENT_CANDLE_HISTORY';
                             throw new \RuntimeException($role.':'.$interval.':'.$reason);
                         }
+                        $candlesByRole[$role] = $candles;
                         $states[$role] = $engine->evaluate($candles);
                         if ($role === 'entry') {
                             $entryCandles = $candles;
@@ -101,13 +104,14 @@ class ProcessAnalysisRun implements ShouldQueue
                 }
 
                 $alignmentResult = $alignment->summarize(collect($states)->map(fn (array $state): array => ['direction' => $state['direction'], 'behavior' => $state['behavior']])->all());
+                $ictResult = config('ict.enabled', true) ? $ict->evaluate($candlesByRole, $profile) : ['scenarios' => [], 'decision' => 'NO_OPPORTUNITY', 'reasons' => ['ICT_STRATEGY_DISABLED']];
+                $alignmentResult = ['state' => $ictResult['context']['bias'] ?? 'INSUFFICIENT', 'allow_entry' => ($ictResult['context']['bias'] ?? null) === 'BULLISH' && ($ictResult['context']['structure_bias'] ?? null) !== 'BEARISH', 'reasons' => $ictResult['reasons'] ?? []];
                 $entryState = $states['entry'] ?? null;
                 $regime = $entryState ?? ['direction' => 'UNCERTAIN', 'behavior' => 'UNCERTAIN', 'volatility' => 'NORMAL', 'reasons' => ['INSUFFICIENT_VALIDATED_CANDLE_EVIDENCE'], 'candidate' => null];
-                $scenarioResults = $scenarios->evaluate($regime, $entryCandles);
+                $scenarioResults = $ictResult['scenarios'] ?? [];
                 $selectedScenario = collect($scenarioResults)->first(fn (array $scenario): bool => $scenario['status'] === 'ENTERABLE' && is_array($scenario['candidate'] ?? null));
                 $candidate = $selectedScenario['candidate'] ?? null;
-                $hasUncertainTimeframe = collect($states)->contains(fn (array $state): bool => ($state['direction'] ?? 'UNCERTAIN') === 'UNCERTAIN');
-                $decision = ($profileWarnings !== [] || count($states) !== count($timeframes) || $hasUncertainTimeframe) ? 'REJECTED' : 'NO_OPPORTUNITY';
+                $decision = ($profileWarnings !== [] || count($candlesByRole) !== count($timeframes)) ? 'REJECTED' : ($ictResult['decision'] ?? 'NO_OPPORTUNITY');
                 $executionCosts = ['available' => false, 'fee' => 0, 'spread' => 0, 'slippage' => 0, 'total' => 0, 'reason' => 'NOT_REQUESTED_NO_ENTERABLE_CANDIDATE'];
                 if ($decision !== 'REJECTED' && collect($scenarioResults)->contains(fn (array $scenario): bool => $scenario['status'] === 'WAIT')) {
                     $decision = 'WAIT';
@@ -143,7 +147,8 @@ class ProcessAnalysisRun implements ShouldQueue
                 $evidence = [
                     'symbol' => $symbol,
                     'profile' => $profile,
-                    'evidence_ids' => ['market_regime', 'timeframe_alignment', 'scenarios', 'execution_costs', 'decision'],
+                    'evidence_ids' => ['ict', 'market_regime', 'timeframe_alignment', 'scenarios', 'execution_costs', 'decision'],
+                    'ict' => $ictResult,
                     'timeframe_states' => $states,
                     'timeframe_alignment' => $alignmentResult,
                     'regime' => array_diff_key($regime, ['candidate' => true, 'reasons' => true]),
@@ -181,7 +186,7 @@ class ProcessAnalysisRun implements ShouldQueue
                         [],
                         ['symbol' => $symbol, 'scenario' => $candidate ? ($selectedScenario['scenario'] ?? null) : null, 'decision' => $decision, 'entry' => $candidate['entry'] ?? null, 'stop' => $candidate['stop'] ?? null, 'target_1' => $candidate['target1'] ?? null, 'target_2' => $candidate['target2'] ?? null, 'snapshot' => $evidence]
                     );
-                    foreach (['market_regime', 'timeframe_alignment', 'scenarios', 'execution_costs', 'decision'] as $key) {
+                    foreach (['ict', 'market_regime', 'timeframe_alignment', 'scenarios', 'execution_costs', 'decision'] as $key) {
                         $opportunity->evidence()->firstOrCreate(
                             ['evidence_key' => $key],
                             ['kind' => strtoupper($key), 'payload' => $evidence[$key] ?? $evidence['regime'], 'recorded_at' => now()]
