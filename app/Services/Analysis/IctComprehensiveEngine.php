@@ -124,6 +124,7 @@ class IctComprehensiveEngine
                 'target2' => $entry + $risk * (float) config('ict.target_2_r', 3.0),
                 'risk_reward' => (float) config('ict.target_1_r', 2.0),
                 'entry_type' => 'MARKET_OR_LIMIT', 'entry_zone' => $zone,
+                'entry_plans' => (new IctEntryPlanner)->plan($entry, $zone, true, $stop),
             ],
             'evidence' => ['zone' => $zone],
         ];
