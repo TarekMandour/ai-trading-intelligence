@@ -260,7 +260,26 @@ class IctComprehensiveEngine
 
     private function scenario(string $key, string $profile, bool $confirmed, array $reasons, float $entry, ?float $stop, ?array $zone): array
     {
-        if (! $confirmed) return ['scenario' => $key, 'profile' => $profile, 'direction' => 'LONG', 'status' => 'WAIT', 'reasons' => $reasons, 'candidate' => null, 'evidence' => ['zone' => $zone]];
+        if (! $confirmed) {
+            // WAIT is reserved for a structurally valid setup that is only waiting
+            // for its retracement/reaction/entry trigger. Missing core ICT evidence
+            // means there is no opportunity yet, not an actionable waiting setup.
+            $waitableReason = static fn (string $reason): bool => str_ends_with($reason, '_NO_FVG_RETRACEMENT')
+                || str_ends_with($reason, '_NO_RETRACEMENT')
+                || str_ends_with($reason, '_NO_RETEST')
+                || str_ends_with($reason, '_NO_ENTRY_TRIGGER')
+                || str_ends_with($reason, '_NO_BULLISH_REACTION')
+                || str_ends_with($reason, '_NO_BULLISH_ENTRY_TRIGGER')
+                || str_ends_with($reason, '_NO_VALID_FVG_RETRACEMENT');
+            $hasCoreBlocker = collect($reasons)->contains(fn (string $reason): bool => ! $waitableReason($reason));
+            $status = $hasCoreBlocker ? 'NO_OPPORTUNITY' : 'WAIT';
+
+            return [
+                'scenario' => $key, 'profile' => $profile, 'direction' => 'LONG',
+                'status' => $status, 'reasons' => $reasons, 'candidate' => null,
+                'evidence' => ['zone' => $zone],
+            ];
+        }
         if ($stop === null || $stop <= 0 || $entry <= $stop) return ['scenario' => $key, 'profile' => $profile, 'direction' => 'LONG', 'status' => 'REJECTED', 'reasons' => ['ICT_INVALID_STOP_GEOMETRY'], 'candidate' => null, 'evidence' => ['zone' => $zone]];
         $risk = $entry - $stop;
         return [
