@@ -18,7 +18,7 @@ Body:
 {"token":"<captured Thndr bearer token>"}
 ```
 
-The endpoint stores the token in `market_settings` under `thndr_api_token`. Configure `THNDR_CAPTURE_KEY` in the server environment; never commit the secret or token. The old Chrome extension source was not present in the doji_trade repository tree, so this endpoint preserves the observed server-side contract but extension delivery still needs its original source/configuration.
+The endpoint stores the token in `market_settings` under `thndr_api_token`. The request must include `X-Capture-Key` matching `THNDR_CAPTURE_KEY`, and capture must be enabled by setting `thndr_capture_enabled=1` in `market_settings`, matching the legacy `doji_trade` controller behavior. Never commit the secret or token. The old Chrome extension source was not present in the doji_trade repository tree, so this endpoint preserves the observed server-side contract; only its destination URL should point to this application.
 
 ## EGX universe and watchlists
 
@@ -37,4 +37,4 @@ Important limitation: this first sync implementation repairs the newest tail and
 
 ## Security and validation
 
-The token endpoint is protected by the shared capture key and rate-limited. Do not expose `market_settings.value` in API responses or logs. The EGX scan/universe/watchlist endpoints are currently API endpoints without user authentication because the current MVP has no authentication flow. Do not expose them to the public internet; add authenticated dashboard middleware and user ownership checks before deployment. Token values are never returned by these endpoints.
+The token endpoint is protected by the shared capture key, requires `thndr_capture_enabled=1`, and is rate-limited. Do not expose `market_settings.value` in API responses or logs. The EGX scan/universe/watchlist endpoints are currently API endpoints without user authentication because the current MVP has no authentication flow. Do not expose them to the public internet; add authenticated dashboard middleware and user ownership checks before deployment. Token values are never returned by these endpoints.
