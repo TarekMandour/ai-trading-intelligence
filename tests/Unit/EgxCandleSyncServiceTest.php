@@ -1,12 +1,12 @@
 <?php
 
-namespace Tests\\Unit;
+namespace Tests\Unit;
 
-use App\\Services\\MarketData\\EgxCandleSyncService;
-use Illuminate\\Foundation\\Testing\\RefreshDatabase;
-use Illuminate\\Support\\Facades\\DB;
+use App\Services\MarketData\EgxCandleSyncService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use ReflectionMethod;
-use Tests\\TestCase;
+use Tests\TestCase;
 
 class EgxCandleSyncServiceTest extends TestCase
 {
