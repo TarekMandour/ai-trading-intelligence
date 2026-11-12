@@ -279,8 +279,8 @@ class AnalysisComponentsTest extends TestCase
 
     public function test_ict_entry_planner_exposes_market_and_limit_without_submitting_orders(): void
     {
-        $plan = (new \App\\Services\\Analysis\\IctEntryPlanner)->plan(
-            101.0,
+        $plan = (new \App\Services\Analysis\IctEntryPlanner)->plan(
+            100.1,
             ['low' => 99.0, 'high' => 101.0, 'ce' => 100.0],
             true,
             98.0,
@@ -296,7 +296,7 @@ class AnalysisComponentsTest extends TestCase
 
     public function test_ict_market_plan_waits_when_price_is_too_far_from_zone(): void
     {
-        $plan = (new \App\\Services\\Analysis\\IctEntryPlanner)->plan(
+        $plan = (new \App\Services\Analysis\IctEntryPlanner)->plan(
             105.0,
             ['low' => 99.0, 'high' => 101.0, 'ce' => 100.0],
             true,
@@ -322,7 +322,7 @@ class AnalysisComponentsTest extends TestCase
             ];
         }
 
-        $evidence = (new \App\\Services\\Analysis\\IctAdvancedEvidenceAnalyzer)->analyze($candles);
+        $evidence = (new \App\Services\Analysis\IctAdvancedEvidenceAnalyzer)->analyze($candles);
 
         $this->assertSame('INACTIVE_NOT_CONFIGURED', $evidence['session_models']['status']);
         $this->assertSame('NOT_CONFIGURED', $evidence['smt']['status']);
