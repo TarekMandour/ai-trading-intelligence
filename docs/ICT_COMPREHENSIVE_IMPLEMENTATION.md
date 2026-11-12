@@ -29,7 +29,7 @@ The first implementation uses deterministic pivot, liquidity, displacement, MSS,
 
 ## Limitations
 
-- ICT-01 now requires an ordered sequence: a previously confirmed SSL is swept and reclaimed, a later bullish displacement closes through a previously confirmed swing high (MSS), and a subsequent three-candle bullish FVG is identified. This sequence is deterministic but still needs broad replay fixtures and historical validation.
+- ICT-01 now requires an ordered sequence: a previously confirmed SSL is swept and reclaimed, a later bullish displacement exceeds the configured true-range ATR multiple and closes through a previously confirmed swing high (MSS), and a subsequent three-candle bullish FVG is identified. This sequence is deterministic but still needs broad replay fixtures and historical validation.
 - Optional confluence evidence now includes equal-level candidates, bullish OTE range, rejection-block candidates, breaker-block retest candidates, and session-window availability. These are evidence only and do not independently authorize trades.
 - Silver Bullet/Judas scenarios are implemented but remain inactive until explicit windows and a timezone are configured. Windows can be supplied as JSON through `ICT_SESSION_WINDOWS`; midnight-crossing windows are supported.
 - SMT bullish swing-low divergence evidence is implemented for synchronized, same-timeframe reference candles. The queued workflow does not fetch a reference asset yet, so SMT remains `NOT_CONFIGURED` unless the caller supplies that optional series. Positive correlation is assumed and explicitly reported.
