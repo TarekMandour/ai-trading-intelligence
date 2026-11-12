@@ -1,17 +1,17 @@
 <?php
 
-namespace App\\Http\\Controllers;
+namespace App\Http\Controllers;
 
-use App\\Models\\EgxScanRun;
-use App\\Models\\EgxStock;
-use App\\Models\\EgxWatchlist;
-use App\\Models\\MarketSetting;
-use App\\Services\\Analysis\\IctComprehensiveEngine;
-use App\\Services\\MarketData\\EgxCandleSyncService;
-use App\\Services\\MarketData\\EgxStockCatalog;
-use App\\Services\\MarketData\\ThndrApiClient;
-use Illuminate\\Http\\JsonResponse;
-use Illuminate\\Http\\Request;
+use App\Models\EgxScanRun;
+use App\Models\EgxStock;
+use App\Models\EgxWatchlist;
+use App\Models\MarketSetting;
+use App\Services\Analysis\IctComprehensiveEngine;
+use App\Services\MarketData\EgxCandleSyncService;
+use App\Services\MarketData\EgxStockCatalog;
+use App\Services\MarketData\ThndrApiClient;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Throwable;
 
 class EgxMarketController extends Controller
@@ -115,7 +115,7 @@ class EgxMarketController extends Controller
                         try {
                             $syncReport[$timeframe] = $sync->sync($stock->asset_id, $timeframe, $api);
                             $candles = $sync->candles($stock->asset_id, $timeframe, 500);
-                            if (count($candles) < 30) throw new \\RuntimeException('INSUFFICIENT_CANDLE_HISTORY:' . $timeframe);
+                            if (count($candles) < 30) throw new \RuntimeException('INSUFFICIENT_CANDLE_HISTORY:' . $timeframe);
                             $series[$role] = array_map(fn (array $c) => [
                                 'open_time' => (int) $c['open_time'], 'close_time' => (int) $c['close_time'],
                                 'open' => (float) $c['open'], 'high' => (float) $c['high'],
