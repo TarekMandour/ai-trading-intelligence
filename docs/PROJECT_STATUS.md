@@ -124,7 +124,7 @@ Initial vertical slice implemented: a Laravel dashboard creates an idempotency-k
 
 - Seven long-only scenario evaluators are present: ICT-01 SSL Sweep Reversal, ICT-02 FVG Continuation, ICT-03 Order Block Reaction, ICT-04 Breaker Block Reaction, ICT-05 Rejection Block Reaction, ICT-06 Silver Bullet Long, and ICT-07 Judas Swing Long.
 - Silver Bullet and Judas Swing are only eligible inside explicitly configured session windows. General analysis remains 24 hours with no global kill-zone filter.
-- SMT bullish swing-low divergence evidence is implemented when the caller supplies synchronized reference candles. The queued analysis job does not yet fetch a reference symbol.
+- SMT bullish swing-low divergence evidence is implemented when the caller supplies synchronized reference candles. The queued analysis job can fetch an optional setup-timeframe reference symbol via `ICT_SMT_REFERENCE_SYMBOL`; reference failures do not block core ICT analysis.
 - OHLCV historical replay service is available with clearly labeled Market/Limit fill assumptions, stop-first same-bar resolution, split target exits, fees/slippage, and basic performance metrics.
 - Latest relevant GitHub Actions validation passed PHP syntax checks and 61 tests / 194 assertions on commit `a7881b971378adfc756c6d50d55aa50edce51e1d` (includes the seven scenario families, SMT alignment checks, session windows, and true-range ATR displacement).
 - Remaining gaps: reference-symbol acquisition, historical data ingestion and persisted backtest reports, full event lifecycle for every model, out-of-sample partitions, parameter calibration, and paper trading.
