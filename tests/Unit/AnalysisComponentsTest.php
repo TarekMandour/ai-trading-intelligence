@@ -382,7 +382,7 @@ class AnalysisComponentsTest extends TestCase
         $candles[31]['low'] = 101.8;
         $candles[31]['close'] = 103.8;
 
-        $sequence = (new \App\\Services\\Analysis\\IctBullishSequenceAnalyzer)->detect($candles);
+        $sequence = (new \App\Services\Analysis\IctBullishSequenceAnalyzer)->detect($candles);
 
         $this->assertSame('CONFIRMED', $sequence['status']);
         $this->assertSame(30, $sequence['sweep']['index']);
@@ -399,7 +399,7 @@ class AnalysisComponentsTest extends TestCase
             ['close_time' => 3500, 'low' => 101.0, 'high' => 104.0, 'close' => 102.0],
         ];
 
-        $result = (new \App\\Services\\Analysis\\IctZoneLifecycleAnalyzer)->bullishFvg($zone, $candles);
+        $result = (new \App\Services\Analysis\IctZoneLifecycleAnalyzer)->bullishFvg($zone, $candles);
 
         $this->assertSame('INVALIDATED', $result['status']);
         $this->assertSame(99.5, $result['invalidation_close']);
@@ -408,7 +408,7 @@ class AnalysisComponentsTest extends TestCase
 
     public function test_ict_entry_planner_rejects_invalid_zones_without_non_finite_values(): void
     {
-        $plan = (new \App\\Services\\Analysis\\IctEntryPlanner)->plan(
+        $plan = (new \App\Services\Analysis\IctEntryPlanner)->plan(
             100.0,
             ['low' => 101.0, 'high' => 99.0],
             true,
