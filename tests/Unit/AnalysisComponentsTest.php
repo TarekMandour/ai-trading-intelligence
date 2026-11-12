@@ -282,6 +282,27 @@ class AnalysisComponentsTest extends TestCase
         $this->assertContains('ICT_DATA_INCOMPLETE_entry', $result['reasons']);
     }
 
+    public function test_ict_engine_attaches_entry_plans_to_confirmed_candidates(): void
+    {
+        $engine = new IctComprehensiveEngine;
+        $scenario = new \\ReflectionMethod($engine, 'scenario');
+        $result = $scenario->invoke(
+            $engine,
+            'ICT_TEST_ENTRY_PLAN',
+            'Scalping',
+            true,
+            [],
+            100.1,
+            98.0,
+            ['low' => 99.0, 'high' => 101.0, 'ce' => 100.0],
+        );
+
+        $this->assertSame('ENTERABLE', $result['status']);
+        $this->assertSame('PLANNED', $result['candidate']['entry_plans']['market']['status']);
+        $this->assertSame('PLANNED', $result['candidate']['entry_plans']['limit']['status']);
+        $this->assertFalse($result['candidate']['entry_plans']['order_submission_enabled']);
+    }
+
     public function test_ict_entry_planner_exposes_market_and_limit_without_submitting_orders(): void
     {
         $plan = (new \App\Services\Analysis\IctEntryPlanner)->plan(
