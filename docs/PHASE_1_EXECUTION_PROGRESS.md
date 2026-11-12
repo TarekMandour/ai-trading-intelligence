@@ -60,3 +60,15 @@ Deliver the local, manual Laravel 13 analysis workflow for Binance Spot USDT lon
 - Reports display the AI review as advisory, including cautions and missing confirmations, separately from deterministic decision and levels.
 - Added tests for strict contract validation, malformed/failed provider responses, AI caution isolation and provider-failure fallback.
 - Automated tests use fakes. The complete test suite, migration and real OpenAI smoke test remain to be run in the user's Laragon environment.
+
+
+## ICT Comprehensive implementation progress (feature/ict-comprehensive)
+
+- Created a child feature branch from the latest Phase 1 baseline commit; no direct changes to main or phase-1-local-mvp.
+- Added IctComprehensiveEngine with strict candle-series quality checks, completed-candle constraints, swing pivots, liquidity sweep, displacement, MSS, FVG, OB, dealing-range context, and three core long-only scenario evaluators.
+- Added IctAdvancedEvidenceAnalyzer for equal-level candidates, OTE range, rejection-block candidates, breaker-block retest candidates, configurable session windows, and explicit SMT-unavailable status when no synchronized reference series is supplied.
+- Added IctEntryPlanner for research-only Market and Limit plans, max market distance, expiry metadata, and touch-is-not-fill policy. Order submission is disabled.
+- Integrated ICT scenario evaluation and ICT evidence snapshots into ProcessAnalysisRun; legacy scenario selection and legacy alignment hard gates are no longer used for final ICT selection.
+- Added ICT report rendering and unit coverage for incomplete/forming data, three core scenarios, entry plan behavior, and optional session/SMT configuration.
+- Important limitations: current pattern confirmation is heuristic and not a complete chronological event-state engine; FVG fill/mitigation history and robust OB lifecycle are not yet implemented; Silver Bullet/Judas windows require explicit configuration; SMT needs reference asset rules; no backtest is included.
+- Tests, PHP lint, migrations, and static analysis have not been executed in this environment. Run them after implementation review in the local PHP 8.3/Laravel 13 environment.
