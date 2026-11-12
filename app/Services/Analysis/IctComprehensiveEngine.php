@@ -35,7 +35,7 @@ class IctComprehensiveEngine
         $obLifecycleCandles = array_merge(array_values(array_filter($setup, fn (array $c): bool => (int) ($c['close_time'] ?? 0) > $obCreatedAt)), $entry);
         usort($obLifecycleCandles, fn (array $a, array $b): int => (int) $a['close_time'] <=> (int) $b['close_time']);
         $setupEvidence['ob_lifecycle'] = $setupEvidence['ob'] === null ? null : $lifecycle->bullishOrderBlock($setupEvidence['ob'], $obLifecycleCandles);
-        $advancedEvidence = (new IctAdvancedEvidenceAnalyzer)->analyze($setup);
+        $advancedEvidence = (new IctAdvancedEvidenceAnalyzer)->analyze($setup, $candlesByRole['reference'] ?? []);
         if (is_array($advancedEvidence['ote'] ?? null)) {
             $advancedEvidence['ote']['entry_in_zone'] = $entry[array_key_last($entry)]['close'] >= $advancedEvidence['ote']['low']
                 && $entry[array_key_last($entry)]['close'] <= $advancedEvidence['ote']['high'];
