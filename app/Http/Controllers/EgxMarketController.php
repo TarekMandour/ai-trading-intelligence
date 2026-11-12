@@ -5,12 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\EgxStock;
 use App\Models\EgxWatchlist;
 use App\Models\MarketSetting;
+use App\Services\Analysis\IctComprehensiveEngine;
 use App\Services\MarketData\EgxCandleSyncService;
 use App\Services\MarketData\EgxStockCatalog;
 use App\Services\MarketData\ThndrApiClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class EgxMarketController extends Controller
 {
@@ -40,25 +40,68 @@ class EgxMarketController extends Controller
         return response()->json(EgxWatchlist::with('stocks')->orderBy('name')->get());
     }
 
-    public function scan(Request $request, ThndrApiClient $api, EgxCandleSyncService $sync): JsonResponse
+    public function createWatchlist(Request $request): JsonResponse
+    {
+        $data = $request->validate(['name' => ['required','string','max:120'], 'asset_ids' => ['sometimes','array'], 'asset_ids.*' => ['string','exists:egx_stocks,asset_id']]);
+        $watchlist = EgxWatchlist::create(['name' => $data['name']]);
+        $this->syncWatchlistStocks($watchlist, $data['asset_ids'] ?? []);
+        return response()->json($watchlist->load('stocks'), 201);
+    }
+
+    public function updateWatchlist(Request $request, EgxWatchlist $watchlist): JsonResponse
+    {
+        $data = $request->validate(['name' => ['sometimes','string','max:120'], 'asset_ids' => ['sometimes','array'], 'asset_ids.*' => ['string','exists:egx_stocks,asset_id']]);
+        if (isset($data['name'])) $watchlist->update(['name' => $data['name']]);
+        if (array_key_exists('asset_ids', $data)) $this->syncWatchlistStocks($watchlist, $data['asset_ids']);
+        return response()->json($watchlist->load('stocks'));
+    }
+
+    private function syncWatchlistStocks(EgxWatchlist $watchlist, array $assetIds): void
+    {
+        $stocks = EgxStock::whereIn('asset_id', array_values(array_unique($assetIds)))->get()->keyBy('asset_id');
+        $pivot = [];
+        foreach (array_values(array_unique($assetIds)) as $position => $assetId) if (isset($stocks[$assetId])) $pivot[$stocks[$assetId]->id] = ['position' => $position];
+        $watchlist->stocks()->sync($pivot);
+    }
+
+    public function scan(Request $request, ThndrApiClient $api, EgxCandleSyncService $sync, IctComprehensiveEngine $ict): JsonResponse
     {
         $data = $request->validate([
             'watchlist_id' => ['required','integer','exists:egx_watchlists,id'],
-            'timeframes' => ['sometimes','array','min:1','max:7'],
-            'timeframes.*' => ['string','in:1m,5m,15m,1h,4h,1d,1w'],
+            'profiles' => ['sometimes','array','min:1','max:3'],
+            'profiles.*' => ['string','in:Scalping,Intraday,Swing'],
         ]);
         $watchlist = EgxWatchlist::with('stocks')->findOrFail($data['watchlist_id']);
         abort_if($watchlist->stocks->isEmpty(), 422, 'WATCHLIST_EMPTY');
-        $timeframes = $data['timeframes'] ?? ['1m','5m','15m','1h','4h','1d','1w'];
+        $profiles = $data['profiles'] ?? ['Scalping','Intraday','Swing'];
+        $profileFrames = [
+            'Scalping' => ['context'=>'1h','structure'=>'15m','setup'=>'5m','entry'=>'1m'],
+            'Intraday' => ['context'=>'1d','structure'=>'1h','setup'=>'15m','entry'=>'5m'],
+            'Swing' => ['context'=>'1w','structure'=>'1d','setup'=>'4h','entry'=>'1h'],
+        ];
         $results = [];
         foreach ($watchlist->stocks as $stock) {
-            $stockResult = ['asset_id' => $stock->asset_id, 'symbol' => $stock->symbol, 'sync' => [], 'candles' => []];
-            foreach ($timeframes as $timeframe) {
-                $stockResult['sync'][] = $sync->sync($stock->asset_id, $timeframe, $api);
-                $stockResult['candles'][$timeframe] = $sync->candles($stock->asset_id, $timeframe);
+            $stockResult = ['asset_id'=>$stock->asset_id,'symbol'=>$stock->symbol,'profiles'=>[]];
+            foreach ($profiles as $profile) {
+                $series = []; $syncReport = []; $rejected = null;
+                foreach ($profileFrames[$profile] as $role => $timeframe) {
+                    try {
+                        $syncReport[$timeframe] = $sync->sync($stock->asset_id, $timeframe, $api);
+                        $candles = $sync->candles($stock->asset_id, $timeframe, 500);
+                        if (count($candles) < 30) throw new \RuntimeException('INSUFFICIENT_CANDLE_HISTORY:'.$timeframe);
+                        $series[$role] = array_map(fn (array $c) => [
+                            'open_time'=>(int)$c['open_time'],'close_time'=>(int)$c['close_time'],
+                            'open'=>(float)$c['open'],'high'=>(float)$c['high'],'low'=>(float)$c['low'],
+                            'close'=>(float)$c['close'],'volume'=>(float)$c['volume'],
+                        ], $candles);
+                    } catch (\Throwable $e) { $rejected = $e->getMessage(); break; }
+                }
+                $stockResult['profiles'][$profile] = $rejected
+                    ? ['status'=>'REJECTED','reasons'=>[$rejected],'sync'=>$syncReport]
+                    : $ict->evaluate($series, $profile) + ['sync'=>$syncReport];
             }
             $results[] = $stockResult;
         }
-        return response()->json(['watchlist_id' => $watchlist->id, 'watchlist' => $watchlist->name, 'stocks' => $results]);
+        return response()->json(['watchlist_id'=>$watchlist->id,'watchlist'=>$watchlist->name,'market'=>'EGX','source'=>'thndr','stocks'=>$results]);
     }
 }
