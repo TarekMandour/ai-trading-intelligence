@@ -357,4 +357,53 @@ class AnalysisComponentsTest extends TestCase
         $this->assertSame(98.0, $result['deepest_price']);
     }
 
+    public function test_ict_bullish_sequence_requires_ordered_sweep_displacement_mss_and_fvg(): void
+    {
+        $candles = [];
+        $now = now()->getTimestampMs();
+        for ($i = 0; $i < 40; $i++) {
+            $candles[] = [
+                'open_time' => $now - ((40 - $i) * 60000),
+                'close_time' => $now - ((40 - $i) * 60000) + 59999,
+                'open' => 99.9,
+                'high' => 100.5,
+                'low' => 99.5,
+                'close' => 100.0,
+                'volume' => 100.0,
+            ];
+        }
+        $candles[20]['low'] = 97.5;
+        $candles[25]['high'] = 102.0;
+        $candles[29]['high'] = 101.5;
+        $candles[30]['low'] = 97.0;
+        $candles[30]['close'] = 99.5;
+        $candles[31]['open'] = 102.2;
+        $candles[31]['high'] = 104.0;
+        $candles[31]['low'] = 101.8;
+        $candles[31]['close'] = 103.8;
+
+        $sequence = (new \\App\\Services\\Analysis\\IctBullishSequenceAnalyzer)->detect($candles);
+
+        $this->assertSame('CONFIRMED', $sequence['status']);
+        $this->assertSame(30, $sequence['sweep']['index']);
+        $this->assertSame(31, $sequence['displacement']['index']);
+        $this->assertSame(31, $sequence['mss']['index']);
+        $this->assertSame([29, 30, 31], $sequence['fvg']['source_indices']);
+    }
+
+    public function test_ict_fvg_invalidation_is_terminal_after_later_retests(): void
+    {
+        $zone = ['low' => 100.0, 'high' => 102.0, 'created_at' => 2000];
+        $candles = [
+            ['close_time' => 2500, 'low' => 99.0, 'high' => 103.0, 'close' => 99.5],
+            ['close_time' => 3500, 'low' => 101.0, 'high' => 104.0, 'close' => 102.0],
+        ];
+
+        $result = (new \\App\\Services\\Analysis\\IctZoneLifecycleAnalyzer)->bullishFvg($zone, $candles);
+
+        $this->assertSame('INVALIDATED', $result['status']);
+        $this->assertSame(99.5, $result['invalidation_close']);
+        $this->assertSame(1, $result['touch_count']);
+    }
+
 }
