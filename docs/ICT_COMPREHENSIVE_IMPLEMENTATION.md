@@ -33,7 +33,7 @@ The first implementation uses deterministic pivot, liquidity, displacement, MSS,
 - Optional confluence evidence now includes equal-level candidates, bullish OTE range, rejection-block candidates, breaker-block retest candidates, and session-window availability. These are evidence only and do not independently authorize trades.
 - Silver Bullet/Judas session windows remain inactive until explicit windows and a timezone are configured. SMT remains unavailable until a synchronized reference asset and approved comparison rule are supplied.
 - Equal-level clustering, breaker/rejection, and OTE heuristics require review and calibration; they are not yet validated strategy gates.
-- Multi-candle displacement, complete zone touch/mitigation lifecycle, FVG partial/full fill lifecycle, and robust chronological event replay remain outstanding.
+- Basic post-creation FVG partial/full fill and OB mitigation/invalidation are replayed across subsequent setup and entry candles. A full chronological event-state machine, multi-candle displacement, and replay fixtures remain outstanding.
 - Market/Limit are represented as research entry plans with Ask-side execution reference, zone-distance guard, expiry, and explicit touch-is-not-fill semantics; no order placement is implemented or authorized.
 - Historical fill accuracy cannot be inferred from OHLCV alone.
 - No historical backtest or profitability validation has been performed.
