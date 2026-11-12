@@ -36,6 +36,10 @@ class IctComprehensiveEngine
         usort($obLifecycleCandles, fn (array $a, array $b): int => (int) $a['close_time'] <=> (int) $b['close_time']);
         $setupEvidence['ob_lifecycle'] = $setupEvidence['ob'] === null ? null : $lifecycle->bullishOrderBlock($setupEvidence['ob'], $obLifecycleCandles);
         $advancedEvidence = (new IctAdvancedEvidenceAnalyzer)->analyze($setup);
+        if (is_array($advancedEvidence['ote'] ?? null)) {
+            $advancedEvidence['ote']['entry_in_zone'] = $entry[array_key_last($entry)]['close'] >= $advancedEvidence['ote']['low']
+                && $entry[array_key_last($entry)]['close'] <= $advancedEvidence['ote']['high'];
+        }
         $entryEvidence = [
             'bullish_trigger' => $this->bullishTrigger($entry),
             'last_close' => (float) $entry[array_key_last($entry)]['close'],
@@ -46,6 +50,8 @@ class IctComprehensiveEngine
             $this->sweepReversal($profile, $contextEvidence, $setupEvidence, $entryEvidence),
             $this->fvgContinuation($profile, $contextEvidence, $setupEvidence, $entryEvidence),
             $this->orderBlockReaction($profile, $contextEvidence, $setupEvidence, $entryEvidence),
+            $this->breakerBlockReaction($profile, $contextEvidence, $advancedEvidence, $entryEvidence),
+            $this->rejectionBlockReaction($profile, $contextEvidence, $setupEvidence, $advancedEvidence, $entryEvidence),
         ];
 
         return [
@@ -138,6 +144,50 @@ class IctComprehensiveEngine
         if (! $touched) $reasons[] = 'ICT03_NO_RETEST';
         if (! $trigger) $reasons[] = 'ICT03_NO_BULLISH_REACTION';
         return $this->scenario('ICT_03_BULLISH_ORDER_BLOCK_REACTION', $profile, $contextOk && $ob !== null && $touched && $trigger, $reasons, $entry['last_close'], $ob['low'] ?? null, $ob);
+    }
+
+    private function breakerBlockReaction(string $profile, array $context, array $advanced, array $entry): array
+    {
+        $contextOk = $context['bias'] === 'BULLISH' && $context['structure_bias'] !== 'BEARISH';
+        $breaker = $advanced['breaker_block'] ?? null;
+        $trigger = $entry['bullish_trigger'];
+        $reasons = [];
+        if (! $contextOk) $reasons[] = 'ICT04_NO_BULLISH_CONTEXT';
+        if ($breaker === null) $reasons[] = 'ICT04_NO_CONFIRMED_BREAKER_RETEST';
+        if (! $trigger) $reasons[] = 'ICT04_NO_BULLISH_ENTRY_TRIGGER';
+
+        return $this->scenario(
+            'ICT_04_BULLISH_BREAKER_BLOCK_REACTION',
+            $profile,
+            $contextOk && $breaker !== null && $trigger,
+            $reasons,
+            $entry['last_close'],
+            $breaker['low'] ?? null,
+            $breaker,
+        );
+    }
+
+    private function rejectionBlockReaction(string $profile, array $context, array $setup, array $advanced, array $entry): array
+    {
+        $contextOk = $context['bias'] === 'BULLISH' && $context['structure_bias'] !== 'BEARISH';
+        $rejection = $advanced['rejection_block'] ?? null;
+        $structureConfirmed = ($setup['displacement']['bullish'] ?? false) && ($setup['mss']['confirmed'] ?? false);
+        $trigger = $entry['bullish_trigger'];
+        $reasons = [];
+        if (! $contextOk) $reasons[] = 'ICT05_NO_BULLISH_CONTEXT';
+        if ($rejection === null) $reasons[] = 'ICT05_NO_REJECTION_BLOCK_CANDIDATE';
+        if (! $structureConfirmed) $reasons[] = 'ICT05_NO_DISPLACEMENT_MSS_CONFIRMATION';
+        if (! $trigger) $reasons[] = 'ICT05_NO_BULLISH_ENTRY_TRIGGER';
+
+        return $this->scenario(
+            'ICT_05_BULLISH_REJECTION_BLOCK_REACTION',
+            $profile,
+            $contextOk && $rejection !== null && $structureConfirmed && $trigger,
+            $reasons,
+            $entry['last_close'],
+            $rejection['low'] ?? null,
+            $rejection,
+        );
     }
 
     private function scenario(string $key, string $profile, bool $confirmed, array $reasons, float $entry, ?float $stop, ?array $zone): array
