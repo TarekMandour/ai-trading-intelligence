@@ -62,6 +62,7 @@ class ProcessAnalysisRun implements ShouldQueue
         foreach ($universe['symbols'] as $symbolData) {
             $symbol = $symbolData['symbol'];
             $candlesByInterval = [];
+            $referenceCandlesByInterval = [];
             foreach (config('analysis.profiles') as $profile => $timeframes) {
                 $existingReport = $run->reports()->where('profile', $profile)->where('symbol', $symbol)->first(['id', 'ai_review']);
                 if ($existingReport !== null) {
@@ -95,6 +96,22 @@ class ProcessAnalysisRun implements ShouldQueue
                     }
                 } catch (\Throwable $exception) {
                     $profileWarnings[] = 'CANDLE_DATA_UNAVAILABLE:'.$exception->getMessage();
+                }
+
+                $referenceSymbol = strtoupper(trim((string) config('ict.smt_reference_symbol', '')));
+                if ($referenceSymbol !== '' && $referenceSymbol !== strtoupper($symbol) && isset($timeframes['setup'])) {
+                    $referenceInterval = $timeframes['setup'];
+                    if (! array_key_exists($referenceInterval, $referenceCandlesByInterval)) {
+                        try {
+                            $referenceCandlesByInterval[$referenceInterval] = $binance->candles($referenceSymbol, $referenceInterval);
+                        } catch (\Throwable $exception) {
+                            $referenceCandlesByInterval[$referenceInterval] = null;
+                            $warnings[] = $symbol.':'.$profile.':SMT_REFERENCE_UNAVAILABLE:'.class_basename($exception);
+                        }
+                    }
+                    if (is_array($referenceCandlesByInterval[$referenceInterval])) {
+                        $candlesByRole['reference'] = $referenceCandlesByInterval[$referenceInterval];
+                    }
                 }
 
                 $ictResult = config('ict.enabled', true) ? $ict->evaluate($candlesByRole, $profile) : ['scenarios' => [], 'decision' => 'NO_OPPORTUNITY', 'reasons' => ['ICT_STRATEGY_DISABLED']];
