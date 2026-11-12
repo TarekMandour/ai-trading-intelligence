@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-11-09
+Last updated: 2026-11-12
 
 ## Current phase
 **Phase 1 — Local Manual-Analysis MVP.** The user has authorized implementation of a local research prototype on the dedicated branch. No server deployment or commercial SaaS release is authorized.
@@ -82,3 +82,14 @@ Research sources and limitations are documented in docs/16-research-evidence-and
 
 ## Current status
 Initial vertical slice implemented: a Laravel dashboard creates an idempotency-keyed queued analysis run, the database worker persists independent Scalping, Intraday, and Swing reports, and Binance public REST failure produces auditable `NO_OPPORTUNITY` reports rather than invented plans. The first slice includes a bounded Binance exchange/ticker client and a NOT_CONFIGURED AI fallback state. Regime calculations, candle normalization, scenario/risk geometry, OpenAI adapter/schema validation, and detailed opportunity persistence remain incomplete. Do not mark the local MVP complete until the Definition of First Local Test is met and the user can run it on their machine.
+
+
+## ICT Comprehensive implementation branch update (2026-11-12)
+
+- Created feature branch: feature/ict-comprehensive, based on phase-1-local-mvp commit 176504ec2f7bc501ef89688622b93f3ac320c890.
+- Added an initial deterministic ICT engine and dedicated ICT configuration.
+- Integrated the ICT engine into the queued analysis workflow and stored the ICT result in the opportunity evidence snapshot.
+- Added an ICT section to the report view.
+- Three core scenario evaluators are present: SSL Sweep Reversal, Bullish FVG Continuation, and Bullish Order Block Reaction.
+- This is not yet a complete ICT Comprehensive delivery: advanced models, detailed event lifecycle, Market/Limit plan lifecycle, complete evidence normalization, and robust historical replay remain outstanding.
+- Tests have been added but have not been executed in this environment. Do not mark implementation or validation complete until code review and local test execution.
