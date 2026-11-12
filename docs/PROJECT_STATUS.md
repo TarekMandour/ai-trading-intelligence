@@ -107,3 +107,14 @@ Initial vertical slice implemented: a Laravel dashboard creates an idempotency-k
 - The implementation is not yet complete or validated: ICT-01 has an ordered event chain, basic FVG/OB post-creation lifecycle, and liquidity-aware targets. Other models still use heuristics; full event-state replay, advanced model gates, and historical replay/backtesting remain outstanding.
 - Added a PHP 8.3 GitHub Actions workflow. An initial run detected a PHP syntax error in newly added test class references; the references have been corrected and a rerun is pending.
 - Tests were added but not executed here. No test pass or profitability claim is recorded.
+
+
+## ICT Comprehensive implementation validation update (2026-11-12)
+
+- Current implementation branch: `feature/ict-comprehensive`; Pull Request #3 remains draft and is not merged.
+- Five scenario evaluators are implemented: ICT-01 ordered SSL sweep/displacement/MSS/FVG reversal, ICT-02 FVG continuation, ICT-03 Order Block reaction, ICT-04 Breaker Block reaction, and ICT-05 Rejection Block reaction.
+- Added basic FVG/OB lifecycle, OTE confluence evidence, liquidity-aware targets with explicit fallback, Market/Limit research plans, and OHLCV-only historical replay service.
+- GitHub Actions PHP syntax check passed and Laravel suite passed: 58 tests, 186 assertions on commit `4bb1356a498bdbd2220e95e83e5b6da3c9fc500b`.
+- No exchange orders are submitted. Limit fills in replay are modeled OHLCV touches, not confirmed fills.
+- Not complete for production validation: Silver Bullet/Judas pattern recognition needs explicitly configured session definitions; SMT needs reference-asset integration; historical data acquisition, persisted backtest reports, out-of-sample partitioning, parameter calibration, and paper validation remain outstanding.
+- The passing CI result validates code tests and syntax only; it does not establish trading profitability or live exchange behavior.
