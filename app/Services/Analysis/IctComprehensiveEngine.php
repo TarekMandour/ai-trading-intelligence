@@ -26,6 +26,9 @@ class IctComprehensiveEngine
             'dealing_range' => $this->dealingRange($context),
         ];
         $setupEvidence = $this->analyzeSetup($setup);
+        $lifecycle = new IctZoneLifecycleAnalyzer;
+        $setupEvidence['fvg_lifecycle'] = $setupEvidence['fvg'] === null ? null : $lifecycle->bullishFvg($setupEvidence['fvg'], $entry);
+        $setupEvidence['ob_lifecycle'] = $setupEvidence['ob'] === null ? null : $lifecycle->bullishOrderBlock($setupEvidence['ob'], $entry);
         $advancedEvidence = (new IctAdvancedEvidenceAnalyzer)->analyze($setup);
         $entryEvidence = [
             'bullish_trigger' => $this->bullishTrigger($entry),
@@ -70,6 +73,8 @@ class IctComprehensiveEngine
         $displacement = $setup['displacement']['bullish'] ?? false;
         $mss = $setup['mss']['confirmed'] ?? false;
         $fvg = $setup['fvg'];
+        $fvgLifecycle = $setup['fvg_lifecycle'] ?? null;
+        if (($fvgLifecycle['status'] ?? null) === 'INVALIDATED' || ($fvgLifecycle['status'] ?? null) === 'FULLY_FILLED') $fvg = null;
         $contextOk = $context['bias'] === 'BULLISH' && $context['structure_bias'] !== 'BEARISH';
         $trigger = $entry['bullish_trigger'];
         $reasons = [];
@@ -87,7 +92,7 @@ class IctComprehensiveEngine
         $contextOk = $context['bias'] === 'BULLISH';
         $displacement = $setup['displacement']['bullish'] ?? false;
         $fvg = $setup['fvg'];
-        $touched = $fvg !== null && $entry['last_close'] >= $fvg['low'] && $entry['last_close'] <= $fvg['high'];
+        $touched = $fvg !== null && (($fvgLifecycle['touch_count'] ?? 0) > 0 || ($entry['last_close'] >= $fvg['low'] && $entry['last_close'] <= $fvg['high']));
         $trigger = $entry['bullish_trigger'];
         $reasons = [];
         if (! $contextOk) $reasons[] = 'ICT02_NO_BULLISH_CONTEXT';
@@ -102,7 +107,9 @@ class IctComprehensiveEngine
     {
         $contextOk = $context['bias'] === 'BULLISH';
         $ob = $setup['ob'];
-        $touched = $ob !== null && $entry['last_close'] >= $ob['low'] && $entry['last_close'] <= $ob['high'];
+        $obLifecycle = $setup['ob_lifecycle'] ?? null;
+        if (($obLifecycle['status'] ?? null) === 'INVALIDATED') $ob = null;
+        $touched = $ob !== null && (($obLifecycle['touch_count'] ?? 0) > 0 || ($entry['last_close'] >= $ob['low'] && $entry['last_close'] <= $ob['high']));
         $trigger = $entry['bullish_trigger'];
         $reasons = [];
         if (! $contextOk) $reasons[] = 'ICT03_NO_BULLISH_CONTEXT';
@@ -212,7 +219,7 @@ class IctComprehensiveEngine
         if (! $displacement['bullish'] || ! $mss['confirmed']) return null;
         $last = count($candles) - 1;
         for ($i = $last - 1; $i >= max(0, $last - 5); $i--) {
-            if ((float) $candles[$i]['close'] < (float) $candles[$i]['open']) return ['low' => (float) $candles[$i]['low'], 'high' => (float) $candles[$i]['open'], 'source_index' => $i, 'status' => 'ACTIVE'];
+            if ((float) $candles[$i]['close'] < (float) $candles[$i]['open']) return ['low' => (float) $candles[$i]['low'], 'high' => (float) $candles[$i]['open'], 'source_index' => $i, 'created_at' => $candles[$last]['close_time'] ?? null, 'status' => 'ACTIVE'];
         }
         return null;
     }
