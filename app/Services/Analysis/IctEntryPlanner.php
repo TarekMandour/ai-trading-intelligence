@@ -16,12 +16,20 @@ class IctEntryPlanner
         $maxDistanceBps = max(0.0, (float) config('ict.max_market_distance_bps', 35));
         $expiryMinutes = max(1, (int) config('ict.entry_expiry_minutes', 30));
         $validUntil = CarbonImmutable::now()->addMinutes($expiryMinutes)->toIso8601String();
-        $marketDistance = $zone === null ? 0.0 : abs($referencePrice - (($zone['low'] + $zone['high']) / 2)) / $referencePrice * 10000;
-        $marketAllowed = $triggerConfirmed && $marketDistance <= $maxDistanceBps;
+        $zoneValid = $zone !== null
+            && isset($zone['low'], $zone['high'])
+            && is_numeric($zone['low'])
+            && is_numeric($zone['high'])
+            && (float) $zone['low'] > 0
+            && (float) $zone['high'] > (float) $zone['low'];
+        $zoneMid = $zoneValid ? (((float) $zone['low'] + (float) $zone['high']) / 2) : null;
+        $marketDistance = $zoneMid === null ? INF : abs($referencePrice - $zoneMid) / $referencePrice * 10000;
+        $marketAllowed = $triggerConfirmed && $zoneValid && $marketDistance <= $maxDistanceBps;
 
         $market = [
             'entry_type' => 'MARKET',
             'status' => $marketAllowed ? 'PLANNED' : 'WAIT',
+            'reason' => ! $zoneValid ? 'VALID_ENTRY_ZONE_REQUIRED' : (! $triggerConfirmed ? 'ENTRY_TRIGGER_NOT_CONFIRMED' : ($marketDistance > $maxDistanceBps ? 'MARKET_ENTRY_TOO_FAR_FROM_ZONE' : null)),
             'reference_price' => $referencePrice,
             'max_distance_bps' => $maxDistanceBps,
             'distance_from_zone_bps' => $marketDistance,
@@ -31,10 +39,14 @@ class IctEntryPlanner
             'execution_price_source' => 'LIVE_ASK_REQUIRED',
         ];
 
-        $limitPrice = $zone === null ? null : ($zone['ce'] ?? (($zone['low'] + $zone['high']) / 2));
+        $limitPrice = $zoneValid ? (float) ($zone['ce'] ?? $zoneMid) : null;
+        if ($limitPrice !== null && ($limitPrice < (float) $zone['low'] || $limitPrice > (float) $zone['high'])) {
+            $limitPrice = null;
+        }
         $limit = [
             'entry_type' => 'LIMIT',
             'status' => $limitPrice !== null && $limitPrice > 0 ? 'PLANNED' : 'UNAVAILABLE',
+            'reason' => $limitPrice !== null && $limitPrice > 0 ? null : 'VALID_LIMIT_ZONE_REQUIRED',
             'limit_price' => $limitPrice,
             'zone_low' => $zone['low'] ?? null,
             'zone_high' => $zone['high'] ?? null,
