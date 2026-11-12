@@ -92,7 +92,7 @@ Initial vertical slice implemented: a Laravel dashboard creates an idempotency-k
 - Integrated the ICT engine into the queued analysis workflow and stored the ICT result in the opportunity evidence snapshot.
 - Added an ICT section to the report view.
 - Three core scenario evaluators are present: SSL Sweep Reversal, Bullish FVG Continuation, and Bullish Order Block Reaction.
-- This is not yet a complete ICT Comprehensive delivery: advanced models, detailed event lifecycle, Market/Limit plan lifecycle, complete evidence normalization, and robust historical replay remain outstanding.
+- ICT-01 now uses an ordered sweep/displacement/MSS/FVG event chain, and the entry planner guards Market distance while retaining conditional Limit plans. This is not yet a complete ICT Comprehensive delivery: advanced model gates, complete evidence lifecycle, Limit fill tracking, and robust historical replay remain outstanding.
 - Tests have been added but have not been executed in this environment. Do not mark implementation or validation complete until code review and local test execution.
 
 
@@ -104,5 +104,6 @@ Initial vertical slice implemented: a Laravel dashboard creates an idempotency-k
 - Added optional confluence evidence for equal liquidity levels, OTE, rejection-block candidates, breaker-block retests, and configured session windows.
 - SMT intentionally remains unavailable without a synchronized reference asset and approved pairing rule.
 - Market and Limit outputs are plans only. Exchange order submission remains disabled.
-- The implementation is not yet complete or validated: the initial FVG/OB post-creation lifecycle is implemented, but full chronological event-state transitions, advanced model gates, and historical replay/backtesting remain outstanding.
+- The implementation is not yet complete or validated: ICT-01 has an ordered event chain, basic FVG/OB post-creation lifecycle, and liquidity-aware targets. Other models still use heuristics; full event-state replay, advanced model gates, and historical replay/backtesting remain outstanding.
+- Added a PHP 8.3 GitHub Actions workflow. An initial run detected a PHP syntax error in newly added test class references; the references have been corrected and a rerun is pending.
 - Tests were added but not executed here. No test pass or profitability claim is recorded.
