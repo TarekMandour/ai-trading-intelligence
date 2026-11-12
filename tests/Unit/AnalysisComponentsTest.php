@@ -4,9 +4,10 @@ namespace Tests\Unit;
 
 use App\Services\Ai\AiReviewValidator;
 use App\Services\Analysis\ExecutionCostEstimator;
+use App\Services\Analysis\IctComprehensiveEngine;
 use App\Services\Analysis\MultiTimeframeAlignment;
 use App\Services\Analysis\ScenarioEvaluator;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 class AnalysisComponentsTest extends TestCase
 {
