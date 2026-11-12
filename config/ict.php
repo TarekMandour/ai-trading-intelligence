@@ -23,6 +23,6 @@ return [
     'rejection_wick_ratio' => (float) env('ICT_REJECTION_WICK_RATIO', 0.55),
     'rejection_close_location' => (float) env('ICT_REJECTION_CLOSE_LOCATION', 0.70),
     'session_timezone' => env('ICT_SESSION_TIMEZONE', 'UTC'),
-    'session_windows' => [],
+    'session_windows' => json_decode((string) env('ICT_SESSION_WINDOWS', '[]'), true) ?: [],
     'smt_index_tolerance' => (int) env('ICT_SMT_INDEX_TOLERANCE', 3),
 ];
