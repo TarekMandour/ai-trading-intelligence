@@ -352,6 +352,61 @@ class AnalysisRunWorkflowTest extends TestCase
         $this->assertSame('COMPLETED', $run->fresh()->status);
     }
 
+
+    public function test_optional_smt_reference_candles_do_not_fail_required_profile_completeness(): void
+    {
+        config([
+            'analysis.profiles' => ['Test' => [
+                'context' => '1h',
+                'structure' => '15m',
+                'setup' => '5m',
+                'entry' => '1m',
+            ]],
+            'ict.smt_reference_symbol' => 'ETHUSDT',
+            'analysis.ai_max_candidates_per_run' => 0,
+        ]);
+
+        $run = AnalysisRun::create([
+            'idempotency_key' => (string) Str::uuid(),
+            'status' => 'QUEUED',
+            'configuration_version' => 'test',
+            'ai_status' => 'NOT_CONFIGURED',
+            'audit' => ['universe_symbols' => [['symbol' => 'BTCUSDT']]],
+        ]);
+        $candles = array_fill(0, 20, [
+            'open' => 100.0, 'high' => 101.0, 'low' => 99.0, 'close' => 100.5, 'volume' => 100.0,
+        ]);
+
+        $binance = $this->mock(BinanceSpotClient::class);
+        $binance->shouldReceive('candles')->times(5)->andReturn($candles);
+        $regime = $this->mock(DeterministicAnalysisEngine::class);
+        $regime->shouldReceive('evaluate')->times(4)->andReturn([
+            'direction' => 'UNCERTAIN', 'behavior' => 'UNCERTAIN', 'volatility' => 'NORMAL', 'reasons' => [],
+        ]);
+        $ict = $this->mock(IctComprehensiveEngine::class);
+        $ict->shouldReceive('evaluate')->once()->withArgs(function (array $roles, string $profile): bool {
+            return $profile === 'Test' && isset($roles['reference']) && count($roles['reference']) === 20;
+        })->andReturn([
+            'context' => ['bias' => 'UNCERTAIN', 'structure_bias' => 'UNCERTAIN'],
+            'decision' => 'NO_OPPORTUNITY',
+            'scenarios' => [],
+            'reasons' => [],
+        ]);
+
+        (new ProcessAnalysisRun($run->id))->handle(
+            $binance,
+            $regime,
+            app(ExecutionCostEstimator::class),
+            $ict,
+            $this->mock(AiAnalysisProvider::class),
+            app(AiReviewValidator::class),
+        );
+
+        $report = $run->fresh()->reports()->where('profile', 'Test')->where('symbol', 'BTCUSDT')->firstOrFail();
+        $this->assertSame('NO_OPPORTUNITY', $report->status);
+        $this->assertSame('COMPLETED', $run->fresh()->status);
+    }
+
     private function mockIctEngine(): IctComprehensiveEngine
     {
         $ict = $this->mock(IctComprehensiveEngine::class);
