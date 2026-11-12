@@ -16,4 +16,11 @@ return [
     'entry_methods' => ['MARKET', 'LIMIT'],
     'max_market_distance_bps' => (float) env('ICT_MAX_MARKET_DISTANCE_BPS', 35),
     'entry_expiry_minutes' => (int) env('ICT_ENTRY_EXPIRY_MINUTES', 30),
+    'equal_level_tolerance_bps' => (float) env('ICT_EQUAL_LEVEL_TOLERANCE_BPS', 8),
+    'ote_shallow' => (float) env('ICT_OTE_SHALLOW', 0.62),
+    'ote_deep' => (float) env('ICT_OTE_DEEP', 0.79),
+    'rejection_wick_ratio' => (float) env('ICT_REJECTION_WICK_RATIO', 0.55),
+    'rejection_close_location' => (float) env('ICT_REJECTION_CLOSE_LOCATION', 0.70),
+    'session_timezone' => env('ICT_SESSION_TIMEZONE', 'UTC'),
+    'session_windows' => [],
 ];
