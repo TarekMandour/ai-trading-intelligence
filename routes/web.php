@@ -1,9 +1,18 @@
 <?php
 
 use App\Http\Controllers\AnalysisRunController;
+use App\Http\Controllers\EgxWatchlistController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/analysis-runs');
 Route::resource('analysis-runs', AnalysisRunController::class)->only(['index', 'store', 'show']);
 
-Route::prefix('egx/watchlists')->name('egx.watchlists.')->controller(EgxWatchlistController::class)->group(function (): void {\n    Route::get('/', 'index')->name('index');\n    Route::get('/create', 'create')->name('create');\n    Route::post('/', 'store')->name('store');\n    Route::get('/{watchlist}', 'show')->whereNumber('watchlist')->name('show');\n    Route::get('/{watchlist}/edit', 'edit')->whereNumber('watchlist')->name('edit');\n    Route::put('/{watchlist}', 'update')->whereNumber('watchlist')->name('update');\n    Route::delete('/{watchlist}', 'destroy')->whereNumber('watchlist')->name('destroy');\n});\n
+Route::prefix('egx/watchlists')->name('egx.watchlists.')->controller(EgxWatchlistController::class)->group(function (): void {
+    Route::get('/', 'index')->name('index');
+    Route::get('/create', 'create')->name('create');
+    Route::post('/', 'store')->name('store');
+    Route::get('/{watchlist}', 'show')->whereNumber('watchlist')->name('show');
+    Route::get('/{watchlist}/edit', 'edit')->whereNumber('watchlist')->name('edit');
+    Route::put('/{watchlist}', 'update')->whereNumber('watchlist')->name('update');
+    Route::delete('/{watchlist}', 'destroy')->whereNumber('watchlist')->name('destroy');
+});
