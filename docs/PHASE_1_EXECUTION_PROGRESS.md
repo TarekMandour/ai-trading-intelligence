@@ -66,9 +66,12 @@ Deliver the local, manual Laravel 13 analysis workflow for Binance Spot USDT lon
 
 - Created a child feature branch from the latest Phase 1 baseline commit; no direct changes to main or phase-1-local-mvp.
 - Added IctComprehensiveEngine with strict candle-series quality checks, completed-candle constraints, swing pivots, liquidity sweep, displacement, MSS, FVG, OB, dealing-range context, and three core long-only scenario evaluators.
+- Added IctBullishSequenceAnalyzer so ICT-01 requires ordered confirmed SSL sweep/reclaim -> later bullish displacement and close-based MSS -> bullish FVG formation.
 - Added IctAdvancedEvidenceAnalyzer for equal-level candidates, OTE range, rejection-block candidates, breaker-block retest candidates, configurable session windows, and explicit SMT-unavailable status when no synchronized reference series is supplied.
-- Added IctEntryPlanner for research-only Market and Limit plans, max market distance, expiry metadata, and touch-is-not-fill policy. Order submission is disabled.
+- Added IctEntryPlanner for research-only Market and Limit plans, valid-zone checks, max market distance, expiry metadata, and touch-is-not-fill policy. Market entry is blocked outside the zone-distance threshold while the conditional Limit plan is retained. Order submission is disabled.
+- Added liquidity-aware targets: nearest opposing confirmed swing highs are preferred; R-multiple fallback is identified explicitly.
+- Added a PHP 8.3 GitHub Actions test workflow; no run result has been confirmed yet.
 - Integrated ICT scenario evaluation and ICT evidence snapshots into ProcessAnalysisRun; legacy scenario selection and legacy alignment hard gates are no longer used for final ICT selection.
 - Added ICT report rendering and unit coverage for incomplete/forming data, three core scenarios, entry plan behavior, and optional session/SMT configuration.
-- Important limitations: current pattern confirmation is heuristic and not a complete chronological event-state engine; basic post-creation FVG/OB mitigation and invalidation replay is implemented, but lifecycle transitions remain incomplete; Silver Bullet/Judas windows require explicit configuration; SMT needs reference asset rules; no backtest is included.
+- Important limitations: ICT-01 now has an ordered event chain; other models still use separate heuristics and the full chronological event-state engine remains incomplete; basic post-creation FVG/OB mitigation and invalidation replay is implemented; Silver Bullet/Judas windows require explicit configuration; SMT needs reference asset rules; no backtest is included.
 - Tests, PHP lint, migrations, and static analysis have not been executed in this environment. Run them after implementation review in the local PHP 8.3/Laravel 13 environment.
