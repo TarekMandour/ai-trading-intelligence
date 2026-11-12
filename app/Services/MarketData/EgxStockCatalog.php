@@ -26,11 +26,16 @@ class EgxStockCatalog
             if (!is_array($asset)) continue;
             $id = $asset['id'] ?? $asset['asset_id'] ?? $asset['assetId'] ?? null;
             if (!is_string($id) && !is_numeric($id)) continue;
+
+            $symbol = $asset['symbol'] ?? $asset['ticker'] ?? $asset['code'] ?? $asset['short_name'] ?? $asset['shortName'] ?? '';
+            $name = $asset['name'] ?? $asset['english_name'] ?? $asset['company_name'] ?? $asset['display_name'] ?? $asset['englishName'] ?? '';
+            $arabicName = $asset['arabic_name'] ?? $asset['name_ar'] ?? $asset['arabicName'] ?? '';
+
             $stocks[] = [
                 'asset_id' => (string) $id,
-                'symbol' => (string) ($asset['symbol'] ?? $asset['ticker'] ?? $id),
-                'name' => (string) ($asset['name'] ?? $asset['english_name'] ?? ''),
-                'arabic_name' => (string) ($asset['arabic_name'] ?? $asset['name_ar'] ?? ''),
+                'symbol' => is_scalar($symbol) ? trim((string) $symbol) : '',
+                'name' => is_scalar($name) ? trim((string) $name) : '',
+                'arabic_name' => is_scalar($arabicName) ? trim((string) $arabicName) : '',
                 'metadata' => $asset,
             ];
         }
