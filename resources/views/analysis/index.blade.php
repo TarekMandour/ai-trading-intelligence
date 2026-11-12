@@ -135,7 +135,8 @@
             const row=document.createElement('label');row.className='stock-row';
             const check=document.createElement('input');check.type='checkbox';check.checked=selectedIds.has(stock.asset_id);
             check.addEventListener('change',()=>{check.checked?selectedIds.add(stock.asset_id):selectedIds.delete(stock.asset_id);updateWatchlistCount();});
-            const title=document.createElement('span');title.textContent=(stock.symbol||'—')+' — '+(stock.name||stock.arabic_name||'');
+            const symbol=stock.symbol&&!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(stock.symbol)?stock.symbol:'';
+            const title=document.createElement('span');title.textContent=[symbol,stock.name||stock.arabic_name].filter(Boolean).join(' — ')||'Company details unavailable';
             row.append(check,title);host.append(row);
         });
         updateWatchlistCount();
@@ -185,7 +186,8 @@
         const heading=document.createElement('p');heading.innerHTML='<strong>Scan #'+data.run_id+'</strong> · '+(data.watchlist||'Watchlist')+' · '+(data.stocks?.length||0)+' stock(s)';host.append(heading);
         (data.stocks||[]).forEach(stock=>{
             const card=document.createElement('div');card.className='result-card';
-            const title=document.createElement('h4');title.textContent=[stock.name||stock.arabic_name,stock.symbol].filter(Boolean).join(' — ')||'Stock details unavailable';card.append(title);
+            const symbol=stock.symbol&&!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(stock.symbol)?stock.symbol:'';
+            const title=document.createElement('h4');title.textContent=[stock.name||stock.arabic_name,symbol].filter(Boolean).join(' — ')||'Stock details unavailable';card.append(title);
             Object.entries(stock.profiles||{}).forEach(([profile,result])=>{
                 const line=document.createElement('p');const status=result.status||result.decision||'UNKNOWN';line.innerHTML='<span class="pill">'+profile+'</span> <strong>'+status+'</strong>';
                 const reasons=result.reasons||[];if(reasons.length)line.textContent+=' · '+reasons.join(', ');
