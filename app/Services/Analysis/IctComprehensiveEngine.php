@@ -89,8 +89,9 @@ class IctComprehensiveEngine
         if (! $displacement) $reasons[] = 'ICT01_NO_BULLISH_DISPLACEMENT';
         if (! $mss) $reasons[] = 'ICT01_NO_BULLISH_MSS';
         if ($fvg === null) $reasons[] = 'ICT01_NO_VALID_FVG';
+        if (! $fvgTouched) $reasons[] = 'ICT01_NO_FVG_RETRACEMENT';
         if (! $trigger) $reasons[] = 'ICT01_NO_ENTRY_TRIGGER';
-        return $this->scenario('ICT_01_SELL_SIDE_LIQUIDITY_SWEEP_REVERSAL', $profile, $contextOk && $sweep && $displacement && $mss && $fvg !== null && $trigger, $reasons, $entry['last_close'], $setup['liquidity']['sweep_low'] ?? null, $fvg);
+        return $this->scenario('ICT_01_SELL_SIDE_LIQUIDITY_SWEEP_REVERSAL', $profile, $contextOk && $sweep && $displacement && $mss && $fvg !== null && $fvgTouched && $trigger, $reasons, $entry['last_close'], $setup['liquidity']['sweep_low'] ?? null, $fvg);
     }
 
     private function fvgContinuation(string $profile, array $context, array $setup, array $entry): array
