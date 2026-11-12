@@ -505,4 +505,51 @@ class AnalysisComponentsTest extends TestCase
         $this->assertSame('SMT_CLOSE_TIMESTAMPS_NOT_ALIGNED', $evidence['smt']['reason']);
     }
 
+    public function test_ict_session_windows_support_midnight_crossing_without_global_kill_zone_filter(): void
+    {
+        config([
+            'ict.session_timezone' => 'UTC',
+            'ict.session_windows' => ['JUDAS_SWING_NY' => ['start' => '23:00', 'end' => '02:00']],
+        ]);
+        $base = \Carbon\CarbonImmutable::parse('2026-11-12 01:00:00', 'UTC')->getTimestampMs();
+        $candles = [];
+        for ($i = 0; $i < 40; $i++) {
+            $candles[] = [
+                'open_time' => $base - ((40 - $i) * 60000),
+                'close_time' => $base - ((40 - $i - 1) * 60000) - 1,
+                'open' => 100.0,
+                'high' => 101.0,
+                'low' => 99.0,
+                'close' => 100.5,
+                'volume' => 10.0,
+            ];
+        }
+
+        $evidence = (new \App\Services\Analysis\IctAdvancedEvidenceAnalyzer)->analyze($candles);
+
+        $this->assertSame('ACTIVE', $evidence['session_models']['status']);
+        $this->assertContains('JUDAS_SWING_NY', $evidence['session_models']['models']);
+    }
+
+    public function test_ict_smt_returns_insufficient_when_synchronized_series_have_no_confirmed_swings(): void
+    {
+        $candles = [];
+        for ($i = 0; $i < 40; $i++) {
+            $candles[] = [
+                'open_time' => $i * 60000,
+                'close_time' => ($i + 1) * 60000,
+                'open' => 100.0,
+                'high' => 101.0,
+                'low' => 99.0,
+                'close' => 100.5,
+                'volume' => 10.0,
+            ];
+        }
+
+        $evidence = (new \App\Services\Analysis\IctAdvancedEvidenceAnalyzer)->analyze($candles, $candles);
+
+        $this->assertSame('INSUFFICIENT', $evidence['smt']['status']);
+        $this->assertSame('SMT_REQUIRES_TWO_CONFIRMED_SWING_LOWS_PER_SERIES', $evidence['smt']['reason']);
+    }
+
 }
