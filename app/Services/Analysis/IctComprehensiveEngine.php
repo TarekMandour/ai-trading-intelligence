@@ -52,6 +52,8 @@ class IctComprehensiveEngine
             $this->orderBlockReaction($profile, $contextEvidence, $setupEvidence, $entryEvidence),
             $this->breakerBlockReaction($profile, $contextEvidence, $advancedEvidence, $entryEvidence),
             $this->rejectionBlockReaction($profile, $contextEvidence, $setupEvidence, $advancedEvidence, $entryEvidence),
+            $this->silverBullet($profile, $contextEvidence, $setupEvidence, $advancedEvidence, $entryEvidence),
+            $this->judasSwing($profile, $contextEvidence, $setupEvidence, $advancedEvidence, $entryEvidence),
         ];
 
         return [
@@ -188,6 +190,72 @@ class IctComprehensiveEngine
             $rejection['low'] ?? null,
             $rejection,
         );
+    }
+
+    private function silverBullet(string $profile, array $context, array $setup, array $advanced, array $entry): array
+    {
+        $activeWindow = $this->hasActiveSessionModel($advanced, 'SILVER_BULLET');
+        $contextOk = $context['bias'] === 'BULLISH' && $context['structure_bias'] !== 'BEARISH';
+        $fvg = $setup['fvg'];
+        $lifecycle = $setup['fvg_lifecycle'] ?? null;
+        if (in_array($lifecycle['status'] ?? null, ['FULLY_FILLED', 'INVALIDATED'], true)) $fvg = null;
+        $retraced = $fvg !== null && ($lifecycle['touch_count'] ?? 0) > 0;
+        $structure = ($setup['displacement']['bullish'] ?? false) && ($setup['mss']['confirmed'] ?? false);
+        $trigger = $entry['bullish_trigger'];
+        $reasons = [];
+        if (! $activeWindow) $reasons[] = 'ICT06_OUTSIDE_OR_UNCONFIGURED_SILVER_BULLET_WINDOW';
+        if (! $contextOk) $reasons[] = 'ICT06_NO_BULLISH_CONTEXT';
+        if (! $structure) $reasons[] = 'ICT06_NO_DISPLACEMENT_MSS';
+        if (! $retraced) $reasons[] = 'ICT06_NO_VALID_FVG_RETRACEMENT';
+        if (! $trigger) $reasons[] = 'ICT06_NO_BULLISH_ENTRY_TRIGGER';
+
+        return $this->scenario(
+            'ICT_06_SILVER_BULLET_LONG',
+            $profile,
+            $activeWindow && $contextOk && $structure && $retraced && $trigger,
+            $reasons,
+            $entry['last_close'],
+            $fvg['low'] ?? null,
+            $fvg,
+        );
+    }
+
+    private function judasSwing(string $profile, array $context, array $setup, array $advanced, array $entry): array
+    {
+        $activeWindow = $this->hasActiveSessionModel($advanced, 'JUDAS');
+        $contextOk = $context['bias'] === 'BULLISH' && $context['structure_bias'] !== 'BEARISH';
+        $sequence = $setup['sequence'] ?? [];
+        $confirmed = ($sequence['status'] ?? null) === 'CONFIRMED';
+        $fvg = $sequence['fvg'] ?? null;
+        $lifecycle = $setup['fvg_lifecycle'] ?? null;
+        $retraced = $fvg !== null && ($lifecycle['touch_count'] ?? 0) > 0
+            && ! in_array($lifecycle['status'] ?? null, ['FULLY_FILLED', 'INVALIDATED'], true);
+        $trigger = $entry['bullish_trigger'];
+        $reasons = [];
+        if (! $activeWindow) $reasons[] = 'ICT07_OUTSIDE_OR_UNCONFIGURED_JUDAS_WINDOW';
+        if (! $contextOk) $reasons[] = 'ICT07_NO_BULLISH_CONTEXT';
+        if (! $confirmed) $reasons[] = 'ICT07_NO_ORDERED_SWEEP_MSS_FVG_SEQUENCE';
+        if (! $retraced) $reasons[] = 'ICT07_NO_VALID_FVG_RETRACEMENT';
+        if (! $trigger) $reasons[] = 'ICT07_NO_BULLISH_ENTRY_TRIGGER';
+
+        return $this->scenario(
+            'ICT_07_JUDAS_SWING_LONG',
+            $profile,
+            $activeWindow && $contextOk && $confirmed && $retraced && $trigger,
+            $reasons,
+            $entry['last_close'],
+            $fvg['low'] ?? null,
+            $fvg,
+        );
+    }
+
+    private function hasActiveSessionModel(array $advanced, string $prefix): bool
+    {
+        foreach (($advanced['session_models']['models'] ?? []) as $model) {
+            if (str_contains(strtoupper((string) $model), $prefix)) return true;
+        }
+
+        return false;
     }
 
     private function scenario(string $key, string $profile, bool $confirmed, array $reasons, float $entry, ?float $stop, ?array $zone): array
