@@ -24,7 +24,7 @@ class IctBullishSequenceAnalyzer
 
             for ($displacementIndex = $sweepIndex + 1; $displacementIndex < $count - 2; $displacementIndex++) {
                 $displacement = $candles[$displacementIndex];
-                $atr = $this->priorAverageRange($candles, $displacementIndex, 14);
+                $atr = $this->priorAtr($candles, $displacementIndex, 14);
                 $range = (float) $displacement['high'] - (float) $displacement['low'];
                 $body = (float) $displacement['close'] - (float) $displacement['open'];
                 $bodyRatio = $range > 0 ? $body / $range : 0.0;
@@ -81,12 +81,19 @@ class IctBullishSequenceAnalyzer
         return $confirmed === [] ? null : $confirmed[array_key_last($confirmed)];
     }
 
-    private function priorAverageRange(array $candles, int $index, int $period): float
+    private function priorAtr(array $candles, int $index, int $period): float
     {
         if ($index < $period) return 0.0;
         $ranges = [];
         for ($i = $index - $period; $i < $index; $i++) {
-            $ranges[] = max(0.0, (float) $candles[$i]['high'] - (float) $candles[$i]['low']);
+            $high = (float) $candles[$i]['high'];
+            $low = (float) $candles[$i]['low'];
+            $previousClose = $i > 0 ? (float) $candles[$i - 1]['close'] : (float) $candles[$i]['close'];
+            $ranges[] = max(
+                $high - $low,
+                abs($high - $previousClose),
+                abs($low - $previousClose),
+            );
         }
         return array_sum($ranges) / $period;
     }
