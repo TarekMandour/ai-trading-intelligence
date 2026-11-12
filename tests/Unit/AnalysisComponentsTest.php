@@ -282,6 +282,42 @@ class AnalysisComponentsTest extends TestCase
         $this->assertContains('ICT_DATA_INCOMPLETE_entry', $result['reasons']);
     }
 
+    public function test_ict_scenario_is_no_opportunity_when_core_structure_is_missing(): void
+    {
+        $engine = new IctComprehensiveEngine;
+        $method = new \\ReflectionMethod($engine, 'scenario');
+        $result = $method->invoke(
+            $engine,
+            'ICT_TEST_CORE_BLOCKER',
+            'Scalping',
+            false,
+            ['ICT01_BULLISH_CONTEXT_MISSING', 'ICT01_SWEEP_NOT_CONFIRMED', 'ICT01_NO_ENTRY_TRIGGER'],
+            100.0,
+            null,
+            null,
+        );
+
+        $this->assertSame('NO_OPPORTUNITY', $result['status']);
+    }
+
+    public function test_ict_scenario_waits_when_only_entry_confirmation_is_missing(): void
+    {
+        $engine = new IctComprehensiveEngine;
+        $method = new \\ReflectionMethod($engine, 'scenario');
+        $result = $method->invoke(
+            $engine,
+            'ICT_TEST_PENDING_TRIGGER',
+            'Scalping',
+            false,
+            ['ICT02_NO_ENTRY_TRIGGER'],
+            100.0,
+            98.0,
+            ['low' => 99.0, 'high' => 101.0],
+        );
+
+        $this->assertSame('WAIT', $result['status']);
+    }
+
     public function test_ict_engine_attaches_entry_plans_to_confirmed_candidates(): void
     {
         $engine = new IctComprehensiveEngine;
