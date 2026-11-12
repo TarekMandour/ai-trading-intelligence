@@ -18,16 +18,19 @@ class IctZoneLifecycleAnalyzer
             if (in_array($status, ['FULLY_FILLED', 'INVALIDATED'], true)) continue;
 
             $low = (float) $candle['low'];
+            if ((float) $candle['close'] < (float) $zone['low']) {
+                $touches++;
+                $deepestPrice = $deepestPrice === null ? $low : min($deepestPrice, $low);
+                $status = 'INVALIDATED';
+                $invalidationClose = (float) $candle['close'];
+                continue;
+            }
             if ($low <= (float) $zone['high']) {
                 $touches++;
                 $deepestPrice = $deepestPrice === null ? $low : min($deepestPrice, $low);
                 $status = 'PARTIALLY_FILLED';
             }
             if ($low <= (float) $zone['low']) $status = 'FULLY_FILLED';
-            if ((float) $candle['close'] < (float) $zone['low']) {
-                $status = 'INVALIDATED';
-                $invalidationClose = (float) $candle['close'];
-            }
         }
 
         return array_merge($zone, [
