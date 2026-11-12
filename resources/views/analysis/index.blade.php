@@ -21,6 +21,7 @@
 <body>
     <h1>AI Trading Intelligence</h1>
     <p class="muted">EGX scanner powered by Thndr market data and the ICT Comprehensive engine.</p>
+    <p><a href="{{ route('egx.watchlists.index') }}">Manage EGX Watchlists</a></p>
 
     <section class="panel">
         <h2>Thndr Token Capture</h2>
