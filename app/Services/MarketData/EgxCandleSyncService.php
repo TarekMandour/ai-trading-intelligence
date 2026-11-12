@@ -7,15 +7,21 @@ use RuntimeException;
 
 class EgxCandleSyncService
 {
-    /** Download only missing tail data; refresh recent bars to replace provisional values. */
+    /** Incremental sync. Derived frames are built from their native lower timeframe. */
     public function sync(string $assetId, string $timeframe, ThndrApiClient $api): array
     {
+        if (in_array($timeframe, ['15m', '4h'], true)) {
+            $base = $timeframe === '15m' ? '5m' : '1h';
+            $baseResult = $this->sync($assetId, $base, $api);
+            $this->aggregate($assetId, $base, $timeframe);
+            return ['asset_id' => $assetId, 'timeframe' => $timeframe, 'derived_from' => $base, 'fetched' => $baseResult['fetched']];
+        }
+
         $last = DB::table('egx_candles')->where('asset_id', $assetId)->where('timeframe', $timeframe)->max('open_time');
         $start = $last
             ? max(0, (int) ($last / 1000) - $this->refreshSeconds($timeframe))
             : now()->subDays((int) config('thndr.candle_history_days', 365))->timestamp;
-        $end = now()->timestamp;
-        $rows = $api->candles($assetId, $timeframe, $start, $end);
+        $rows = $api->candles($assetId, $timeframe, $start, now()->timestamp);
         $rows = array_values(array_filter($rows, fn (array $row) => $row['close_time'] <= now()->getTimestampMs()));
         foreach (array_chunk($rows, 500) as $chunk) {
             DB::table('egx_candles')->upsert(array_map(fn (array $c) => $c + [
@@ -25,14 +31,37 @@ class EgxCandleSyncService
         return ['asset_id' => $assetId, 'timeframe' => $timeframe, 'fetched' => count($rows), 'last_open_time' => $rows === [] ? $last : end($rows)['open_time']];
     }
 
+    private function aggregate(string $assetId, string $source, string $target): void
+    {
+        $minutes = $target === '15m' ? 15 : 240;
+        $rows = DB::table('egx_candles')->where('asset_id', $assetId)->where('timeframe', $source)->orderBy('open_time')->get();
+        $groups = $rows->groupBy(fn ($c) => (int) (floor(($c->open_time / 1000) / ($minutes * 60)) * ($minutes * 60)));
+        $aggregated = [];
+        foreach ($groups as $bucket => $items) {
+            $items = $items->values();
+            if ($items->count() < ($target === '15m' ? 3 : 2)) continue;
+            $aggregated[] = [
+                'asset_id' => $assetId, 'timeframe' => $target, 'open_time' => (int) $bucket * 1000,
+                'close_time' => (int) $bucket * 1000 + ($minutes * 60 * 1000) - 1,
+                'open' => $items->first()->open, 'high' => $items->max('high'), 'low' => $items->min('low'),
+                'close' => $items->last()->close, 'volume' => $items->sum('volume'),
+                'created_at' => now(), 'updated_at' => now(),
+            ];
+        }
+        foreach (array_chunk($aggregated, 500) as $chunk) DB::table('egx_candles')->upsert(
+            $chunk, ['asset_id','timeframe','open_time'], ['close_time','open','high','low','close','volume','updated_at']
+        );
+    }
+
     private function refreshSeconds(string $timeframe): int
     {
-        return match ($timeframe) { '1m' => 120, '5m' => 600, '15m' => 1800, '1h' => 7200, '4h' => 14400, '1d' => 172800, '1w' => 1209600, default => 3600 };
+        return match ($timeframe) { '1m' => 120, '5m' => 600, '10m' => 1200, '1h' => 7200, '1d' => 172800, '1w' => 1209600, default => 3600 };
     }
 
     public function candles(string $assetId, string $timeframe, int $limit = 500): array
     {
-        $rows = DB::table('egx_candles')->where('asset_id', $assetId)->where('timeframe', $timeframe)->orderByDesc('open_time')->limit($limit)->get()->reverse()->values();
-        return $rows->map(fn ($r) => (array) $r)->all();
+        return DB::table('egx_candles')->where('asset_id', $assetId)->where('timeframe', $timeframe)
+            ->orderByDesc('open_time')->limit($limit)->get()->reverse()->values()
+            ->map(fn ($r) => (array) $r)->all();
     }
 }
