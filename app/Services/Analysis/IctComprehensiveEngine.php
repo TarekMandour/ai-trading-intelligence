@@ -26,6 +26,7 @@ class IctComprehensiveEngine
             'dealing_range' => $this->dealingRange($context),
         ];
         $setupEvidence = $this->analyzeSetup($setup);
+        $advancedEvidence = (new IctAdvancedEvidenceAnalyzer)->analyze($setup);
         $entryEvidence = [
             'bullish_trigger' => $this->bullishTrigger($entry),
             'last_close' => (float) $entry[array_key_last($entry)]['close'],
@@ -45,6 +46,7 @@ class IctComprehensiveEngine
             'direction' => 'LONG',
             'context' => $contextEvidence,
             'setup_evidence' => $setupEvidence,
+            'advanced_evidence' => $advancedEvidence,
             'entry_evidence' => $entryEvidence,
             'scenarios' => $results,
             'decision' => $this->selectDecision($results),
