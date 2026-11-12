@@ -222,4 +222,58 @@ class AnalysisComponentsTest extends TestCase
     {
         $this->assertSame(false, (new AiReviewValidator)->validate(['assessment' => 'ABSTAIN', 'timeframe_alignment' => 'ALIGNED', 'supporting_evidence_ids' => ['bad'], 'contradicting_evidence_ids' => [], 'rationale' => 'x'], ['known']));
     }
+    public function test_ict_engine_rejects_missing_timeframe_evidence(): void
+    {
+        $result = (new IctComprehensiveEngine)->evaluate([], 'Scalping');
+
+        $this->assertSame('REJECTED', $result['decision']);
+        $this->assertContains('ICT_DATA_INCOMPLETE_context', $result['reasons']);
+    }
+
+    public function test_ict_engine_returns_three_long_only_core_scenarios_for_complete_series(): void
+    {
+        $candles = [];
+        for ($i = 0; $i < 60; $i++) {
+            $close = 100 + ($i * 0.1);
+            $candles[] = [
+                'open_time' => $i * 60000,
+                'close_time' => min(now()->getTimestampMs() - (60 - $i) * 60000, now()->getTimestampMs() - 1000),
+                'open' => $close - 0.03,
+                'high' => $close + 0.2,
+                'low' => $close - 0.2,
+                'close' => $close,
+                'volume' => 100.0,
+            ];
+        }
+        $roles = ['context' => $candles, 'structure' => $candles, 'setup' => $candles, 'entry' => $candles];
+        $result = (new IctComprehensiveEngine)->evaluate($roles, 'Scalping');
+
+        $this->assertSame('ICT_COMPREHENSIVE', $result['engine']);
+        $this->assertSame('LONG', $result['direction']);
+        $this->assertCount(3, $result['scenarios']);
+        $this->assertSame([
+            'ICT_01_SELL_SIDE_LIQUIDITY_SWEEP_REVERSAL',
+            'ICT_02_BULLISH_FVG_CONTINUATION',
+            'ICT_03_BULLISH_ORDER_BLOCK_REACTION',
+        ], array_column($result['scenarios'], 'scenario'));
+        foreach ($result['scenarios'] as $scenario) {
+            $this->assertSame('LONG', $scenario['direction']);
+        }
+    }
+
+    public function test_ict_engine_rejects_forming_or_non_monotonic_candles(): void
+    {
+        $candles = [];
+        for ($i = 0; $i < 40; $i++) {
+            $candles[] = ['open_time' => $i, 'close_time' => $i + 100, 'open' => 10.0, 'high' => 11.0, 'low' => 9.0, 'close' => 10.5, 'volume' => 1.0];
+        }
+        $roles = ['context' => $candles, 'structure' => $candles, 'setup' => $candles, 'entry' => $candles];
+        $roles['entry'][39]['close_time'] = now()->getTimestampMs() + 1000;
+
+        $result = (new IctComprehensiveEngine)->evaluate($roles, 'Intraday');
+
+        $this->assertSame('REJECTED', $result['decision']);
+        $this->assertContains('ICT_DATA_INCOMPLETE_entry', $result['reasons']);
+    }
+
 }
