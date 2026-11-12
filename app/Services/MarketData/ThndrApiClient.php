@@ -46,15 +46,16 @@ class ThndrApiClient
         ]);
         $rows = $data['trades_candles'] ?? null;
         if (!is_array($rows)) throw new RuntimeException('THNDR_CANDLES_PAYLOAD_INVALID');
-        return collect($rows)->map(function (array $row): array {
+        return collect($rows)->map(function (array $row) use ($timeframe): array {
             $raw = $row['timestamp'] ?? 0;
             $time = is_numeric($raw) ? (int) $raw : (strtotime((string) $raw) ?: 0);
             if ($time > 100000000000) $time = intdiv($time, 1000);
+            $duration = match ($timeframe) { '1m' => 60, '5m' => 300, '10m' => 600, '1h' => 3600, '1d' => 86400, '1w' => 604800, default => 0 };
             return [
                 'open_time' => $time * 1000,
                 'open' => (float) ($row['open'] ?? 0), 'high' => (float) ($row['high'] ?? 0),
                 'low' => (float) ($row['low'] ?? 0), 'close' => (float) ($row['close'] ?? 0),
-                'volume' => (float) ($row['volume'] ?? 0), 'close_time' => $time * 1000,
+                'volume' => (float) ($row['volume'] ?? 0), 'close_time' => ($time + $duration) * 1000 - 1,
             ];
         })->filter(fn (array $c) => $c['open_time'] > 0 && $c['high'] >= max($c['open'], $c['close']) && $c['low'] <= min($c['open'], $c['close']) && $c['high'] >= $c['low'])->sortBy('open_time')->values()->all();
     }
