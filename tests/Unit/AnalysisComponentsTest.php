@@ -480,4 +480,27 @@ class AnalysisComponentsTest extends TestCase
         $this->assertContains('BACKTEST_INVALID_context_SERIES', $result['reasons']);
     }
 
+    public function test_ict_smt_requires_exactly_synchronized_reference_timestamps(): void
+    {
+        $candles = [];
+        for ($i = 0; $i < 40; $i++) {
+            $candles[] = [
+                'open_time' => $i * 60000,
+                'close_time' => ($i + 1) * 60000,
+                'open' => 100.0,
+                'high' => 101.0,
+                'low' => 99.0,
+                'close' => 100.5,
+                'volume' => 10.0,
+            ];
+        }
+        $reference = $candles;
+        $reference[39]['close_time']++;
+
+        $evidence = (new \App\Services\Analysis\IctAdvancedEvidenceAnalyzer)->analyze($candles, $reference);
+
+        $this->assertSame('UNAVAILABLE', $evidence['smt']['status']);
+        $this->assertSame('SMT_CLOSE_TIMESTAMPS_NOT_ALIGNED', $evidence['smt']['reason']);
+    }
+
 }
