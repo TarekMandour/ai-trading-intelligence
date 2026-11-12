@@ -16,11 +16,43 @@ use Throwable;
 
 class EgxMarketController extends Controller
 {
+    public function captureStatus(): JsonResponse
+    {
+        $token = (string) (MarketSetting::query()->where('key', 'thndr_api_token')->value('value') ?? '');
+
+        return response()->json([
+            'ok' => true,
+            'enabled' => (string) (MarketSetting::query()->where('key', 'thndr_capture_enabled')->value('value') ?? '0') === '1',
+            'tokenMasked' => $token === '' ? null : '••••••' . substr($token, -6),
+            'tokenUpdatedAt' => MarketSetting::query()->where('key', 'thndr_token_updated_at')->value('value'),
+        ]);
+    }
+
+    public function captureStart(): JsonResponse
+    {
+        return $this->setCaptureEnabled(true);
+    }
+
+    public function captureStop(): JsonResponse
+    {
+        return $this->setCaptureEnabled(false);
+    }
+
+    private function setCaptureEnabled(bool $enabled): JsonResponse
+    {
+        MarketSetting::updateOrCreate(
+            ['key' => 'thndr_capture_enabled'],
+            ['value' => $enabled ? '1' : '0'],
+        );
+
+        return response()->json(['ok' => true, 'enabled' => $enabled]);
+    }
+
     public function captureToken(Request $request): JsonResponse
     {
         $key = (string) config('thndr.capture_key');
         abort_unless($key !== '' && hash_equals($key, (string) $request->header('X-Capture-Key')), 401);
-        // Match the legacy doji_trade capture contract: capture must be enabled in settings.
+        // Capture is accepted only while the dashboard toggle is enabled, matching doji_trade.
         $captureEnabled = (string) (MarketSetting::query()->where('key', 'thndr_capture_enabled')->value('value') ?? '0');
         abort_unless($captureEnabled === '1', 409, 'capture_disabled');
 
