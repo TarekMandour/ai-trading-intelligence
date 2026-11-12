@@ -29,11 +29,14 @@ The first implementation uses deterministic pivot, liquidity, displacement, MSS,
 
 ## Limitations
 
-- Current setup evidence uses the latest completed setup candle for some confirmations; production-quality event sequencing, evidence persistence, and replay-safe lifecycle transitions still require integration work.
+- ICT-01 now requires an ordered sequence: a previously confirmed SSL is swept and reclaimed, a later bullish displacement closes through a previously confirmed swing high (MSS), and a subsequent three-candle bullish FVG is identified. This sequence is deterministic but still needs broad replay fixtures and historical validation.
 - Optional confluence evidence now includes equal-level candidates, bullish OTE range, rejection-block candidates, breaker-block retest candidates, and session-window availability. These are evidence only and do not independently authorize trades.
 - Silver Bullet/Judas session windows remain inactive until explicit windows and a timezone are configured. SMT remains unavailable until a synchronized reference asset and approved comparison rule are supplied.
 - Equal-level clustering, breaker/rejection, and OTE heuristics require review and calibration; they are not yet validated strategy gates.
-- Basic post-creation FVG partial/full fill and OB mitigation/invalidation are replayed across subsequent setup and entry candles. A full chronological event-state machine, multi-candle displacement, and replay fixtures remain outstanding.
+- Basic post-creation FVG partial/full fill and OB mitigation/invalidation are replayed across subsequent setup and entry candles; FVG full-fill and invalidation are terminal states. A full chronological event-state machine across all model families and replay fixtures remain outstanding.
+- ICT target selection now prefers the nearest two confirmed opposing swing highs above entry as BSL references; if fewer than two are available, R-multiple fallback targets are explicitly labeled in the candidate snapshot.
+- Immediate Market entry is blocked when the reference price is outside the configured distance from a valid entry zone. A Limit plan can remain available as a conditional research plan; a candle touch is not treated as a fill.
+- Added a GitHub Actions PHP 8.3 workflow for pull-request testing. Its first run has not yet been observed.
 - Market/Limit are represented as research entry plans with Ask-side execution reference, zone-distance guard, expiry, and explicit touch-is-not-fill semantics; no order placement is implemented or authorized.
 - Historical fill accuracy cannot be inferred from OHLCV alone.
 - No historical backtest or profitability validation has been performed.
