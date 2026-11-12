@@ -14,4 +14,6 @@ return [
     'kill_zones' => '24h',
     'direction' => 'LONG',
     'entry_methods' => ['MARKET', 'LIMIT'],
+    'max_market_distance_bps' => (float) env('ICT_MAX_MARKET_DISTANCE_BPS', 35),
+    'entry_expiry_minutes' => (int) env('ICT_ENTRY_EXPIRY_MINUTES', 30),
 ];
