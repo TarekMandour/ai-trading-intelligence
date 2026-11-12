@@ -28,13 +28,13 @@ class IctZoneLifecycleAnalyzer
             }
         }
 
-        return $zone + [
+        return array_merge($zone, [
             'status' => $status,
             'touch_count' => $touches,
             'deepest_price' => $deepestPrice,
             'invalidation_close' => $invalidationClose,
             'touch_is_fill' => false,
-        ];
+        ]);
     }
 
     public function bullishOrderBlock(array $zone, array $candles): array
@@ -56,6 +56,6 @@ class IctZoneLifecycleAnalyzer
             }
         }
 
-        return $zone + ['status' => $status, 'touch_count' => $touches, 'invalidation_close' => $invalidationClose, 'touch_is_fill' => false];
+        return array_merge($zone, ['status' => $status, 'touch_count' => $touches, 'invalidation_close' => $invalidationClose, 'touch_is_fill' => false]);
     }
 }
