@@ -95,7 +95,7 @@ class IctComprehensiveEngine
 
     private function fvgContinuation(string $profile, array $context, array $setup, array $entry): array
     {
-        $contextOk = $context['bias'] === 'BULLISH';
+        $contextOk = $context['bias'] === 'BULLISH' && $context['structure_bias'] !== 'BEARISH';
         $displacement = $setup['displacement']['bullish'] ?? false;
         $fvg = $setup['fvg'];
         $touched = $fvg !== null && ($fvgLifecycle['touch_count'] ?? 0) > 0;
