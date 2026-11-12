@@ -8,6 +8,7 @@ use App\Services\Ai\AiAnalysisProvider;
 use App\Services\Ai\AiReviewValidator;
 use App\Services\Analysis\DeterministicAnalysisEngine;
 use App\Services\Analysis\ExecutionCostEstimator;
+use App\Services\Analysis\IctComprehensiveEngine;
 use App\Services\Analysis\MultiTimeframeAlignment;
 use App\Services\Analysis\ScenarioEvaluator;
 use App\Services\MarketData\BinanceSpotClient;
@@ -96,15 +97,7 @@ class AnalysisRunWorkflowTest extends TestCase
             'reasons' => ['TEST_BULLISH_REGIME'],
         ]);
 
-        $scenarios = $this->mock(ScenarioEvaluator::class);
-        $scenarios->shouldReceive('evaluate')->once()->andReturn([
-            [
-                'scenario' => 'TEST_BREAKOUT',
-                'status' => 'ENTERABLE',
-                'candidate' => ['entry' => 100.0, 'stop' => 95.0, 'target1' => 125.0, 'target2' => 130.0],
-                'reasons' => ['TEST_SETUP_CONFIRMED'],
-            ],
-        ]);
+        $ict = $this->mockIctEngine();
 
         $ai = $this->mock(AiAnalysisProvider::class);
 
@@ -112,8 +105,7 @@ class AnalysisRunWorkflowTest extends TestCase
             $binance,
             $engine,
             app(ExecutionCostEstimator::class),
-            app(MultiTimeframeAlignment::class),
-            $scenarios,
+            $ict,
             $ai,
             app(AiReviewValidator::class),
         );
@@ -173,15 +165,7 @@ class AnalysisRunWorkflowTest extends TestCase
             'reasons' => ['TEST_BULLISH_REGIME'],
         ]);
 
-        $scenarios = $this->mock(ScenarioEvaluator::class);
-        $scenarios->shouldReceive('evaluate')->once()->andReturn([
-            [
-                'scenario' => 'TEST_BREAKOUT',
-                'status' => 'ENTERABLE',
-                'candidate' => ['entry' => 100.0, 'stop' => 95.0, 'target1' => 125.0, 'target2' => 130.0],
-                'reasons' => ['TEST_SETUP_CONFIRMED'],
-            ],
-        ]);
+        $ict = $this->mockIctEngine();
 
         $ai = $this->mock(AiAnalysisProvider::class);
 
@@ -211,7 +195,7 @@ class AnalysisRunWorkflowTest extends TestCase
 
         $ai = $this->mock(AiAnalysisProvider::class);
         try {
-            (new ProcessAnalysisRun($run->id))->handle($client, app(DeterministicAnalysisEngine::class), app(ExecutionCostEstimator::class), app(MultiTimeframeAlignment::class), app(ScenarioEvaluator::class), $ai, app(AiReviewValidator::class));
+            (new ProcessAnalysisRun($run->id))->handle($client, app(DeterministicAnalysisEngine::class), app(ExecutionCostEstimator::class), app(IctComprehensiveEngine::class), $ai, app(AiReviewValidator::class));
             $this->fail('Expected the unavailable market-data exception to be rethrown for queue retry handling.');
         } catch (\RuntimeException $exception) {
             $this->assertSame('offline', $exception->getMessage());
@@ -270,13 +254,7 @@ class AnalysisRunWorkflowTest extends TestCase
             'reasons' => ['TEST_BULLISH_REGIME'],
         ]);
 
-        $scenarios = $this->mock(ScenarioEvaluator::class);
-        $scenarios->shouldReceive('evaluate')->once()->andReturn([[
-            'scenario' => 'TEST_BREAKOUT',
-            'status' => 'ENTERABLE',
-            'candidate' => ['entry' => 100.0, 'stop' => 95.0, 'target1' => 125.0, 'target2' => 130.0],
-            'reasons' => ['TEST_SETUP_CONFIRMED'],
-        ]]);
+        $ict = $this->mockIctEngine();
 
         $ai = $this->mock(AiAnalysisProvider::class);
         $ai->shouldReceive('review')->once()->andReturn([
@@ -355,12 +333,8 @@ class AnalysisRunWorkflowTest extends TestCase
         $engine->shouldReceive('evaluate')->times(4)->andReturn([
             'direction' => 'BULLISH', 'behavior' => 'TRENDING', 'volatility' => 'NORMAL', 'reasons' => ['TEST_BULLISH_REGIME'],
         ]);
-        $scenarios = $this->mock(ScenarioEvaluator::class);
-        $scenarios->shouldReceive('evaluate')->once()->andReturn([[
-            'scenario' => 'TEST_BREAKOUT', 'status' => 'ENTERABLE',
-            'candidate' => ['entry' => 100.0, 'stop' => 95.0, 'target1' => 125.0, 'target2' => 130.0],
-            'reasons' => ['TEST_SETUP_CONFIRMED'],
-        ]]);
+        $ict = $this->mockIctEngine();
+
         $ai = $this->mock(AiAnalysisProvider::class);
         $ai->shouldReceive('review')->once()->andThrow(new \RuntimeException('provider unavailable'));
 
@@ -379,6 +353,30 @@ class AnalysisRunWorkflowTest extends TestCase
         $this->assertSame('FAILED', $report->opportunity->aiReview->status);
         $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $report->opportunity->aiReview->evidence_hash);
         $this->assertSame('COMPLETED', $run->fresh()->status);
+    }
+
+    private function mockIctEngine(): IctComprehensiveEngine
+    {
+        $ict = $this->mock(IctComprehensiveEngine::class);
+        $ict->shouldReceive('evaluate')->once()->andReturn([
+            'engine' => 'ICT_COMPREHENSIVE',
+            'context' => ['bias' => 'BULLISH', 'structure_bias' => 'BULLISH'],
+            'decision' => 'ENTERABLE',
+            'scenarios' => [[
+                'scenario' => 'TEST_BREAKOUT',
+                'status' => 'ENTERABLE',
+                'candidate' => [
+                    'entry' => 100.0,
+                    'stop' => 95.0,
+                    'target1' => 125.0,
+                    'target2' => 130.0,
+                    'entry_plans' => ['market' => ['status' => 'PLANNED']],
+                ],
+                'reasons' => ['TEST_SETUP_CONFIRMED'],
+            ]],
+        ]);
+
+        return $ict;
     }
 
 }
