@@ -26,7 +26,8 @@ The endpoint stores the token in `market_settings` under `thndr_api_token`. Conf
 - `GET /api/egx/watchlists` lists watchlists and their stocks.
 - `POST /api/egx/watchlists` accepts `{"name":"My list","asset_ids":["..."]}`.
 - `PUT /api/egx/watchlists/{id}` updates the name and/or selected asset IDs.
-- `POST /api/egx/scan` accepts a watchlist ID and optional profiles. Only stocks in that watchlist are scanned.
+- `POST /api/egx/scan` accepts a watchlist ID and optional profiles. Only stocks in that watchlist are scanned. Each run is persisted in `egx_scan_runs` with its watchlist ID, selected profiles and JSON result snapshot.
+- `GET /api/egx/watchlists/{id}/scans` returns paginated scan history for that watchlist only.
 
 ## Historical candles
 
@@ -36,4 +37,4 @@ Important limitation: this first sync implementation repairs the newest tail and
 
 ## Security and validation
 
-The token endpoint is protected by the shared capture key and rate-limited. Do not expose `market_settings.value` in API responses or logs. The EGX scan/universe/watchlist endpoints need to be placed behind the application's authenticated dashboard middleware before production deployment.
+The token endpoint is protected by the shared capture key and rate-limited. Do not expose `market_settings.value` in API responses or logs. The EGX scan/universe/watchlist endpoints are currently API endpoints without user authentication because the current MVP has no authentication flow. Do not expose them to the public internet; add authenticated dashboard middleware and user ownership checks before deployment. Token values are never returned by these endpoints.
