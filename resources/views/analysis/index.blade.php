@@ -136,8 +136,7 @@
             const check=document.createElement('input');check.type='checkbox';check.checked=selectedIds.has(stock.asset_id);
             check.addEventListener('change',()=>{check.checked?selectedIds.add(stock.asset_id):selectedIds.delete(stock.asset_id);updateWatchlistCount();});
             const title=document.createElement('span');title.textContent=(stock.symbol||'—')+' — '+(stock.name||stock.arabic_name||'');
-            const id=document.createElement('small');id.textContent=stock.asset_id;
-            row.append(check,title,id);host.append(row);
+            row.append(check,title);host.append(row);
         });
         updateWatchlistCount();
     }
@@ -186,9 +185,9 @@
         const heading=document.createElement('p');heading.innerHTML='<strong>Scan #'+data.run_id+'</strong> · '+(data.watchlist||'Watchlist')+' · '+(data.stocks?.length||0)+' stock(s)';host.append(heading);
         (data.stocks||[]).forEach(stock=>{
             const card=document.createElement('div');card.className='result-card';
-            const title=document.createElement('h4');title.textContent=(stock.symbol||'Stock')+' — '+stock.asset_id;card.append(title);
+            const title=document.createElement('h4');title.textContent=[stock.name||stock.arabic_name,stock.symbol].filter(Boolean).join(' — ')||'Stock details unavailable';card.append(title);
             Object.entries(stock.profiles||{}).forEach(([profile,result])=>{
-                const line=document.createElement('p');const status=result.status||'UNKNOWN';line.innerHTML='<span class="pill">'+profile+'</span> <strong>'+status+'</strong>';
+                const line=document.createElement('p');const status=result.status||result.decision||'UNKNOWN';line.innerHTML='<span class="pill">'+profile+'</span> <strong>'+status+'</strong>';
                 const reasons=result.reasons||[];if(reasons.length)line.textContent+=' · '+reasons.join(', ');
                 card.append(line);
                 if(result.signal||result.setup||result.entry){const details=document.createElement('pre');details.textContent=JSON.stringify(result,null,2);card.append(details);}
