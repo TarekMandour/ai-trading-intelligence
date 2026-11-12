@@ -20,6 +20,10 @@ class EgxMarketController extends Controller
     {
         $key = (string) config('thndr.capture_key');
         abort_unless($key !== '' && hash_equals($key, (string) $request->header('X-Capture-Key')), 401);
+        // Match the legacy doji_trade capture contract: capture must be enabled in settings.
+        $captureEnabled = (string) (MarketSetting::query()->where('key', 'thndr_capture_enabled')->value('value') ?? '0');
+        abort_unless($captureEnabled === '1', 409, 'capture_disabled');
+
         $data = $request->validate(['token' => ['required', 'string', 'max:4096']]);
         MarketSetting::updateOrCreate(['key' => 'thndr_api_token'], ['value' => $data['token']]);
         MarketSetting::updateOrCreate(['key' => 'thndr_token_updated_at'], ['value' => now()->toIso8601String()]);
