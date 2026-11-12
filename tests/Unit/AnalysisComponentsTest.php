@@ -328,4 +328,33 @@ class AnalysisComponentsTest extends TestCase
         $this->assertSame('NOT_CONFIGURED', $evidence['smt']['status']);
     }
 
+    public function test_ict_fvg_lifecycle_ignores_pre_creation_candles_and_tracks_partial_fill(): void
+    {
+        $zone = ['low' => 100.0, 'high' => 102.0, 'created_at' => 2000, 'status' => 'ACTIVE'];
+        $candles = [
+            ['close_time' => 1500, 'low' => 99.0, 'high' => 103.0, 'close' => 101.0],
+            ['close_time' => 2500, 'low' => 101.0, 'high' => 104.0, 'close' => 102.5],
+        ];
+
+        $result = (new \App\Services\Analysis\IctZoneLifecycleAnalyzer)->bullishFvg($zone, $candles);
+
+        $this->assertSame('PARTIALLY_FILLED', $result['status']);
+        $this->assertSame(1, $result['touch_count']);
+        $this->assertFalse($result['touch_is_fill']);
+    }
+
+    public function test_ict_fvg_lifecycle_distinguishes_full_fill_from_invalidation(): void
+    {
+        $zone = ['low' => 100.0, 'high' => 102.0, 'created_at' => 2000, 'status' => 'ACTIVE'];
+        $candles = [
+            ['close_time' => 2500, 'low' => 99.0, 'high' => 103.0, 'close' => 100.5],
+            ['close_time' => 3500, 'low' => 98.0, 'high' => 101.0, 'close' => 99.5],
+        ];
+
+        $result = (new \App\Services\Analysis\IctZoneLifecycleAnalyzer)->bullishFvg($zone, $candles);
+
+        $this->assertSame('INVALIDATED', $result['status']);
+        $this->assertSame(98.0, $result['deepest_price']);
+    }
+
 }
