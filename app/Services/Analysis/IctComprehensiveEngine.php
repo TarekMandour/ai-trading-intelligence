@@ -84,10 +84,12 @@ class IctComprehensiveEngine
 
     private function sweepReversal(string $profile, array $context, array $setup, array $entry): array
     {
-        $sweep = $setup['liquidity']['sweep_confirmed'] ?? false;
-        $displacement = $setup['displacement']['bullish'] ?? false;
-        $mss = $setup['mss']['confirmed'] ?? false;
-        $fvg = $setup['fvg'];
+        $sequence = $setup['sequence'] ?? [];
+        $sequenceConfirmed = ($sequence['status'] ?? null) === 'CONFIRMED';
+        $sweep = $sequenceConfirmed;
+        $displacement = $sequenceConfirmed;
+        $mss = $sequenceConfirmed;
+        $fvg = $sequence['fvg'] ?? null;
         $fvgLifecycle = $setup['fvg_lifecycle'] ?? null;
         if (($fvgLifecycle['status'] ?? null) === 'INVALIDATED' || ($fvgLifecycle['status'] ?? null) === 'FULLY_FILLED') $fvg = null;
         $fvgTouched = $fvg !== null && ($fvgLifecycle['touch_count'] ?? 0) > 0;
@@ -101,7 +103,7 @@ class IctComprehensiveEngine
         if ($fvg === null) $reasons[] = 'ICT01_NO_VALID_FVG';
         if (! $fvgTouched) $reasons[] = 'ICT01_NO_FVG_RETRACEMENT';
         if (! $trigger) $reasons[] = 'ICT01_NO_ENTRY_TRIGGER';
-        return $this->scenario('ICT_01_SELL_SIDE_LIQUIDITY_SWEEP_REVERSAL', $profile, $contextOk && $sweep && $displacement && $mss && $fvg !== null && $fvgTouched && $trigger, $reasons, $entry['last_close'], $setup['liquidity']['sweep_low'] ?? null, $fvg);
+        return $this->scenario('ICT_01_SELL_SIDE_LIQUIDITY_SWEEP_REVERSAL', $profile, $contextOk && $sweep && $displacement && $mss && $fvg !== null && $fvgTouched && $trigger, $reasons, $entry['last_close'], $sequence['sweep']['low'] ?? null, $fvg);
     }
 
     private function fvgContinuation(string $profile, array $context, array $setup, array $entry): array
