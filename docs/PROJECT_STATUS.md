@@ -104,5 +104,5 @@ Initial vertical slice implemented: a Laravel dashboard creates an idempotency-k
 - Added optional confluence evidence for equal liquidity levels, OTE, rejection-block candidates, breaker-block retests, and configured session windows.
 - SMT intentionally remains unavailable without a synchronized reference asset and approved pairing rule.
 - Market and Limit outputs are plans only. Exchange order submission remains disabled.
-- The implementation is not yet complete or validated: chronological event lifecycle, robust FVG/OB mitigation, advanced model gates, and historical replay/backtesting remain outstanding.
+- The implementation is not yet complete or validated: the initial FVG/OB post-creation lifecycle is implemented, but full chronological event-state transitions, advanced model gates, and historical replay/backtesting remain outstanding.
 - Tests were added but not executed here. No test pass or profitability claim is recorded.
