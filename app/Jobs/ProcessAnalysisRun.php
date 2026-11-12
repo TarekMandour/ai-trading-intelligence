@@ -103,14 +103,16 @@ class ProcessAnalysisRun implements ShouldQueue
                 $regime = $entryState ?? ['direction' => 'UNCERTAIN', 'behavior' => 'UNCERTAIN', 'volatility' => 'NORMAL', 'reasons' => ['INSUFFICIENT_VALIDATED_CANDLE_EVIDENCE'], 'candidate' => null];
                 $scenarioResults = $ictResult['scenarios'] ?? [];
                 $selectedScenario = collect($scenarioResults)->first(fn (array $scenario): bool => $scenario['status'] === 'ENTERABLE' && is_array($scenario['candidate'] ?? null));
+                $selectedScenario ??= collect($scenarioResults)->first(fn (array $scenario): bool => $scenario['status'] === 'WAIT' && is_array($scenario['candidate'] ?? null));
                 $candidate = $selectedScenario['candidate'] ?? null;
+                $marketEntryReady = ($candidate['entry_plans']['market']['status'] ?? null) === 'PLANNED';
                 $decision = ($profileWarnings !== [] || count($candlesByRole) !== count($timeframes)) ? 'REJECTED' : ($ictResult['decision'] ?? 'NO_OPPORTUNITY');
                 $executionCosts = ['available' => false, 'fee' => 0, 'spread' => 0, 'slippage' => 0, 'total' => 0, 'reason' => 'NOT_REQUESTED_NO_ENTERABLE_CANDIDATE'];
                 if ($candidate === null && $decision !== 'REJECTED' && collect($scenarioResults)->contains(fn (array $scenario): bool => $scenario['status'] === 'WAIT')) {
                     $decision = 'WAIT';
                 }
 
-                if ($candidate !== null && ($alignmentResult['allow_entry'] ?? false)) {
+                if ($candidate !== null && $marketEntryReady && ($alignmentResult['allow_entry'] ?? false)) {
                     try {
                         $book = $binance->orderBook($symbol);
                         $executionCosts = $costs->estimateFromOrderBook($book, (float) config('analysis.trade_notional'), (float) config('analysis.fee_rate'));
@@ -134,6 +136,7 @@ class ProcessAnalysisRun implements ShouldQueue
                     }
                 } elseif ($candidate !== null && $decision !== 'REJECTED') {
                     $decision = 'WAIT';
+                    if (! $marketEntryReady) $executionCosts['reason'] = 'MARKET_ENTRY_DISTANCE_EXCEEDED_LIMIT_PLAN_RETAINED';
                 }
                 $warnings = array_merge($warnings, array_map(fn (string $warning): string => $symbol.':'.$profile.':'.$warning, $profileWarnings));
 
