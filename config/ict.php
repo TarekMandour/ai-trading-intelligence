@@ -24,4 +24,5 @@ return [
     'rejection_close_location' => (float) env('ICT_REJECTION_CLOSE_LOCATION', 0.70),
     'session_timezone' => env('ICT_SESSION_TIMEZONE', 'UTC'),
     'session_windows' => [],
+    'smt_index_tolerance' => (int) env('ICT_SMT_INDEX_TOLERANCE', 3),
 ];
