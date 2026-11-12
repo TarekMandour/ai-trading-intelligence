@@ -9,8 +9,7 @@ use App\Services\Ai\AiAnalysisProvider;
 use App\Services\Ai\AiReviewValidator;
 use App\Services\Analysis\DeterministicAnalysisEngine;
 use App\Services\Analysis\ExecutionCostEstimator;
-use App\Services\Analysis\MultiTimeframeAlignment;
-use App\Services\Analysis\ScenarioEvaluator;
+use App\Services\Analysis\IctComprehensiveEngine;
 use App\Services\MarketData\BinanceSpotClient;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -80,10 +79,10 @@ class AnalysisPersistenceTest extends TestCase
         $ai = $this->mock(AiAnalysisProvider::class);
         $job = new ProcessAnalysisRun($run->id);
 
-        $job->handle($binance, $engine, app(ExecutionCostEstimator::class), app(MultiTimeframeAlignment::class), app(ScenarioEvaluator::class), $ai, app(AiReviewValidator::class));
+        $job->handle($binance, $engine, app(ExecutionCostEstimator::class), app(IctComprehensiveEngine::class), $ai, app(AiReviewValidator::class));
         $snapshot = $run->reports()->first()->opportunity->snapshot;
         $run->fresh()->update(['status' => 'QUEUED']);
-        $job->handle($binance, $engine, app(ExecutionCostEstimator::class), app(MultiTimeframeAlignment::class), app(ScenarioEvaluator::class), $ai, app(AiReviewValidator::class));
+        $job->handle($binance, $engine, app(ExecutionCostEstimator::class), app(IctComprehensiveEngine::class), $ai, app(AiReviewValidator::class));
 
         $this->assertDatabaseCount('analysis_reports', 3);
         $this->assertDatabaseCount('analysis_opportunities', 3);
