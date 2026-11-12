@@ -126,6 +126,6 @@ Initial vertical slice implemented: a Laravel dashboard creates an idempotency-k
 - Silver Bullet and Judas Swing are only eligible inside explicitly configured session windows. General analysis remains 24 hours with no global kill-zone filter.
 - SMT bullish swing-low divergence evidence is implemented when the caller supplies synchronized reference candles. The queued analysis job does not yet fetch a reference symbol.
 - OHLCV historical replay service is available with clearly labeled Market/Limit fill assumptions, stop-first same-bar resolution, split target exits, fees/slippage, and basic performance metrics.
-- Latest relevant GitHub Actions validation passed PHP syntax checks and 61 tests / 194 assertions on commit `12dedaa95da94803461e6e8c0540e692c3fdefd5`.
+- Latest relevant GitHub Actions validation passed PHP syntax checks and 61 tests / 194 assertions on commit `a7881b971378adfc756c6d50d55aa50edce51e1d` (includes the seven scenario families, SMT alignment checks, session windows, and true-range ATR displacement).
 - Remaining gaps: reference-symbol acquisition, historical data ingestion and persisted backtest reports, full event lifecycle for every model, out-of-sample partitions, parameter calibration, and paper trading.
 - This is code/test validation only. No profitability, historical fill accuracy, or live execution claim is made.
