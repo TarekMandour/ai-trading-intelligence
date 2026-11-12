@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Services\Ai\AiReviewValidator;
 use App\Services\Analysis\ExecutionCostEstimator;
 use App\Services\Analysis\IctComprehensiveEngine;
+use App\Services\Analysis\IctHistoricalBacktestService;
 use App\Services\Analysis\MultiTimeframeAlignment;
 use App\Services\Analysis\ScenarioEvaluator;
 use Tests\TestCase;
@@ -419,6 +420,64 @@ class AnalysisComponentsTest extends TestCase
         $this->assertSame('WAIT', $plan['market']['status']);
         $this->assertSame('UNAVAILABLE', $plan['limit']['status']);
         $this->assertNull($plan['market']['distance_from_zone_bps']);
+    }
+
+    public function test_ict_historical_backtest_labels_ohlcv_limit_fill_assumption_and_calculates_metrics(): void
+    {
+        $now = now()->getTimestampMs();
+        $candles = [];
+        for ($i = 0; $i < 40; $i++) {
+            $candles[] = [
+                'open_time' => $now - ((40 - $i) * 60000),
+                'close_time' => $now - ((40 - $i) * 60000) + 59999,
+                'open' => 100.0,
+                'high' => 101.0,
+                'low' => 99.0,
+                'close' => 100.5,
+                'volume' => 100.0,
+            ];
+        }
+
+        $engine = $this->mock(IctComprehensiveEngine::class);
+        $engine->shouldReceive('evaluate')->atLeast()->once()->andReturn([
+            'decision' => 'WAIT',
+            'scenarios' => [[
+                'scenario' => 'ICT_TEST_LIMIT',
+                'status' => 'WAIT',
+                'candidate' => [
+                    'entry' => 100.0,
+                    'stop' => 95.0,
+                    'target1' => 105.0,
+                    'target2' => 110.0,
+                    'entry_plans' => [
+                        'market' => ['status' => 'WAIT'],
+                        'limit' => ['status' => 'PLANNED', 'limit_price' => 100.0],
+                    ],
+                ],
+            ]],
+        ]);
+
+        $result = (new IctHistoricalBacktestService($engine))->run(
+            ['context' => $candles, 'structure' => $candles, 'setup' => $candles, 'entry' => $candles],
+            'Scalping',
+            ['fee_rate' => 0, 'slippage_bps' => 0, 'max_holding_bars' => 2, 'max_limit_wait_bars' => 2],
+        );
+
+        $this->assertGreaterThan(0, $result['counts']['trades']);
+        $this->assertFalse($result['historical_order_book_used']);
+        $this->assertSame('OHLCV_ONLY', $result['data_source']);
+        $this->assertSame('LIMIT', $result['trades'][0]['entry_type']);
+        $this->assertSame('OHLCV_LOW_TOUCH_ASSUMED_FILL_NOT_QUEUE_CONFIRMED', $result['trades'][0]['fill_assumption']);
+        $this->assertSame('WIN', $result['trades'][0]['outcome']);
+        $this->assertGreaterThan(0, $result['metrics']['expectancy_r']);
+    }
+
+    public function test_ict_historical_backtest_rejects_missing_timeframe_series(): void
+    {
+        $result = (new IctHistoricalBacktestService(new IctComprehensiveEngine))->run([], 'Swing');
+
+        $this->assertSame(0, $result['counts']['trades']);
+        $this->assertContains('BACKTEST_INVALID_context_SERIES', $result['reasons']);
     }
 
 }
