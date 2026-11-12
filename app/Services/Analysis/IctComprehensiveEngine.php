@@ -27,8 +27,14 @@ class IctComprehensiveEngine
         ];
         $setupEvidence = $this->analyzeSetup($setup);
         $lifecycle = new IctZoneLifecycleAnalyzer;
-        $setupEvidence['fvg_lifecycle'] = $setupEvidence['fvg'] === null ? null : $lifecycle->bullishFvg($setupEvidence['fvg'], $entry);
-        $setupEvidence['ob_lifecycle'] = $setupEvidence['ob'] === null ? null : $lifecycle->bullishOrderBlock($setupEvidence['ob'], $entry);
+        $postSetupCandles = array_values(array_filter($setup, fn (array $c): bool => (int) ($c['close_time'] ?? 0) > (int) ($setupEvidence['fvg']['created_at'] ?? PHP_INT_MAX)));
+        $fvgLifecycleCandles = array_merge($postSetupCandles, $entry);
+        usort($fvgLifecycleCandles, fn (array $a, array $b): int => (int) $a['close_time'] <=> (int) $b['close_time']);
+        $setupEvidence['fvg_lifecycle'] = $setupEvidence['fvg'] === null ? null : $lifecycle->bullishFvg($setupEvidence['fvg'], $fvgLifecycleCandles);
+        $obCreatedAt = (int) ($setupEvidence['ob']['created_at'] ?? PHP_INT_MAX);
+        $obLifecycleCandles = array_merge(array_values(array_filter($setup, fn (array $c): bool => (int) ($c['close_time'] ?? 0) > $obCreatedAt)), $entry);
+        usort($obLifecycleCandles, fn (array $a, array $b): int => (int) $a['close_time'] <=> (int) $b['close_time']);
+        $setupEvidence['ob_lifecycle'] = $setupEvidence['ob'] === null ? null : $lifecycle->bullishOrderBlock($setupEvidence['ob'], $obLifecycleCandles);
         $advancedEvidence = (new IctAdvancedEvidenceAnalyzer)->analyze($setup);
         $entryEvidence = [
             'bullish_trigger' => $this->bullishTrigger($entry),
@@ -207,11 +213,25 @@ class IctComprehensiveEngine
     private function bullishFvg(array $candles): ?array
     {
         if (count($candles) < 3) return null;
-        $first = $candles[count($candles) - 3];
-        $third = $candles[count($candles) - 1];
-        $low = (float) $first['high'];
-        $high = (float) $third['low'];
-        return $high > $low ? ['low' => $low, 'high' => $high, 'ce' => ($low + $high) / 2, 'created_at' => $third['close_time'] ?? null, 'status' => 'ACTIVE'] : null;
+        $lookback = max(3, (int) config('ict.fvg_lookback', 30));
+        $start = max(2, count($candles) - $lookback);
+        for ($i = count($candles) - 1; $i >= $start; $i--) {
+            $first = $candles[$i - 2];
+            $third = $candles[$i];
+            $low = (float) $first['high'];
+            $high = (float) $third['low'];
+            if ($high > $low) {
+                return [
+                    'low' => $low,
+                    'high' => $high,
+                    'ce' => ($low + $high) / 2,
+                    'created_at' => $third['close_time'] ?? null,
+                    'source_indices' => [$i - 2, $i - 1, $i],
+                    'status' => 'ACTIVE',
+                ];
+            }
+        }
+        return null;
     }
 
     private function bullishOrderBlock(array $candles, array $displacement, array $mss): ?array
