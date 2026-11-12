@@ -307,4 +307,25 @@ class AnalysisComponentsTest extends TestCase
         $this->assertSame('PLANNED', $plan['limit']['status']);
     }
 
+    public function test_advanced_ict_evidence_marks_session_models_inactive_without_windows(): void
+    {
+        $candles = [];
+        for ($i = 0; $i < 40; $i++) {
+            $candles[] = [
+                'open_time' => $i * 60000,
+                'close_time' => now()->getTimestampMs() - ((40 - $i) * 60000),
+                'open' => 100.0,
+                'high' => 101.0,
+                'low' => 99.0,
+                'close' => 100.5,
+                'volume' => 10.0,
+            ];
+        }
+
+        $evidence = (new \\App\\Services\\Analysis\\IctAdvancedEvidenceAnalyzer)->analyze($candles);
+
+        $this->assertSame('INACTIVE_NOT_CONFIGURED', $evidence['session_models']['status']);
+        $this->assertSame('NOT_CONFIGURED', $evidence['smt']['status']);
+    }
+
 }
