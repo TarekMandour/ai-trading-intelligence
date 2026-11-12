@@ -39,4 +39,6 @@ The first implementation uses deterministic pivot, liquidity, displacement, MSS,
 - Added a GitHub Actions PHP 8.3 workflow for pull-request testing. Its first run has not yet been observed.
 - Market/Limit are represented as research entry plans with Ask-side execution reference, zone-distance guard, expiry, and explicit touch-is-not-fill semantics; no order placement is implemented or authorized.
 - Historical fill accuracy cannot be inferred from OHLCV alone.
-- No historical backtest or profitability validation has been performed.
+- Added `IctHistoricalBacktestService` for chronological OHLCV replay, Market next-bar-open and modeled Limit touch fills, conservative stop-first same-bar handling, split target exits, fee/slippage assumptions, and trade metrics.
+- The backtest service accepts caller-supplied multi-timeframe historical candle arrays; historical data download, persisted backtest runs, out-of-sample partitioning, and strategy parameter optimization are not implemented.
+- Limit touch fills are assumptions, not queue-confirmed fills. No historical order-book depth is used, and no profitability conclusion is valid until a realistic data set and out-of-sample/paper validation are completed.
