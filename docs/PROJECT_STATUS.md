@@ -129,3 +129,19 @@ Initial vertical slice implemented: a Laravel dashboard creates an idempotency-k
 - Latest relevant GitHub Actions validation passed PHP syntax checks and 62 tests / 199 assertions on commit `51bca3dc0d1152a690cb0b19b52f21ffa8a07feb` (includes seven scenario families, SMT reference-fetch integration, session windows, true-range ATR displacement, and optional reference-data completeness checks).
 - Remaining gaps: reference-symbol acquisition, historical data ingestion and persisted backtest reports, full event lifecycle for every model, out-of-sample partitions, parameter calibration, and paper trading.
 - This is code/test validation only. No profitability, historical fill accuracy, or live execution claim is made.
+
+
+## EGX / Thndr provider implementation update (2026-11-12)
+
+- Added a separate Thndr REST client and EGX market-data path; the existing Binance client and crypto analysis workflow were not modified.
+- Added the legacy-compatible token capture endpoint `POST /api/thndr/token`, using `X-Capture-Key` and storing the token in `market_settings`. Configure `THNDR_CAPTURE_KEY`; never commit the secret or captured token.
+- Added marketwatch synchronization to `storage/app/private/markets/egx/stocks.json` and a queryable `egx_stocks` mirror.
+- Added EGX watchlists with ordered stock membership and create/update/list API endpoints.
+- Added persistent OHLCV candle storage with unique `asset_id + timeframe + open_time` key. Incremental sync fetches from the last stored candle with a small overlap to refresh recent bars. 15m is aggregated from 5m; 4h from 1h.
+- Added a watchlist-scoped EGX scan endpoint that invokes the existing ICT Comprehensive engine for Scalping, Intraday, and Swing profiles, rejects profiles with insufficient candle history, and persists each run separately in `egx_scan_runs`.
+- Added paginated watchlist scan history.
+- Current automated CI on the latest EGX implementation commit passed PHP syntax checks and **67 tests / 214 assertions**.
+- Important remaining validation: verify the live Thndr marketwatch/candle payloads and timestamp semantics; verify aggregation boundaries against EGX session hours; current sync repairs the newest data tail and refreshes recent candles but does not detect arbitrary interior historical gaps or apply an official holiday calendar. No live Thndr smoke test has been run.
+- The Chrome extension source itself was not present in the `doji_trade` repository tree. The server endpoint contract matches the old `/api/thndr/token` + `X-Capture-Key` receiver; the extension must be pointed at the new project URL and use the same capture secret.
+- The new EGX API routes are not yet protected by user authentication. Do not expose the application publicly until authentication and watchlist ownership checks are added.
+- This implementation remains on `feature/ict-comprehensive`; PR #3 remains unmerged. No profitability or production-readiness claim is made.
