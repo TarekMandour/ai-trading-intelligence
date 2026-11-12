@@ -37,12 +37,24 @@ class EgxCandleSyncService
         $rows = DB::table('egx_candles')->where('asset_id', $assetId)->where('timeframe', $source)->orderBy('open_time')->get();
         $groups = $rows->groupBy(fn ($c) => (int) (floor(($c->open_time / 1000) / ($minutes * 60)) * ($minutes * 60)));
         $aggregated = [];
+        $sourceIntervalMs = $source === '5m' ? 5 * 60 * 1000 : 60 * 60 * 1000;
+        $expectedSourceBars = $minutes * 60 * 1000 / $sourceIntervalMs;
         foreach ($groups as $bucket => $items) {
-            $items = $items->values();
-            if ($items->count() < ($target === '15m' ? 3 : 2)) continue;
+            $items = $items->sortBy('open_time')->values();
+            if ($items->count() !== $expectedSourceBars) continue;
+
+            $expectedOpenTimes = [];
+            for ($i = 0; $i < $expectedSourceBars; $i++) {
+                $expectedOpenTimes[] = ((int) $bucket * 1000) + ($i * $sourceIntervalMs);
+            }
+            if ($items->pluck('open_time')->map(fn ($time) => (int) $time)->all() !== $expectedOpenTimes) continue;
+
+            $closeTime = ((int) $bucket * 1000) + ($minutes * 60 * 1000) - 1;
+            if ($closeTime > now()->getTimestampMs()) continue;
+
             $aggregated[] = [
                 'asset_id' => $assetId, 'timeframe' => $target, 'open_time' => (int) $bucket * 1000,
-                'close_time' => (int) $bucket * 1000 + ($minutes * 60 * 1000) - 1,
+                'close_time' => $closeTime,
                 'open' => $items->first()->open, 'high' => $items->max('high'), 'low' => $items->min('low'),
                 'close' => $items->last()->close, 'volume' => $items->sum('volume'),
                 'created_at' => now(), 'updated_at' => now(),
