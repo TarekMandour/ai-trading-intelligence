@@ -114,6 +114,7 @@ class ProcessAnalysisRun implements ShouldQueue
                     }
                 }
 
+                $requiredRolesPresent = count(array_intersect(array_keys($timeframes), array_keys($candlesByRole))) === count($timeframes);
                 $ictResult = config('ict.enabled', true) ? $ict->evaluate($candlesByRole, $profile) : ['scenarios' => [], 'decision' => 'NO_OPPORTUNITY', 'reasons' => ['ICT_STRATEGY_DISABLED']];
                 $alignmentResult = ['state' => $ictResult['context']['bias'] ?? 'INSUFFICIENT', 'allow_entry' => ($ictResult['context']['bias'] ?? null) === 'BULLISH' && ($ictResult['context']['structure_bias'] ?? null) !== 'BEARISH', 'reasons' => $ictResult['reasons'] ?? []];
                 $entryState = $states['entry'] ?? null;
@@ -123,7 +124,7 @@ class ProcessAnalysisRun implements ShouldQueue
                 $selectedScenario ??= collect($scenarioResults)->first(fn (array $scenario): bool => $scenario['status'] === 'WAIT' && is_array($scenario['candidate'] ?? null));
                 $candidate = $selectedScenario['candidate'] ?? null;
                 $marketEntryReady = ($candidate['entry_plans']['market']['status'] ?? null) === 'PLANNED';
-                $decision = ($profileWarnings !== [] || count($candlesByRole) !== count($timeframes)) ? 'REJECTED' : ($ictResult['decision'] ?? 'NO_OPPORTUNITY');
+                $decision = ($profileWarnings !== [] || ! $requiredRolesPresent) ? 'REJECTED' : ($ictResult['decision'] ?? 'NO_OPPORTUNITY');
                 $executionCosts = ['available' => false, 'fee' => 0, 'spread' => 0, 'slippage' => 0, 'total' => 0, 'reason' => 'NOT_REQUESTED_NO_ENTERABLE_CANDIDATE'];
                 if ($candidate === null && $decision !== 'REJECTED' && collect($scenarioResults)->contains(fn (array $scenario): bool => $scenario['status'] === 'WAIT')) {
                     $decision = 'WAIT';
