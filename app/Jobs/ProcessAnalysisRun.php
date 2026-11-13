@@ -120,6 +120,10 @@ class ProcessAnalysisRun implements ShouldQueue
                 $entryState = $states['entry'] ?? null;
                 $regime = $entryState ?? ['direction' => 'UNCERTAIN', 'behavior' => 'UNCERTAIN', 'volatility' => 'NORMAL', 'reasons' => ['INSUFFICIENT_VALIDATED_CANDLE_EVIDENCE'], 'candidate' => null];
                 $scenarioResults = $ictResult['scenarios'] ?? [];
+                if (($ictResult['canonical_scenario']['status'] ?? null) === 'ENTERABLE'
+                    && is_array($ictResult['canonical_scenario']['candidate'] ?? null)) {
+                    array_unshift($scenarioResults, $ictResult['canonical_scenario']);
+                }
                 $selectedScenario = collect($scenarioResults)->first(fn (array $scenario): bool => $scenario['status'] === 'ENTERABLE' && is_array($scenario['candidate'] ?? null));
                 $selectedScenario ??= collect($scenarioResults)->first(fn (array $scenario): bool => $scenario['status'] === 'WAIT' && is_array($scenario['candidate'] ?? null));
                 $candidate = $selectedScenario['candidate'] ?? null;
