@@ -443,6 +443,11 @@ class AnalysisComponentsTest extends TestCase
         $candles[31]['high'] = 104.0;
         $candles[31]['low'] = 101.8;
         $candles[31]['close'] = 103.8;
+        // The third candle must leave a bullish gap above candle 30's high.
+        $candles[32]['open'] = 101.1;
+        $candles[32]['high'] = 101.6;
+        $candles[32]['low'] = 101.0;
+        $candles[32]['close'] = 101.4;
 
         $sequence = (new \App\Services\Analysis\IctBullishSequenceAnalyzer)->detect($candles);
 
@@ -477,6 +482,11 @@ class AnalysisComponentsTest extends TestCase
         $candles[31]['high'] = 104.0;
         $candles[31]['low'] = 101.8;
         $candles[31]['close'] = 103.8;
+        // The third candle must leave a bullish gap above candle 30's high.
+        $candles[32]['open'] = 101.1;
+        $candles[32]['high'] = 101.6;
+        $candles[32]['low'] = 101.0;
+        $candles[32]['close'] = 101.4;
 
         $engine = new IctComprehensiveEngine;
         $method = new \\ReflectionMethod($engine, 'analyzeSetup');
