@@ -50,7 +50,7 @@ class IctReplayIntegrityTest extends TestCase
                     'stop' => 95.0,
                     'target1' => 110.0,
                     'target2' => 115.0,
-                    'entry_plans' => ['market' => ['status' => 'PLANNED'], 'limit' => ['status' => 'PLANNED', 'limit_price' => 99.0]],
+                    'entry_plans' => ['market' => ['status' => 'PLANNED'], 'limit' => ['status' => 'WAIT', 'limit_price' => 99.0]],
                 ],
             ]],
         ]);
