@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class EgxScanRun extends Model
 {
-    protected $fillable = ['egx_watchlist_id', 'status', 'profiles', 'results', 'failure_reason', 'started_at', 'completed_at'];
+    protected $fillable = ['egx_watchlist_id', 'status', 'ai_status', 'ai_provider', 'ai_model', 'profiles', 'results', 'failure_reason', 'started_at', 'completed_at'];
     protected function casts(): array
     {
         return ['profiles' => 'array', 'results' => 'array', 'started_at' => 'datetime', 'completed_at' => 'datetime'];
