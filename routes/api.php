@@ -15,6 +15,6 @@ Route::middleware('throttle:30,1')->group(function (): void {
     Route::post('/egx/watchlists', [EgxMarketController::class, 'createWatchlist']);
     Route::put('/egx/watchlists/{watchlist}', [EgxMarketController::class, 'updateWatchlist']);
     Route::get('/egx/watchlists/{watchlist}/scans', [EgxMarketController::class, 'scanHistory']);
-    Route::post('/egx/scan', [EgxMarketController::class, 'scan']);
+    Route::post('/egx/scan', [EgxMarketController::class, 'scan']);\n    Route::get('/egx/ai/outcomes', [EgxMarketController::class, 'aiOutcomes']);
     Route::post('/egx/backtest', [EgxMarketController::class, 'backtest']);
 });
