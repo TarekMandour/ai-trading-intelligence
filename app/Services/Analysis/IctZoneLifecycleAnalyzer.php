@@ -12,6 +12,7 @@ class IctZoneLifecycleAnalyzer
         $touches = 0;
         $deepestPrice = null;
         $invalidationClose = null;
+        $lastTouchCloseTime = null;
 
         foreach ($candles as $candle) {
             if ((int) ($candle['close_time'] ?? 0) <= $createdAt) continue;
@@ -20,6 +21,7 @@ class IctZoneLifecycleAnalyzer
             $low = (float) $candle['low'];
             if ((float) $candle['close'] < (float) $zone['low']) {
                 $touches++;
+                $lastTouchCloseTime = (int) ($candle['close_time'] ?? 0);
                 $deepestPrice = $deepestPrice === null ? $low : min($deepestPrice, $low);
                 $status = 'INVALIDATED';
                 $invalidationClose = (float) $candle['close'];
@@ -28,6 +30,7 @@ class IctZoneLifecycleAnalyzer
             if ($status === 'FULLY_FILLED') continue;
             if ($low <= (float) $zone['high']) {
                 $touches++;
+                $lastTouchCloseTime = (int) ($candle['close_time'] ?? 0);
                 $deepestPrice = $deepestPrice === null ? $low : min($deepestPrice, $low);
                 $status = 'PARTIALLY_FILLED';
             }
@@ -39,6 +42,7 @@ class IctZoneLifecycleAnalyzer
             'touch_count' => $touches,
             'deepest_price' => $deepestPrice,
             'invalidation_close' => $invalidationClose,
+            'last_touch_close_time' => $lastTouchCloseTime,
             'touch_is_fill' => false,
         ]);
     }
@@ -49,6 +53,7 @@ class IctZoneLifecycleAnalyzer
         $status = 'ACTIVE';
         $touches = 0;
         $invalidationClose = null;
+        $lastTouchCloseTime = null;
 
         foreach ($candles as $candle) {
             if ((int) ($candle['close_time'] ?? 0) <= $createdAt) continue;
@@ -56,6 +61,7 @@ class IctZoneLifecycleAnalyzer
 
             if ((float) $candle['low'] <= (float) $zone['high'] && (float) $candle['high'] >= (float) $zone['low']) {
                 $touches++;
+                $lastTouchCloseTime = (int) ($candle['close_time'] ?? 0);
                 $status = 'MITIGATED';
             }
             if ((float) $candle['close'] < (float) $zone['low']) {
@@ -68,6 +74,7 @@ class IctZoneLifecycleAnalyzer
             'status' => $status,
             'touch_count' => $touches,
             'invalidation_close' => $invalidationClose,
+            'last_touch_close_time' => $lastTouchCloseTime,
             'touch_is_fill' => false,
         ]);
     }
