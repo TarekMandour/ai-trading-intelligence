@@ -25,7 +25,7 @@
 </style>
 <h3>Opportunity overview</h3>
 <span class="status {{ $report->status === 'ENTERABLE' ? 'ready' : ($report->status === 'WATCHLIST' ? 'watch' : (in_array($report->status, ['REJECTED','FAILED'], true) ? 'reject' : '')) }}">{{ $report->status }}</span>
-@if($report->status === 'WATCHLIST' && is_array($watchlist))
+@if($report->status !== 'ENTERABLE' && is_array($watchlist))
 <p><strong>Potential bullish setup — monitoring only.</strong> No order is authorized until the entry trigger is confirmed.</p>
 <div class="levels">
 <div class="level"><small>Last price</small><br><strong>{{ number_format((float) ($watchlist['reference_price'] ?? 0), 4) }}</strong></div>
