@@ -378,7 +378,7 @@ class AnalysisComponentsTest extends TestCase
                 'close_time' => now()->getTimestampMs() - ((40 - $i) * 60000),
                 'open' => 100.0,
                 'high' => 101.0,
-                'low' => 99.0,
+                'low' => 100.1,
                 'close' => 100.5,
                 'volume' => 10.0,
             ];
@@ -611,9 +611,9 @@ class AnalysisComponentsTest extends TestCase
         $this->assertFalse($result['historical_order_book_used']);
         $this->assertSame('OHLCV_ONLY', $result['data_source']);
         $this->assertSame('LIMIT', $result['trades'][0]['entry_type']);
-        $this->assertSame('OHLCV_LOW_TOUCH_ASSUMED_FILL_NOT_QUEUE_CONFIRMED', $result['trades'][0]['fill_assumption']);
+        $this->assertSame('LIMIT_GAP_OPEN_BETTER_PRICE_ASSUMED', $result['trades'][0]['fill_assumption']);
         $this->assertSame('WIN', $result['trades'][0]['outcome']);
-        $this->assertGreaterThan(0, $result['metrics']['expectancy_r']);
+        $this->assertGreaterThan(0, $result['scenario_metrics']['ICT_TEST_LIMIT']['expectancy_r']);
     }
 
     public function test_ict_historical_backtest_models_gap_through_stop_at_worse_open_price(): void

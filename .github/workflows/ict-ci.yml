@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [phase-1-local-mvp, feature/ict-comprehensive]
   push:
-    branches: [feature/ict-comprehensive]
+    branches: [feature/ict-comprehensive, fix/ict-replay-integrity]
 
 permissions:
   contents: read
