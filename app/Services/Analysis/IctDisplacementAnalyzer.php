@@ -1,6 +1,6 @@
 <?php
 
-namespace App\\Services\\Analysis;
+namespace App\Services\Analysis;
 
 /** Measures each impulse against ATR and prior-volume baselines (no current-bar leakage). */
 class IctDisplacementAnalyzer
