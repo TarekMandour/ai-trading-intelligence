@@ -1,9 +1,9 @@
 <?php
 
-namespace Tests\\Unit;
+namespace Tests\Unit;
 
-use App\\Services\\Analysis\\IctOpportunityWatchlist;
-use Tests\\TestCase;
+use App\Services\Analysis\IctOpportunityWatchlist;
+use Tests\TestCase;
 
 class IctOpportunityWatchlistTest extends TestCase
 {
