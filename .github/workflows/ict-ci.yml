@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [phase-1-local-mvp, feature/ict-comprehensive, fix/ict-replay-integrity]
   push:
-    branches: [feature/ict-comprehensive, fix/ict-replay-integrity, feature/ict-opportunity-watchlist-cards]
+    branches: [feature/ict-comprehensive, fix/ict-replay-integrity, feature/ict-opportunity-watchlist-cards, feature/ict-engine-rebuild-v2]
 
 permissions:
   contents: read
