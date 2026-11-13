@@ -68,7 +68,7 @@ class IctComprehensiveEngine
 
         $legacyWatchlist = (new IctOpportunityWatchlist)->evaluate($contextEvidence, $setupEvidence, $advancedEvidence, $entryEvidence);
         $tradePlan = $setupAnalysis['trade_plan'];
-        $watchlist = $legacyWatchlist ?? $this->structuralWatchlist($setupAnalysis, (float) $entryEvidence['last_close']);
+        $watchlist = $legacyWatchlist ?? $this->structuralWatchlist($setupAnalysis, (float) $entryEvidence['last_close'], $contextEvidence);
         $canonicalScenario = $this->canonicalScenario($profile, $tradePlan);
         $decision = $tradePlan['status'] === 'ENTERABLE'
             ? 'ENTERABLE'
@@ -120,7 +120,7 @@ class IctComprehensiveEngine
         ];
     }
 
-    private function structuralWatchlist(array $analysis, float $price): ?array
+    private function structuralWatchlist(array $analysis, float $price, array $contextEvidence): ?array
     {
         $zone = $analysis['zones']['best_bullish_zone'] ?? null;
         if (! is_array($zone) || $price <= 0) return null;
@@ -134,6 +134,9 @@ class IctComprehensiveEngine
             : ($price > $high ? ($price - $high) / $price * 100 : 0.0);
         if ($distance > max(0.1, (float) config('ict.watchlist_max_zone_distance_pct', 3.0))) return null;
 
+        $contextBias = $contextEvidence['bias'] ?? 'UNCERTAIN';
+        $alignment = $contextBias === 'BEARISH' ? 'COUNTERTREND' : 'SUPPORTIVE_OR_NEUTRAL';
+
         return [
             'status' => 'WATCHLIST',
             'direction' => 'LONG',
@@ -141,8 +144,8 @@ class IctComprehensiveEngine
             'zone_type' => $zone['type'],
             'zone' => ['low' => $low, 'high' => $high, 'ce' => (float) $zone['ce']],
             'distance_to_zone_pct' => round($distance, 3),
-            'structure' => ['context_bias' => $bias, 'structure_bias' => $bias, 'mss_confirmed' => in_array($lastEvent, ['CHOCH_BULLISH', 'BOS_BULLISH'], true)],
-            'reasons' => ['CAUSAL_BULLISH_STRUCTURE', 'QUALIFIED_ACTIVE_ZONE', 'WAITING_FOR_ENTRY_TIMEFRAME_CONFIRMATION'],
+            'structure' => ['context_bias' => $contextBias, 'context_alignment' => $alignment, 'structure_bias' => $bias, 'mss_confirmed' => $lastEvent === 'CHOCH_BULLISH'],
+            'reasons' => array_values(array_filter(['CAUSAL_BULLISH_STRUCTURE', 'QUALIFIED_ACTIVE_ZONE', 'WAITING_FOR_ENTRY_TIMEFRAME_CONFIRMATION', $alignment === 'COUNTERTREND' ? 'COUNTERTREND_SETUP_AGAINST_HIGHER_TIMEFRAME' : null])),
             'required_confirmation' => ['completed_bullish_entry_candle', 'close_above_previous_entry_high', 'zone_holds_without_invalidation'],
             'invalidation' => 'A completed close below the selected bullish zone low invalidates this watchlist setup.',
             'entry_authorized' => false,
