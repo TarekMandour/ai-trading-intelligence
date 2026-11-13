@@ -1,6 +1,6 @@
 <?php
 
-namespace App\\Services\\Analysis;
+namespace App\Services\Analysis;
 
 /** Coordinates the causal ICT evidence pipeline for one completed-candle series. */
 class IctAnalysisPipeline
