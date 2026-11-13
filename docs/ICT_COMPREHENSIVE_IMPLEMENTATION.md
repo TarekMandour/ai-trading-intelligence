@@ -29,7 +29,10 @@ The first implementation uses deterministic pivot, liquidity, displacement, MSS,
 
 ## Limitations
 
-- ICT-01 now requires an ordered sequence: a previously confirmed SSL is swept and reclaimed, a later bullish displacement exceeds the configured true-range ATR multiple and closes through a previously confirmed swing high (MSS), and a subsequent three-candle bullish FVG is identified. This sequence is deterministic but still needs broad replay fixtures and historical validation.
+- ICT-01 now requires an ordered sequence: a previously confirmed SSL is swept and reclaimed, a later bullish displacement occurs within `ICT_SEQUENCE_MAX_BARS_AFTER_SWEEP`, closes through a previously confirmed swing high (MSS), and is the middle candle of the subsequent three-candle bullish FVG. The displacement metadata is taken from that same impulse candle.
+- Bullish OB candidates are anchored to the last bearish candle immediately preceding the confirmed displacement, not any unrelated bearish candle near the latest bar. The OB becomes active only after the displacement candle closes.
+- FVG and OB lifecycle replay records the most recent retest timestamp. Entry triggers must occur after the retest and within `ICT_MAX_ENTRY_BARS_AFTER_RETEST` entry candles; an old touch cannot authorize a late chase entry.
+- ICT-02 and ICT-05 require the linked confirmed sweep/displacement/MSS/FVG sequence rather than combining an unrelated recent displacement with an arbitrary FVG.
 - Optional confluence evidence now includes equal-level candidates, bullish OTE range, rejection-block candidates, breaker-block retest candidates, and session-window availability. These are evidence only and do not independently authorize trades.
 - Silver Bullet/Judas scenarios are implemented but remain inactive until explicit windows and a timezone are configured. Windows can be supplied as JSON through `ICT_SESSION_WINDOWS`; midnight-crossing windows are supported.
 - SMT bullish swing-low divergence evidence is implemented for synchronized, same-timeframe reference candles. The queued workflow can fetch an optional setup-timeframe reference symbol when `ICT_SMT_REFERENCE_SYMBOL` is configured; failures only add warnings and do not block core ICT analysis. Positive correlation is assumed and explicitly reported.
@@ -39,7 +42,7 @@ The first implementation uses deterministic pivot, liquidity, displacement, MSS,
 - Immediate Market entry is blocked when the reference price is outside the configured distance from a valid entry zone. A Limit plan can remain available as a conditional research plan; a candle touch is not treated as a fill.
 - Added a GitHub Actions PHP 8.3 workflow for pull-request testing. Its first run has not yet been observed.
 - Market/Limit are represented as research entry plans with Ask-side execution reference, zone-distance guard, expiry, and explicit touch-is-not-fill semantics; no order placement is implemented or authorized.
-- Historical fill accuracy cannot be inferred from OHLCV alone.
+- Historical fill accuracy cannot be inferred from OHLCV alone. Stop-market gaps are modeled at the worse opening price when the market opens through the stop; same-bar stop/target ambiguity remains stop-first.
 - Added `IctHistoricalBacktestService` for chronological OHLCV replay, Market next-bar-open and modeled Limit touch fills, conservative stop-first same-bar handling, split target exits, fee/slippage assumptions, and trade metrics.
-- The backtest service accepts caller-supplied multi-timeframe historical candle arrays; historical data download, persisted backtest runs, out-of-sample partitioning, and strategy parameter optimization are not implemented.
+- The backtest service accepts caller-supplied multi-timeframe historical candle arrays and supports a caller-selected chronological holdout via `test_start_index`, with a Buy-and-Hold benchmark over the same entry-timeframe window. This is a single holdout mechanism, not automated train/validation/test partitioning or walk-forward optimization. Historical data download and persisted backtest runs remain incomplete.
 - Limit touch fills are assumptions, not queue-confirmed fills. No historical order-book depth is used, and no profitability conclusion is valid until a realistic data set and out-of-sample/paper validation are completed.
