@@ -9,6 +9,8 @@ return [
     'swing_right' => (int) env('ICT_SWING_RIGHT', 2),
     'displacement_atr_multiple' => (float) env('ICT_DISPLACEMENT_ATR_MULTIPLE', 1.2),
     'displacement_body_ratio' => (float) env('ICT_DISPLACEMENT_BODY_RATIO', 0.65),
+    'sequence_max_bars_after_sweep' => (int) env('ICT_SEQUENCE_MAX_BARS_AFTER_SWEEP', 5),
+    'max_entry_bars_after_retest' => (int) env('ICT_MAX_ENTRY_BARS_AFTER_RETEST', 3),
     'dealing_range_lookback' => (int) env('ICT_DEALING_RANGE_LOOKBACK', 50),
     'target_1_r' => (float) env('ICT_TARGET_1_R', 2.0),
     'target_2_r' => (float) env('ICT_TARGET_2_R', 3.0),
