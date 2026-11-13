@@ -11,17 +11,20 @@ class GeminiMarketAnalystTest extends TestCase
     public function test_it_sends_an_independent_market_packet_and_parses_the_report(): void
     {
         config(['services.gemini.key' => 'test-key', 'services.gemini.model' => 'gemini-test']);
+        $report = [
+            'decision' => 'WATCHLIST', 'direction' => 'BULLISH', 'setup_type' => 'breakout_retest',
+            'entry_zone' => ['low' => 10.0, 'high' => 10.2], 'stop_loss' => 9.7,
+            'target_1' => 10.8, 'target_2' => 11.3, 'risk_reward' => 2.0,
+            'confidence' => 'MODERATE',
+            'timeframe_bias' => ['context' => 'BULLISH', 'structure' => 'BULLISH', 'setup' => 'BULLISH', 'entry' => 'WAIT'],
+            'key_evidence' => ['Higher highs'], 'risks' => ['Resistance nearby'],
+            'invalidation' => 'Close below 9.7', 'summary' => 'Wait for retest',
+        ];
         Http::fake([
             'generativelanguage.googleapis.com/*' => Http::response([
-                'candidates' => [['content' => ['parts' => [['text' => json_encode([
-                    'decision' => 'WATCHLIST', 'direction' => 'BULLISH', 'setup_type' => 'breakout_retest',
-                    'entry_zone' => ['low' => 10.0, 'high' => 10.2], 'stop_loss' => 9.7,
-                    'target_1' => 10.8, 'target_2' => 11.3, 'risk_reward' => 2.0,
-                    'confidence' => 'MODERATE',
-                    'timeframe_bias' => ['context' => 'BULLISH', 'structure' => 'BULLISH', 'setup' => 'BULLISH', 'entry' => 'WAIT'],
-                    'key_evidence' => ['Higher highs'], 'risks' => ['Resistance nearby'],
-                    'invalidation' => 'Close below 9.7', 'summary' => 'Wait for retest',
-                ])]]]],
+                'candidates' => [
+                    ['content' => ['parts' => [['text' => json_encode($report)]]]],
+                ],
                 'usageMetadata' => ['totalTokenCount' => 123],
             ]),
         ]);
