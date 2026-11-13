@@ -642,7 +642,7 @@ class AnalysisComponentsTest extends TestCase
             $candles[] = [
                 'open_time' => $now - ((45 - $i) * 60000),
                 'close_time' => $now - ((45 - $i) * 60000) + 59999,
-                'open' => 100.0, 'high' => 101.0, 'low' => 99.0,
+                'open' => 100.0, 'high' => 101.0 + ($i * 0.1), 'low' => 99.0,
                 'close' => 100.0 + ($i * 0.1), 'volume' => 100.0,
             ];
         }
