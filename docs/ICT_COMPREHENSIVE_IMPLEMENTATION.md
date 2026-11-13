@@ -46,3 +46,33 @@ The first implementation uses deterministic pivot, liquidity, displacement, MSS,
 - Added `IctHistoricalBacktestService` for chronological OHLCV replay, Market next-bar-open and modeled Limit touch fills, conservative stop-first same-bar handling, split target exits, fee/slippage assumptions, and trade metrics.
 - The backtest service accepts caller-supplied multi-timeframe historical candle arrays and supports a caller-selected chronological holdout via `test_start_index`, with a Buy-and-Hold benchmark over the same entry-timeframe window. This is a single holdout mechanism, not automated train/validation/test partitioning or walk-forward optimization. Historical data download and persisted backtest runs remain incomplete.
 - Limit touch fills are assumptions, not queue-confirmed fills. No historical order-book depth is used, and no profitability conclusion is valid until a realistic data set and out-of-sample/paper validation are completed.
+
+
+## Causal engine rebuild — v2 (2026-11-13)
+
+A separate research branch introduces `ict-v2-causal`. The new pipeline is now called by the comprehensive engine and supplies the top-level structural trade plan; the seven earlier scenario evaluators remain in the payload as comparison/diagnostic outputs during migration.
+
+### New deterministic components
+
+- `IctSwingPointDetector`: strict left/right fractal pivots with origin index and later confirmation index/time. A pivot is not available until all configured right-side candles have closed.
+- `IctMarketStructureAnalyzer`: chronological close-based BOS/CHoCH events. A level can only break after its pivot confirmation and is consumed once.
+- `IctLiquidityAnalyzer`: equal-high/equal-low pools within a configurable basis-point tolerance, plus wick-through-and-close-back-inside sweeps. A sweep is only evaluated after the pool's pivots are confirmed.
+- `IctDisplacementAnalyzer`: candle range versus prior ATR, body/range ratio, close location, and volume versus prior average volume. The impulse candle is excluded from its own baselines.
+- `IctZoneQualityAnalyzer`: FVGs are formed around an identified displacement candle; OBs are anchored to the last opposing candle before that impulse. Quality scores combine impulse size, body ratio, relative volume, linked structure break, and a temporally linked SSL sweep. Zones are replayed through later candles and invalidated/fully-filled zones are excluded.
+- `IctDealingRangeAnalyzer`: premium/discount is calculated from a confirmed directional swing leg, not a rolling arbitrary high/low.
+- `IctStructuralTradePlanner`: entry requires an entry-timeframe candle that retests the zone, closes bullish, and closes above the prior entry candle high. Stop is below structural invalidation with an ATR buffer. Targets prefer unbroken opposing swing/liquidity levels and disclose R-multiple fallback. No order submission is enabled.
+
+### Output and migration
+
+The engine returns `structural_analysis`, `structural_trade_plan`, and `canonical_scenario` in addition to the legacy scenario diagnostics. The queued Binance workflow now considers the canonical structural candidate first. The historical replay also includes canonical structural candidates and still reports legacy scenario families independently.
+
+### Known limitations — not strategy approval
+
+- This first rebuild is long-only and deterministic; thresholds remain hypotheses.
+- The pipeline detects strict fractal pivots; alternate pivot/market-structure definitions require separate sensitivity testing.
+- The current OB/FVG quality score is a transparent heuristic, not a calibrated probability.
+- The first structural plan confirms a bullish retest/reclaim on the entry timeframe; more nuanced trigger types (engulfing, micro BOS, reclaim of CE) remain future variants to compare.
+- Higher-timeframe alignment and live order-book cost checks remain hard gates in the existing queued workflow.
+- The OHLCV backtest still uses explicit fill assumptions and cannot reproduce queue priority, intrabar tick order, or historical order-book depth.
+- EGX/Thndr is not yet connected to this Binance ICT pipeline. EGX candles require their own exchange-session calendar, corporate-action adjustment, tick/lot/price-band handling, fees, and slippage model before an EGX backtest can be considered valid.
+- No profitability claim is made. Approval requires scenario-isolated train/validation/untouched test, walk-forward and sensitivity analysis, and prospective paper-trading evidence.
