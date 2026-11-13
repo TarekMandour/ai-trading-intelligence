@@ -62,17 +62,13 @@ Deliver the local, manual Laravel 13 analysis workflow for Binance Spot USDT lon
 - Automated tests use fakes. The complete test suite, migration and real OpenAI smoke test remain to be run in the user's Laragon environment.
 
 
-## ICT Comprehensive implementation progress (feature/ict-comprehensive)
 
-- Created a child feature branch from the latest Phase 1 baseline commit; no direct changes to main or phase-1-local-mvp.
-- Added IctComprehensiveEngine with strict candle-series quality checks, completed-candle constraints, swing pivots, liquidity sweep, displacement, MSS, FVG, OB, dealing-range context, and seven long-only scenario evaluators, including Silver Bullet and Judas Swing (active only in configured session windows).
-- Added IctBullishSequenceAnalyzer so ICT-01 requires ordered confirmed SSL sweep/reclaim -> later bullish displacement and close-based MSS -> bullish FVG formation.
-- Added IctAdvancedEvidenceAnalyzer for equal-level candidates, OTE range, rejection-block candidates, breaker-block retest candidates, configurable session windows, and SMT bullish swing-low divergence evidence when synchronized reference candles are supplied. The queued analysis job does not yet fetch a reference symbol.
-- Added IctEntryPlanner for research-only Market and Limit plans, valid-zone checks, max market distance, expiry metadata, and touch-is-not-fill policy. Market entry is blocked outside the zone-distance threshold while the conditional Limit plan is retained. Order submission is disabled.
-- Added liquidity-aware targets: nearest opposing confirmed swing highs are preferred; R-multiple fallback is identified explicitly.
-- Added `IctHistoricalBacktestService` for OHLCV-only chronological replay, explicit Market/Limit fill assumptions, conservative stop-first resolution, split exits, fees/slippage, and basic performance metrics. Historical data acquisition, persisted backtest reports, out-of-sample partitions, and parameter optimization remain future work.
-- Added a PHP 8.3 GitHub Actions test workflow with PHP syntax validation and the Laravel test suite.
-- Integrated ICT scenario evaluation and ICT evidence snapshots into ProcessAnalysisRun; legacy scenario selection and legacy alignment hard gates are no longer used for final ICT selection.
-- Added ICT report rendering and unit coverage for incomplete/forming data, three core scenarios, entry plan behavior, and optional session/SMT configuration.
-- Important limitations: ICT-01 has an ordered event chain; ICT-02 through ICT-07 still use heuristics and the full chronological event-state engine remains incomplete; Silver Bullet/Judas require configured windows/timezone; SMT requires an externally supplied reference series; historical data acquisition and persisted backtest reporting are not implemented.
-- CI has passed PHP syntax checks and the Laravel suite on the earlier backtest implementation; the latest Silver Bullet/Judas/SMT changes are awaiting a fresh CI run. Migrations and live Binance workflow validation remain pending.
+## Technical strategy replacement (2026-11-13)
+
+- The active ICT engine was removed from crypto and EGX analysis paths and its dedicated classes/configuration/tests were removed.
+- Both markets now call the provider-neutral `TechnicalStrategyEngine` using normalized completed OHLCV candles.
+- The replacement ports the supplied StockAnalysisService calculations: confirmed fractal swings, HH/HL/LH/LL structure, BOS/CHoCH, liquidity sweep, trend score, support/resistance strength, RVOL/volume trend/accumulation, ATR, entry zone, stop/targets, reward/risk, opportunity/speed scores and support-bounce confirmation.
+- Scalping, Intraday and Swing keep their existing multi-timeframe mappings. Binance and Thndr remain separate data providers; Gemini remains an independent advisory layer.
+- EGX historical replay now evaluates the same strategy chronologically, enters at the next entry candle open, applies explicit fees/slippage and resolves same-bar stop/target ambiguity stop-first.
+- Known research limitations: the supplied score thresholds are hypotheses, not calibrated probabilities; the historical replay uses OHLCV approximations and does not model queue priority or historical order-book depth; no profitability claim is made.
+- Verification remains pending in the target PHP 8.3/Laravel 13 environment. Do not treat this branch as validated until PHP lint, the full Laravel test suite, migrations and live-data smoke tests pass.

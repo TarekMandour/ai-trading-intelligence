@@ -21,8 +21,8 @@
 </head>
 <body>
     <h1>AI Trading Intelligence</h1>
-    <p class="muted">EGX scanner powered by Thndr market data and the ICT Comprehensive engine.</p>
-    <p><a href="{{ route('egx.watchlists.index') }}">Manage EGX Watchlists</a></p>
+    <p class="muted">EGX scanner powered by Thndr market data and the Technical Structure, Volume and Support/Resistance strategy.</p>
+    <p><a href="{{ route('egx.watchlists.index') }}">Manage EGX Watchlists</a> · <a href="{{ route('egx.scans.index') }}">سجل عمليات الفحص والنتائج السابقة</a></p>
 
     <section class="panel">
         <h2>Thndr Token Capture</h2>
@@ -38,7 +38,7 @@
 
     <section class="panel">
         <div class="toolbar" style="justify-content:space-between">
-            <div><h2 style="margin-bottom:4px">EGX Market Scanner</h2><span class="muted">Sync the market, build a watchlist, then run the selected ICT profiles.</span></div>
+            <div><h2 style="margin-bottom:4px">EGX Market Scanner</h2><span class="muted">Sync the market, build a watchlist, then run the selected strategy profiles.</span></div>
             <button type="button" id="sync-market">Sync Thndr Market</button>
         </div>
         <p class="message" id="sync-message" role="status"></p>
@@ -181,82 +181,60 @@
         catch(e){message('sync-message',e.message,'error');}
     });
 
-    // Execute ICT scan and render its response
+    // Execute the provider-neutral technical strategy and render its evidence.
     function renderResults(data){
         const host=$('scan-results');host.replaceChildren();
-        const heading=document.createElement('p');heading.innerHTML='<strong>Scan #'+data.run_id+'</strong> · '+(data.watchlist||'Watchlist')+' · '+(data.stocks?.length||0)+' stock(s)';host.append(heading);
+        const heading=document.createElement('p');
+        heading.textContent='Scan #'+data.run_id+' · '+(data.watchlist||'Watchlist')+' · '+(data.stocks?.length||0)+' stock(s)';
+        host.append(heading);
         (data.stocks||[]).forEach(stock=>{
             const card=document.createElement('div');card.className='result-card';
-            const symbol=stock.reuters||stock.symbol||'';
-            const title=document.createElement('h4');title.textContent=[stock.arabic_name||stock.name,symbol].filter(Boolean).join(' — ')||'Stock details unavailable';card.append(title);
+            const title=document.createElement('h4');
+            title.textContent=[stock.arabic_name||stock.name,stock.symbol].filter(Boolean).join(' — ')||'Stock';
+            card.append(title);
             Object.entries(stock.profiles||{}).forEach(([profile,result])=>{
-                const line=document.createElement('p');const status=result.status||result.decision||'UNKNOWN';line.innerHTML='<span class="pill">'+profile+'</span> <strong>'+status+'</strong>';
-                const reasons=result.reasons||[];if(reasons.length)line.textContent+=' · '+reasons.join(', ');
-                card.append(line);
-                if(result.status === 'WATCHLIST' && result.watchlist){
-                    const w=result.watchlist;
-                    const summary=document.createElement('section');summary.className='opportunity-summary';
-                    const heading=document.createElement('h5');heading.textContent='Potential opportunity · WATCHLIST (monitor only)';summary.append(heading);
-                    const metrics=document.createElement('div');metrics.className='metric-grid';
-                    const addMetric=(label,value)=>{const box=document.createElement('div');box.className='metric';const small=document.createElement('small');small.textContent=label;const strong=document.createElement('strong');strong.textContent=value;box.append(small,strong);metrics.append(box);};
-                    addMetric('Last price',Number(w.reference_price||0).toFixed(3));
-                    addMetric('Zone low – high',Number(w.zone?.low||0).toFixed(3)+' – '+Number(w.zone?.high||0).toFixed(3));
-                    addMetric('Distance to zone',(w.distance_to_zone_pct??'—')+'%');
-                    summary.append(metrics);
-                    const zone=document.createElement('p');zone.textContent='Zone: '+(w.zone_type||'—');summary.append(zone);
-                    const structure=document.createElement('p');structure.textContent='Structure: '+(w.structure?.context_bias||'—')+' / '+(w.structure?.structure_bias||'—')+' · Alignment: '+(w.structure?.context_alignment||'—')+' · MSS: '+(w.structure?.mss_confirmed?'Confirmed':'Not confirmed');summary.append(structure);
-                    const evidence=document.createElement('p');evidence.textContent='Evidence: '+(w.reasons||[]).join(', ');summary.append(evidence);
-                    const confirmation=document.createElement('p');confirmation.textContent='Required confirmation: '+(w.required_confirmation||[]).join('; ');summary.append(confirmation);
-                    const invalidation=document.createElement('p');invalidation.textContent='Invalidation: '+(w.invalidation||'—');summary.append(invalidation);
-                    const note=document.createElement('p');note.className='disclaimer';note.textContent='Monitoring only. This card is not an entry signal and does not authorize order execution.';summary.append(note);
-                    card.append(summary);
-                } else if(result.status === 'ENTERABLE' && Array.isArray(result.scenarios)){
-                    const candidateScenario=result.scenarios.find(x=>x.status==='ENTERABLE' && x.candidate);
-                    if(candidateScenario){
-                        const summary=document.createElement('section');summary.className='opportunity-summary';
-                        const heading=document.createElement('h5');heading.textContent='Entry candidate · '+(candidateScenario.scenario||'ICT');summary.append(heading);
-                        const metrics=document.createElement('div');metrics.className='metric-grid';
-                        [['Entry',candidateScenario.candidate.entry],['Stop loss',candidateScenario.candidate.stop],['Target 1',candidateScenario.candidate.target1],['Target 2',candidateScenario.candidate.target2]].forEach(([label,value])=>{const box=document.createElement('div');box.className='metric';const small=document.createElement('small');small.textContent=label;const strong=document.createElement('strong');strong.textContent=value??'—';box.append(small,strong);metrics.append(box);});
-                        summary.append(metrics);card.append(summary);
-                    }
-                } else if(result.status !== 'WATCHLIST'){
-                    const summary=document.createElement('section');summary.className='opportunity-summary';
-                    const heading=document.createElement('h5');heading.textContent='Analysis result · '+status;summary.append(heading);
-                    const note=document.createElement('p');
-                    note.textContent=result.status === 'REJECTED'
-                        ? 'Analysis rejected: required market data is incomplete or invalid. This is not a NO-SETUP decision.'
-                        : (result.status === 'NO_OPPORTUNITY'
-                            ? 'No qualifying setup was detected with the current evidence. Review the reasons and timeframe diagnostics below.'
-                            : 'No confirmed entry is available. Continue monitoring the next completed candles.');
-                    summary.append(note);
-                    if(reasons.length){const why=document.createElement('p');why.textContent='Reasons: '+reasons.join(', ');summary.append(why);}
-                    const disclaimer=document.createElement('p');disclaimer.className='disclaimer';disclaimer.textContent='No order is authorized by this result.';summary.append(disclaimer);
-                    card.append(summary);
+                const section=document.createElement('section');
+                const line=document.createElement('p');
+                line.textContent=profile+' · '+(result.status||result.decision||'UNKNOWN');
+                section.append(line);
+                const reasons=document.createElement('p');
+                reasons.textContent='Reasons: '+((result.reasons||[]).join(', ')||'—');
+                section.append(reasons);
+                const candidate=result.candidate||{};
+                const metrics=result.metrics||{};
+                if(candidate.entry!==null && candidate.entry!==undefined){
+                    const grid=document.createElement('div');grid.className='metric-grid';
+                    const metric=(label,value)=>{const box=document.createElement('div');box.className='metric';const small=document.createElement('small');small.textContent=label;const strong=document.createElement('strong');strong.textContent=value??'—';box.append(small,strong);grid.append(box);};
+                    metric('Entry',candidate.entry);metric('Entry zone',(candidate.entry_low??'—')+' – '+(candidate.entry_high??'—'));
+                    metric('Stop loss',candidate.stop);metric('Target 1',candidate.target1);metric('Target 2',candidate.target2);
+                    metric('Risk / Reward',candidate.risk_reward);metric('Opportunity score',metrics.opportunity_score);
+                    metric('Speed score',metrics.speed_score);metric('Relative volume',metrics.relative_volume);
+                    section.append(grid);
                 }
-                if(result.context){
-                    const context=document.createElement('p');
-                    context.textContent='Context: '+(result.context.bias||'—')+' | Structure: '+(result.context.structure_bias||'—');
-                    card.append(context);
+                if(result.timeframe_alignment){
+                    const align=document.createElement('p');
+                    align.textContent='Trend · Context: '+result.timeframe_alignment.context+' · Structure: '+result.timeframe_alignment.structure+' · Setup: '+result.timeframe_alignment.setup+' · Aligned: '+(result.timeframe_alignment.aligned?'Yes':'No');
+                    section.append(align);
                 }
-                if(Array.isArray(result.scenarios)){
-                    result.scenarios.forEach(scenario=>{
-                        const details=document.createElement('details');details.open=true;
-                        const summary=document.createElement('summary');
-                        summary.textContent=(scenario.scenario||'ICT scenario')+' — '+(scenario.status||'UNKNOWN');
-                        details.append(summary);
-                        const reasonList=document.createElement('ul');
-                        (scenario.reasons||[]).forEach(reason=>{const item=document.createElement('li');item.textContent=reason;reasonList.append(item);});
-                        if((scenario.reasons||[]).length)details.append(reasonList);
-                        if(scenario.candidate){const plan=document.createElement('pre');plan.textContent=JSON.stringify(scenario.candidate,null,2);details.append(plan);}
-                        if(scenario.evidence){const evidence=document.createElement('pre');evidence.textContent=JSON.stringify(scenario.evidence,null,2);details.append(evidence);}
-                        card.append(details);
-                    });
+                if(result.levels){
+                    const levels=document.createElement('p');
+                    levels.textContent='Support levels: '+(result.levels.supports||[]).map(x=>x.price).join(', ')+' · Resistance levels: '+(result.levels.resistances||[]).map(x=>x.price).join(', ');
+                    section.append(levels);
                 }
-                if(result.sync){const sync=document.createElement('details');const summary=document.createElement('summary');summary.textContent='Candle sync diagnostics';sync.append(summary);const pre=document.createElement('pre');pre.textContent=JSON.stringify(result.sync,null,2);sync.append(pre);card.append(sync);}
-                if(result.setup_evidence||result.entry_evidence||result.advanced_evidence){
-                    const evidence=document.createElement('details');const summary=document.createElement('summary');summary.textContent='Full ICT evidence';evidence.append(summary);const pre=document.createElement('pre');pre.textContent=JSON.stringify({setup:result.setup_evidence,entry:result.entry_evidence,advanced:result.advanced_evidence},null,2);evidence.append(pre);card.append(evidence);
+                if(result.gemini_analysis){
+                    const ai=document.createElement('details');const summary=document.createElement('summary');summary.textContent='Gemini independent review';ai.append(summary);
+                    const pre=document.createElement('pre');pre.textContent=JSON.stringify(result.gemini_analysis,null,2);ai.append(pre);section.append(ai);
                 }
-            });host.append(card);
+                if(result.sync){
+                    const sync=document.createElement('details');const summary=document.createElement('summary');summary.textContent='Candle synchronization';sync.append(summary);
+                    const pre=document.createElement('pre');pre.textContent=JSON.stringify(result.sync,null,2);sync.append(pre);section.append(sync);
+                }
+                const evidence=document.createElement('details');const summary=document.createElement('summary');summary.textContent='Full technical strategy evidence';evidence.append(summary);
+                const pre=document.createElement('pre');pre.textContent=JSON.stringify({metrics:result.metrics,alignment:result.timeframe_alignment,levels:result.levels,analysis:result.timeframe_analyses,raw:result.raw},null,2);
+                evidence.append(pre);section.append(evidence);
+                card.append(section);
+            });
+            host.append(card);
         });
         if(!(data.stocks||[]).length)host.textContent='No stock results returned.';
     }
@@ -264,13 +242,13 @@
         if(!currentWatchlist){message('scan-message','Select a watchlist first.','error');return;}
         const profiles=[...document.querySelectorAll('input[name="profile"]:checked')].map(x=>x.value);
         if(!profiles.length){message('scan-message','Select at least one scan profile.','error');return;}
-        $('run-scan').disabled=true;$('scan-results').replaceChildren();message('scan-message','Running scan. Candle synchronization and ICT analysis may take some time…');
+        $('run-scan').disabled=true;$('scan-results').replaceChildren();message('scan-message','Running scan. Candle synchronization and technical analysis may take some time…');
         try{const data=await request('/egx/scan',{method:'POST',body:JSON.stringify({watchlist_id:currentWatchlist.id,profiles})});renderResults(data);message('scan-message','Scan completed.','success');}
         catch(e){message('scan-message',e.message,'error');}finally{$('run-scan').disabled=false;}
     });
     $('scan-history').addEventListener('click',async()=>{
         if(!currentWatchlist)return;
-        try{const data=await request('/egx/watchlists/'+currentWatchlist.id+'/scans');const host=$('scan-results');host.replaceChildren();const pre=document.createElement('pre');pre.textContent=JSON.stringify(data,null,2);host.append(pre);}
+        try{window.location.href='/egx/scans';}
         catch(e){message('scan-message',e.message,'error');}
     });
 

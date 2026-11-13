@@ -9,7 +9,7 @@ use App\Services\Ai\AiAnalysisProvider;
 use App\Services\Ai\AiReviewValidator;
 use App\Services\Analysis\DeterministicAnalysisEngine;
 use App\Services\Analysis\ExecutionCostEstimator;
-use App\Services\Analysis\IctComprehensiveEngine;
+use App\Services\Analysis\TechnicalStrategyEngine;
 use App\Services\MarketData\BinanceSpotClient;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -63,7 +63,7 @@ class AnalysisPersistenceTest extends TestCase
             'symbols' => [['symbol' => 'BTCUSDT']],
             'tickers' => [],
         ]);
-        $candles = array_fill(0, 20, [
+        $candles = array_fill(0, 40, [
             'open_time' => 1, 'close_time' => 2, 'open' => 100.0, 'high' => 101.0,
             'low' => 99.0, 'close' => 100.0, 'volume' => 10.0,
         ]);
@@ -79,10 +79,10 @@ class AnalysisPersistenceTest extends TestCase
         $ai = $this->mock(AiAnalysisProvider::class);
         $job = new ProcessAnalysisRun($run->id);
 
-        $job->handle($binance, $engine, app(ExecutionCostEstimator::class), app(IctComprehensiveEngine::class), $ai, app(AiReviewValidator::class));
+        $job->handle($binance, $engine, app(ExecutionCostEstimator::class), app(TechnicalStrategyEngine::class), $ai, app(AiReviewValidator::class));
         $snapshot = $run->reports()->first()->opportunity->snapshot;
         $run->fresh()->update(['status' => 'QUEUED']);
-        $job->handle($binance, $engine, app(ExecutionCostEstimator::class), app(IctComprehensiveEngine::class), $ai, app(AiReviewValidator::class));
+        $job->handle($binance, $engine, app(ExecutionCostEstimator::class), app(TechnicalStrategyEngine::class), $ai, app(AiReviewValidator::class));
 
         $this->assertDatabaseCount('analysis_reports', 3);
         $this->assertDatabaseCount('analysis_opportunities', 3);

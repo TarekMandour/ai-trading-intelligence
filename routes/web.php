@@ -2,10 +2,13 @@
 
 use App\Http\Controllers\AnalysisRunController;
 use App\Http\Controllers\EgxWatchlistController;
+use App\Http\Controllers\EgxScanRunController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/analysis-runs');
 Route::resource('analysis-runs', AnalysisRunController::class)->only(['index', 'store', 'show']);
+Route::get('/egx/scans', [EgxScanRunController::class, 'index'])->name('egx.scans.index');
+Route::get('/egx/scans/{scanRun}', [EgxScanRunController::class, 'show'])->whereNumber('scanRun')->name('egx.scans.show');
 
 Route::prefix('egx/watchlists')->name('egx.watchlists.')->controller(EgxWatchlistController::class)->group(function (): void {
     Route::get('/', 'index')->name('index');
