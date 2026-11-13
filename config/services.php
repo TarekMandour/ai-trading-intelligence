@@ -6,12 +6,6 @@ return [
     |--------------------------------------------------------------------------
     | Third Party Services
     |--------------------------------------------------------------------------
-    |
-    | This file is for storing the credentials for third party services such
-    | as Resend, Postmark, AWS, and more. This file provides the de facto
-    | location for this type of information, allowing packages to have
-    | a conventional file to locate the various service credentials.
-    |
     */
 
     'postmark' => [
@@ -48,9 +42,10 @@ return [
 
     'gemini' => [
         'key' => env('GEMINI_API_KEY'),
-        'model' => env('GEMINI_MODEL', 'gemini-3.8-flash'),
+        'model' => env('GEMINI_MODEL', 'gemini-flash-lite-latest'),
         'timeout' => (int) env('GEMINI_TIMEOUT', 20),
         'max_output_tokens' => (int) env('AI_MAX_OUTPUT_TOKENS', 600),
+        'max_candidates_per_run' => (int) env('AI_MAX_CANDIDATES_PER_RUN', 5),
     ],
 
 ];

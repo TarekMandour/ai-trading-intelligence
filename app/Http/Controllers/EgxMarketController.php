@@ -6,8 +6,10 @@ use App\Models\EgxScanRun;
 use App\Models\EgxStock;
 use App\Models\EgxWatchlist;
 use App\Models\MarketSetting;
-use App\Services\Analysis\IctComprehensiveEngine;
+use App\Services\Analysis\TechnicalStrategyEngine;
+use App\Services\Ai\GeminiMarketAnalyst;
 use App\Services\MarketData\EgxCandleSyncService;
+use App\Services\MarketData\EgxTechnicalBacktestService;
 use App\Services\MarketData\EgxStockCatalog;
 use App\Services\MarketData\ThndrApiClient;
 use Illuminate\Http\JsonResponse;
@@ -131,7 +133,41 @@ class EgxMarketController extends Controller
         return response()->json(EgxScanRun::where('egx_watchlist_id', $watchlist->id)->latest()->paginate(20));
     }
 
-    public function scan(Request $request, ThndrApiClient $api, EgxCandleSyncService $sync, IctComprehensiveEngine $ict): JsonResponse
+    public function backtest(Request $request, EgxTechnicalBacktestService $backtest): JsonResponse
+    {
+        $data = $request->validate([
+            'asset_id' => ['required', 'string', 'exists:egx_stocks,asset_id'],
+            'profile' => ['required', 'string', 'in:Scalping,Intraday,Swing'],
+            'fee_rate' => ['required', 'numeric', 'min:0', 'max:0.1'],
+            'slippage_bps' => ['required', 'numeric', 'min:0', 'max:1000'],
+            'initial_capital' => ['sometimes', 'numeric', 'gt:0'],
+            'risk_fraction' => ['sometimes', 'numeric', 'gt:0', 'max:1'],
+            'max_holding_bars' => ['sometimes', 'integer', 'min:1', 'max:10000'],
+            'candle_limit' => ['sometimes', 'integer', 'min:100', 'max:10000'],
+            'warmup_bars' => ['sometimes', 'integer', 'min:30', 'max:1000'],
+        ]);
+
+        return response()->json($backtest->run(
+            $data['asset_id'],
+            $data['profile'],
+            array_intersect_key($data, array_flip(['fee_rate', 'slippage_bps', 'initial_capital', 'risk_fraction', 'max_holding_bars', 'candle_limit', 'warmup_bars'])),
+        ));
+    }
+
+    public function aiOutcomes(Request $request, EgxAiOutcomeService $outcomes): JsonResponse
+    {
+        $data = $request->validate([
+            'asset_id' => ['sometimes', 'string', 'exists:egx_stocks,asset_id'],
+            'horizon_bars' => ['sometimes', 'integer', 'min:1', 'max:500'],
+        ]);
+
+        return response()->json($outcomes->evaluate(
+            $data['asset_id'] ?? null,
+            (int) ($data['horizon_bars'] ?? 20),
+        ));
+    }
+
+    public function scan(Request $request, ThndrApiClient $api, EgxCandleSyncService $sync, TechnicalStrategyEngine $strategy, GeminiMarketAnalyst $gemini): JsonResponse
     {
         $data = $request->validate([
             'watchlist_id' => ['required', 'integer', 'exists:egx_watchlists,id'],
@@ -142,18 +178,16 @@ class EgxMarketController extends Controller
         abort_if($watchlist->stocks->isEmpty(), 422, 'WATCHLIST_EMPTY');
 
         $profiles = $data['profiles'] ?? ['Scalping', 'Intraday', 'Swing'];
-        $profileFrames = [
-            'Scalping' => ['context' => '1h', 'structure' => '15m', 'setup' => '5m', 'entry' => '1m'],
-            'Intraday' => ['context' => '4h', 'structure' => '1h', 'setup' => '15m', 'entry' => '5m'],
-            'Swing' => ['context' => '1w', 'structure' => '1d', 'setup' => '4h', 'entry' => '1h'],
-        ];
+        $profileFrames = config('analysis.profiles', []);
         $run = EgxScanRun::create([
             'egx_watchlist_id' => $watchlist->id, 'status' => 'RUNNING',
-            'profiles' => $profiles, 'started_at' => now(),
+            'profiles' => $profiles, 'ai_status' => filled(config('services.gemini.key')) ? 'RUNNING' : 'NOT_CONFIGURED', 'ai_provider' => 'gemini', 'ai_model' => config('services.gemini.model'), 'started_at' => now(),
         ]);
 
         try {
             $results = [];
+            $aiCandidateCount = 0;
+            $aiCandidateLimit = max(1, (int) config('services.gemini.max_candidates_per_run', 5));
             foreach ($watchlist->stocks as $stock) {
                 $stockResult = ['asset_id' => $stock->asset_id, 'symbol' => $stock->symbol, 'name' => $stock->name, 'arabic_name' => $stock->arabic_name, 'profiles' => []];
                 foreach ($profiles as $profile) {
@@ -179,19 +213,71 @@ class EgxMarketController extends Controller
                     if ($rejected) {
                         $profileResult = ['decision' => 'REJECTED', 'reasons' => [$rejected], 'sync' => $syncReport];
                     } else {
-                        $profileResult = $ict->evaluate($series, $profile) + ['sync' => $syncReport];
+                        // Gemini receives point-in-time candles independently of the deterministic strategy.
+                        $asOf = now()->toIso8601String();
+                        $timeframes = [];
+                        foreach ($profileFrames[$profile] as $role => $timeframe) {
+                            $timeframes[$timeframe] = $series[$role];
+                        }
+                        $aiSnapshot = [
+                            'market' => 'EGX',
+                            'venue' => 'THNDR',
+                            'currency' => 'EGP',
+                            'symbol' => $stock->symbol,
+                            'name' => $stock->name,
+                            'arabic_name' => $stock->arabic_name,
+                            'asset_id' => $stock->asset_id,
+                            'profile' => $profile,
+                            'as_of' => $asOf,
+                            'candle_policy' => 'COMPLETED_CANDLES_ONLY',
+                            'candle_counts' => array_map('count', $timeframes),
+                            'stock_metadata' => $stock->metadata ?? [],
+                            'timeframes' => $timeframes,
+                        ];
+                        if ($aiCandidateCount >= $aiCandidateLimit) {
+                            $geminiResult = [
+                                'status' => 'SKIPPED_LIMIT',
+                                'provider' => 'gemini',
+                                'model' => config('services.gemini.model'),
+                                'as_of' => $asOf,
+                                'input_snapshot' => $aiSnapshot,
+                            ];
+                        } else {
+                            $aiCandidateCount++;
+                            try {
+                                $geminiResult = $gemini->analyze($aiSnapshot);
+                                $geminiResult['as_of'] = $asOf;
+                                $geminiResult['input_snapshot'] = $aiSnapshot;
+                            } catch (Throwable $aiException) {
+                            $geminiResult = [
+                                'status' => 'FAILED',
+                                'provider' => 'gemini',
+                                'as_of' => $asOf,
+                                'error' => class_basename($aiException).': '.$aiException->getMessage(),
+                                    'input_snapshot' => $aiSnapshot,
+                                ];
+                            }
+                        }
+                        $profileResult = $strategy->evaluate($series, $profile) + ['sync' => $syncReport];
+                        $profileResult['gemini_analysis'] = $geminiResult;
                     }
-                    // The ICT engine exposes its final outcome as `decision`; normalize it
-                    // to `status` as well so API consumers have one consistent status field.
+                    // Normalize the strategy outcome as `status` for API consumers.
                     $profileResult['status'] = $profileResult['decision'] ?? 'UNKNOWN';
                     $stockResult['profiles'][$profile] = $profileResult;
                 }
                 $results[] = $stockResult;
             }
-            $run->update(['status' => 'COMPLETED', 'results' => $results, 'completed_at' => now()]);
+            $aiStatuses = [];
+            foreach ($results as $stockResult) {
+                foreach ($stockResult['profiles'] as $profileResult) {
+                    if (isset($profileResult['gemini_analysis']['status'])) $aiStatuses[] = $profileResult['gemini_analysis']['status'];
+                }
+            }
+            $aiStatus = $aiStatuses === [] ? 'NOT_RUN' : (count(array_filter($aiStatuses, fn ($status) => $status === 'COMPLETED')) === count($aiStatuses) ? 'COMPLETED' : (count(array_filter($aiStatuses, fn ($status) => $status === 'COMPLETED')) > 0 ? 'PARTIAL' : 'FAILED'));
+            $run->update(['status' => 'COMPLETED', 'ai_status' => $aiStatus, 'results' => $results, 'completed_at' => now()]);
             return response()->json([
                 'run_id' => $run->id, 'watchlist_id' => $watchlist->id,
-                'watchlist' => $watchlist->name, 'market' => 'EGX', 'source' => 'thndr', 'stocks' => $results,
+                'watchlist' => $watchlist->name, 'market' => 'EGX', 'source' => 'thndr', 'ai_provider' => 'gemini', 'ai_status' => $aiStatus, 'stocks' => $results,
             ]);
         } catch (Throwable $exception) {
             $run->update(['status' => 'FAILED', 'failure_reason' => class_basename($exception) . ': ' . $exception->getMessage(), 'completed_at' => now()]);

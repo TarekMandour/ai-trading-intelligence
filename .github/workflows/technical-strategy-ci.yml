@@ -1,10 +1,10 @@
-name: ICT Comprehensive CI
+name: Technical Strategy CI
 
 on:
   pull_request:
-    branches: [phase-1-local-mvp, feature/ict-comprehensive, fix/ict-replay-integrity]
+    branches: [main, phase-1-local-mvp, feature/ict-engine-rebuild-v2]
   push:
-    branches: [feature/ict-comprehensive, fix/ict-replay-integrity, feature/ict-opportunity-watchlist-cards]
+    branches: [feature/technical-strategy-replacement]
 
 permissions:
   contents: read
@@ -34,6 +34,13 @@ jobs:
       - name: PHP syntax check
         run: |
           find app tests -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Ensure legacy ICT engine references are removed
+        run: |
+          if grep -RInE 'IctComprehensiveEngine|IctHistoricalBacktestService|IctAnalysisPipeline|ICT_COMPREHENSIVE|\bict\.enabled' app config routes resources tests; then
+            echo "Legacy ICT engine reference found."
+            exit 1
+          fi
 
       - name: Run Laravel test suite
         run: php artisan test

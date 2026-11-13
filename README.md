@@ -1,6 +1,6 @@
 # AI Trading Intelligence
 
-A trading-research application that discovers, evaluates, and records explainable crypto Spot-long opportunities. The long-term product may become a centralized SaaS platform; the current milestone is deliberately a small local prototype.
+A trading-research application that evaluates explainable long-only opportunities in Binance Spot crypto and Egyptian equities through Thndr. The long-term product may become a centralized SaaS platform; the current milestone is deliberately a small local prototype.
 
 ## Current phase
 
@@ -12,8 +12,10 @@ A trading-research application that discovers, evaluates, and records explainabl
 - MySQL target database
 - Windows + Laragon Apache/PHP
 - Laravel database queue with a manually started worker
-- Binance Spot public REST API
-- Provider-neutral AI review integration (OpenAI first provider)
+- Binance Spot public REST API for crypto
+- Thndr market data for EGX equities
+- Shared provider-neutral technical strategy engine for Scalping, Intraday and Swing
+- Independent Gemini advisory analysis for EGX and provider-neutral AI review for crypto
 - Local dashboard with three independent reports
 
 Verify the database server bundled with the installed Laragon environment before configuring the connection. Laragon may provide MySQL or MariaDB depending on the selected package; confirm the actual server and version rather than assuming.
@@ -26,6 +28,10 @@ Verify the database server bundled with the installed Laragon environment before
   `php artisan queue:work database --tries=2 --timeout=300`.
 - Analysis is manual; do not leave a worker running as a market-monitoring service if that is not desired.
 - Before the first local run, apply migrations and execute the full test suite. These final validation steps are intentionally pending until the implementation review is complete.
+
+## Shared technical strategy
+
+Both markets use the same deterministic `TechnicalStrategyEngine`, fed by normalized completed OHLCV candles. It analyzes swing structure, BOS/CHoCH, liquidity sweeps, support/resistance, relative volume, accumulation, ATR, entry/stop/targets, reward/risk and opportunity/speed scores. Market data providers remain separate. See [Technical strategy replacement](docs/TECHNICAL_STRATEGY_REPLACEMENT.md).
 
 ## Three trading reports
 
@@ -51,6 +57,8 @@ Initial timeframe profiles are configurable research hypotheses, not approved pr
 ## Documentation map
 
 - [Project status](docs/PROJECT_STATUS.md)
+- [Technical strategy replacement](docs/TECHNICAL_STRATEGY_REPLACEMENT.md)
+- [EGX / Thndr integration](docs/EGX_THRND_INTEGRATION.md)
 - [Local MVP implementation plan](docs/17-local-mvp-implementation-plan.md)
 - [Research evidence and strategy hypotheses](docs/16-research-evidence-and-strategy-hypotheses.md)
 - [Market regime and multi-timeframe specification](docs/18-market-regime-and-multitimeframe-spec.md)

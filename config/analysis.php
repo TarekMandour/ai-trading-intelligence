@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'configuration_version' => 'phase-1-baseline-1',
+    'configuration_version' => 'technical-strategy-v1',
     'universe_limit' => (int) env('ANALYSIS_UNIVERSE_LIMIT', 20),
     // Exclude stablecoins when they are the base asset (for example, USDCUSDT).
     'excluded_base_assets' => array_map('strtoupper', array_filter(array_map('trim', explode(',', env('ANALYSIS_EXCLUDED_BASE_ASSETS', 'USDT,USDC,BUSD,TUSD,FDUSD,DAI,USDP,USD1,USDE,PYUSD,UST'))))),

@@ -8,7 +8,7 @@ use App\Services\Ai\AiAnalysisProvider;
 use App\Services\Ai\AiReviewValidator;
 use App\Services\Analysis\DeterministicAnalysisEngine;
 use App\Services\Analysis\ExecutionCostEstimator;
-use App\Services\Analysis\IctComprehensiveEngine;
+use App\Services\Analysis\TechnicalStrategyEngine;
 use App\Services\Analysis\MultiTimeframeAlignment;
 use App\Services\Analysis\ScenarioEvaluator;
 use App\Services\MarketData\BinanceSpotClient;
@@ -73,7 +73,7 @@ class AnalysisRunWorkflowTest extends TestCase
             'audit' => ['universe_symbols' => [['symbol' => 'BTCUSDT']]],
         ]);
 
-        $candles = array_fill(0, 20, [
+        $candles = array_fill(0, 40, [
             'open' => 100.0,
             'high' => 101.0,
             'low' => 99.0,
@@ -97,7 +97,7 @@ class AnalysisRunWorkflowTest extends TestCase
             'reasons' => ['TEST_BULLISH_REGIME'],
         ]);
 
-        $ict = $this->mockIctEngine();
+        $strategy = $this->mockTechnicalStrategyEngine();
 
         $ai = $this->mock(AiAnalysisProvider::class);
 
@@ -105,7 +105,7 @@ class AnalysisRunWorkflowTest extends TestCase
             $binance,
             $engine,
             app(ExecutionCostEstimator::class),
-            $ict,
+            $strategy,
             $ai,
             app(AiReviewValidator::class),
         );
@@ -141,7 +141,7 @@ class AnalysisRunWorkflowTest extends TestCase
             'audit' => ['universe_symbols' => [['symbol' => 'BTCUSDT']]],
         ]);
 
-        $candles = array_fill(0, 20, [
+        $candles = array_fill(0, 40, [
             'open' => 100.0,
             'high' => 101.0,
             'low' => 99.0,
@@ -165,7 +165,7 @@ class AnalysisRunWorkflowTest extends TestCase
             'reasons' => ['TEST_BULLISH_REGIME'],
         ]);
 
-        $ict = $this->mockIctEngine();
+        $strategy = $this->mockTechnicalStrategyEngine();
 
         $ai = $this->mock(AiAnalysisProvider::class);
 
@@ -173,7 +173,7 @@ class AnalysisRunWorkflowTest extends TestCase
             $binance,
             $engine,
             app(ExecutionCostEstimator::class),
-            $ict,
+            $strategy,
             $ai,
             app(AiReviewValidator::class),
         );
@@ -194,7 +194,7 @@ class AnalysisRunWorkflowTest extends TestCase
 
         $ai = $this->mock(AiAnalysisProvider::class);
         try {
-            (new ProcessAnalysisRun($run->id))->handle($client, app(DeterministicAnalysisEngine::class), app(ExecutionCostEstimator::class), app(IctComprehensiveEngine::class), $ai, app(AiReviewValidator::class));
+            (new ProcessAnalysisRun($run->id))->handle($client, app(DeterministicAnalysisEngine::class), app(ExecutionCostEstimator::class), app(TechnicalStrategyEngine::class), $ai, app(AiReviewValidator::class));
             $this->fail('Expected the unavailable market-data exception to be rethrown for queue retry handling.');
         } catch (\RuntimeException $exception) {
             $this->assertSame('offline', $exception->getMessage());
@@ -229,7 +229,7 @@ class AnalysisRunWorkflowTest extends TestCase
             'audit' => ['universe_symbols' => [['symbol' => 'BTCUSDT']]],
         ]);
 
-        $candles = array_fill(0, 20, [
+        $candles = array_fill(0, 40, [
             'open' => 100.0,
             'high' => 101.0,
             'low' => 99.0,
@@ -253,7 +253,7 @@ class AnalysisRunWorkflowTest extends TestCase
             'reasons' => ['TEST_BULLISH_REGIME'],
         ]);
 
-        $ict = $this->mockIctEngine();
+        $strategy = $this->mockTechnicalStrategyEngine();
 
         $ai = $this->mock(AiAnalysisProvider::class);
         $ai->shouldReceive('review')->once()->andReturn([
@@ -274,7 +274,7 @@ class AnalysisRunWorkflowTest extends TestCase
             $binance,
             $engine,
             app(ExecutionCostEstimator::class),
-            $ict,
+            $strategy,
             $ai,
             app(AiReviewValidator::class),
         );
@@ -318,7 +318,7 @@ class AnalysisRunWorkflowTest extends TestCase
             'ai_status' => 'PENDING',
             'audit' => ['universe_symbols' => [['symbol' => 'BTCUSDT']]],
         ]);
-        $candles = array_fill(0, 20, ['open' => 100.0, 'high' => 101.0, 'low' => 99.0, 'close' => 100.5, 'volume' => 100.0]);
+        $candles = array_fill(0, 40, ['open' => 100.0, 'high' => 101.0, 'low' => 99.0, 'close' => 100.5, 'volume' => 100.0]);
 
         $binance = $this->mock(BinanceSpotClient::class);
         $binance->shouldReceive('candles')->times(4)->andReturn($candles);
@@ -331,7 +331,7 @@ class AnalysisRunWorkflowTest extends TestCase
         $engine->shouldReceive('evaluate')->times(4)->andReturn([
             'direction' => 'BULLISH', 'behavior' => 'TRENDING', 'volatility' => 'NORMAL', 'reasons' => ['TEST_BULLISH_REGIME'],
         ]);
-        $ict = $this->mockIctEngine();
+        $strategy = $this->mockTechnicalStrategyEngine();
 
         $ai = $this->mock(AiAnalysisProvider::class);
         $ai->shouldReceive('review')->once()->andThrow(new \RuntimeException('provider unavailable'));
@@ -340,7 +340,7 @@ class AnalysisRunWorkflowTest extends TestCase
             $binance,
             $engine,
             app(ExecutionCostEstimator::class),
-            $ict,
+            $strategy,
             $ai,
             app(AiReviewValidator::class),
         );
@@ -353,7 +353,7 @@ class AnalysisRunWorkflowTest extends TestCase
     }
 
 
-    public function test_optional_smt_reference_candles_do_not_fail_required_profile_completeness(): void
+    public function test_strategy_does_not_require_optional_reference_market_candles(): void
     {
         config([
             'analysis.profiles' => ['Test' => [
@@ -362,7 +362,6 @@ class AnalysisRunWorkflowTest extends TestCase
                 'setup' => '5m',
                 'entry' => '1m',
             ]],
-            'ict.smt_reference_symbol' => 'ETHUSDT',
             'analysis.ai_max_candidates_per_run' => 0,
         ]);
 
@@ -373,19 +372,19 @@ class AnalysisRunWorkflowTest extends TestCase
             'ai_status' => 'NOT_CONFIGURED',
             'audit' => ['universe_symbols' => [['symbol' => 'BTCUSDT']]],
         ]);
-        $candles = array_fill(0, 20, [
+        $candles = array_fill(0, 40, [
             'open' => 100.0, 'high' => 101.0, 'low' => 99.0, 'close' => 100.5, 'volume' => 100.0,
         ]);
 
         $binance = $this->mock(BinanceSpotClient::class);
-        $binance->shouldReceive('candles')->times(5)->andReturn($candles);
+        $binance->shouldReceive('candles')->times(4)->andReturn($candles);
         $regime = $this->mock(DeterministicAnalysisEngine::class);
         $regime->shouldReceive('evaluate')->times(4)->andReturn([
             'direction' => 'UNCERTAIN', 'behavior' => 'UNCERTAIN', 'volatility' => 'NORMAL', 'reasons' => [],
         ]);
-        $ict = $this->mock(IctComprehensiveEngine::class);
-        $ict->shouldReceive('evaluate')->once()->withArgs(function (array $roles, string $profile): bool {
-            return $profile === 'Test' && isset($roles['reference']) && count($roles['reference']) === 20;
+        $strategy = $this->mock(TechnicalStrategyEngine::class);
+        $strategy->shouldReceive('evaluate')->once()->withArgs(function (array $roles, string $profile): bool {
+            return $profile === 'Test' && array_keys($roles) === ['context', 'structure', 'setup', 'entry'];
         })->andReturn([
             'context' => ['bias' => 'UNCERTAIN', 'structure_bias' => 'UNCERTAIN'],
             'decision' => 'NO_OPPORTUNITY',
@@ -397,7 +396,7 @@ class AnalysisRunWorkflowTest extends TestCase
             $binance,
             $regime,
             app(ExecutionCostEstimator::class),
-            $ict,
+            $strategy,
             $this->mock(AiAnalysisProvider::class),
             app(AiReviewValidator::class),
         );
@@ -407,12 +406,13 @@ class AnalysisRunWorkflowTest extends TestCase
         $this->assertSame('COMPLETED', $run->fresh()->status);
     }
 
-    private function mockIctEngine(): IctComprehensiveEngine
+    private function mockTechnicalStrategyEngine(): TechnicalStrategyEngine
     {
-        $ict = $this->mock(IctComprehensiveEngine::class);
-        $ict->shouldReceive('evaluate')->once()->andReturn([
-            'engine' => 'ICT_COMPREHENSIVE',
+        $strategy = $this->mock(TechnicalStrategyEngine::class);
+        $strategy->shouldReceive('evaluate')->once()->andReturn([
+            'engine' => 'TECHNICAL_STRUCTURE_VOLUME_SR',
             'context' => ['bias' => 'BULLISH', 'structure_bias' => 'BULLISH'],
+            'timeframe_alignment' => ['aligned' => true],
             'decision' => 'ENTERABLE',
             'scenarios' => [[
                 'scenario' => 'TEST_BREAKOUT',
@@ -428,7 +428,7 @@ class AnalysisRunWorkflowTest extends TestCase
             ]],
         ]);
 
-        return $ict;
+        return $strategy;
     }
 
 }

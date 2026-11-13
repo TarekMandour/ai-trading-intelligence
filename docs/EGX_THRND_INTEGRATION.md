@@ -1,6 +1,6 @@
 # EGX / Thndr Integration
 
-This integration is additive. Binance remains the default crypto provider and the ICT engine is reused for EGX.
+This integration is additive. Binance remains the crypto provider; Binance and Thndr feed the same provider-neutral TechnicalStrategyEngine.
 
 ## Chrome extension token capture
 
@@ -48,3 +48,20 @@ Important limitation: this first sync implementation repairs the newest tail and
 ## Security and validation
 
 The token endpoint is protected by the shared capture key, requires `thndr_capture_enabled=1`, and is rate-limited. Do not expose `market_settings.value` in API responses or logs. The EGX scan/universe/watchlist endpoints are currently API endpoints without user authentication because the current MVP has no authentication flow. Do not expose them to the public internet; add authenticated dashboard middleware and user ownership checks before deployment. Token values are never returned by these endpoints.
+
+
+
+## Shared technical strategy and historical EGX backtest (2026-11-13)
+
+The EGX scan endpoint invokes `App\\Services\\Analysis\\TechnicalStrategyEngine`, the same provider-neutral strategy used by the Binance crypto queue. It consumes completed normalized OHLCV candles and returns the trend/structure analysis, support/resistance levels, volume evidence, ATR, entry zone, stop loss, targets, risk/reward, opportunity score, speed score and support-bounce confirmation. Gemini remains a separate advisory analysis and cannot replace the deterministic result.
+
+### Historical backtest endpoint
+
+`POST /api/egx/backtest` continues to require explicit `fee_rate` and `slippage_bps` assumptions and reads persisted completed Thndr candles. The replacement replay evaluates the same strategy at each historical decision time, enters no earlier than the next entry candle open, exits against stop/target/holding limit, and resolves same-bar stop/target ambiguity stop-first. Fees and slippage are explicit per-side assumptions. It reports trade count, wins/losses, win rate, net return and maximum drawdown.
+
+### Validation caveats
+
+- Historical OHLCV fills are modeled assumptions, not confirmed exchange fills or queue priority.
+- Corporate actions, dividends, rights issues, symbol changes, historical order-book depth and full EGX session calendars are not modeled by this replay.
+- The strategy score thresholds are research hypotheses, not calibrated win probabilities. A completed replay is not proof of profitability.
+- Verify Thndr timestamp semantics, derived timeframe boundaries and market-specific fee/slippage assumptions before relying on results.

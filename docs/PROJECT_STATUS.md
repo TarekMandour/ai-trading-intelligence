@@ -1,147 +1,68 @@
 # Project Status
 
-Last updated: 2026-11-12
+Last updated: 2026-11-13
 
-## Current phase
-**Phase 1 — Local Manual-Analysis MVP.** The user has authorized implementation of a local research prototype on the dedicated branch. No server deployment or commercial SaaS release is authorized.
+## Active implementation branch
+- Repository: `TarekMandour/ai-trading-intelligence`
+- Base branch for this replacement: `feature/ict-engine-rebuild-v2`
+- Working branch: `feature/technical-strategy-replacement`
+- Changes are isolated on the working branch; `main` is not modified.
 
-## Repository and branch policy
-- Repository: TarekMandour/ai-trading-intelligence
-- Default branch: main
-- Phase 0 decision branch: phase-0-foundation
-- Phase 1 baseline branch: phase-1-local-mvp
-- ICT implementation branch: feature/ict-comprehensive (child branch; not merged)
-- Never implement directly on main or phase-0-foundation.
+## Product scope
+- Laravel 13 / PHP 8.3 research application.
+- Crypto market data: Binance Spot USDT pairs, long-only.
+- Egyptian equities: Thndr marketwatch and persisted Thndr OHLCV candles, long-only.
+- Three independent analysis profiles:
+  | Profile | Context | Structure | Setup | Entry |
+  |---|---|---|---|---|
+  | Scalping | 1h | 15m | 5m | 1m |
+  | Intraday | 4h | 1h | 15m | 5m |
+  | Swing | 1w | 1d | 4h | 1h |
+- No automated order submission. Signals and backtests are research outputs only.
 
-## Approved product scope
-- Crypto; Binance Spot public market data; USDT quote asset.
-- Long Spot entry / sell-to-exit only.
-- Manual, on-demand analysis.
-- Three separate reports per run:
-  - Scalping: 1–30 minutes.
-  - Intraday: 30 minutes–8 hours.
-  - Swing: 1–7 days.
-- Windows/XAMPP local development; Laravel 13 / PHP 8.3.
-- MySQL target database; verify actual installed server. XAMPP may bundle MariaDB.
-- Laravel database queue with manually started worker.
-- REST data collection only for the first milestone.
-- Hybrid AI architecture is approved for Phase 1: deterministic Laravel analysis plus provider-neutral AI review, with OpenAI as the first provider.
-- AI review is implemented in this milestone for shortlisted candidates when credentials are configured. Deterministic reports remain available when AI is unavailable or not configured.
+## Active technical analysis engine
+`App\\Services\\Analysis\\TechnicalStrategyEngine` is the shared provider-neutral deterministic engine. It receives normalized OHLCV candle series and does not call Binance or Thndr directly.
 
-## Approved exclusions
-No VPS/cloud deployment, continuous monitoring, Binance WebSocket, Redis, Horizon, Kafka, RabbitMQ, Docker, Kubernetes, OpenSwoole, ReactPHP, Go/Python services, Reverb, subscriptions, billing, commercial signal distribution, automated order execution, custody, margin, borrowing, leverage, futures, perpetuals, options, or short signals.
+The engine implements the supplied StockAnalysisService strategy:
+- Confirmed fractal swing highs/lows.
+- HH/HL/LH/LL structure, BOS and directional CHOCH.
+- Liquidity sweep detection and directional contribution.
+- Trend classification and trend score.
+- Support/resistance extraction, touch clustering, strength and proximity ranking.
+- Relative volume, volume trend and accumulation/distribution evidence.
+- ATR and volatility context.
+- Entry zone, stop loss, Target 1/2 and reward/risk.
+- Opportunity score, speed score, fast-trade class and support-bounce confirmation.
+- Multi-timeframe context/structure/setup alignment plus entry-timeframe confirmation.
 
-## Initial research profiles (configurable hypotheses)
-| Profile | Context | Structure | Setup | Entry |
-|---|---|---|---|---|
-| Scalping | 1h | 15m | 5m | 1m |
-| Intraday | 4h | 1h | 15m | 5m |
-| Swing | 1w | 1d | 4h | 1h |
+The engine is independent of market provider: Binance and Thndr adapters supply the same normalized candle contract. Only completed candles are eligible for analysis.
 
-These profiles must be tested. Candle alignment must use only completed higher-timeframe candles available at the decision timestamp.
+## Removed
+- ICT engine and its dedicated analyzers/pipeline.
+- ICT-specific configuration.
+- ICT-specific EGX backtest adapter.
+- ICT-only unit tests and CI workflow.
+- ICT report and scanner UI wording/output assumptions.
 
-## Market-regime contract
-The classifier has three independent dimensions:
-- Direction: BULLISH, BEARISH, RANGING, UNCERTAIN.
-- Volatility: LOW, NORMAL, HIGH.
-- Behavior: TRENDING, CHOPPY, TRANSITION, UNCERTAIN.
+## Preserved
+- Binance Spot market-data client and crypto analysis queue.
+- Thndr API client, token capture, EGX universe, watchlists and candle synchronization.
+- Gemini as an independent advisory analyst.
+- AI Review provider abstraction and validation.
+- Crypto order-book execution-cost estimation.
+- Reports, opportunity/evidence persistence, audit events and EGX scan history.
 
-Volatility is not a direction. Preserve per-timeframe classifications and conflicts. Begin with transparent deterministic features; HMM/ML is deferred research.
+## EGX historical replay
+The EGX backtest now evaluates the shared strategy chronologically. A signal is evaluated using candles available at that decision timestamp; simulated entry occurs at the next entry candle open. Position size is derived from a per-trade equity risk budget and includes estimated stop slippage plus round-trip fees. Fees and slippage are explicit per-side assumptions. Same-bar stop/target ambiguity resolves stop-first. Results include quantity, PnL, trade count, win rate, final equity, net return and maximum drawdown.
 
-## Research status
-Research sources and limitations are documented in docs/16-research-evidence-and-strategy-hypotheses.md. Scenario families remain hypotheses, not production-approved strategies. Current research does not prove profitability for Binance Spot or the selected holding windows.
+Limitations: this is an OHLCV simulation, not exchange-confirmed fills. Historical order-book depth, queue priority, corporate actions and complete EGX session-calendar reconstruction are not modeled.
 
-## Implementation documents
-- docs/17-local-mvp-implementation-plan.md
-- docs/20-ai-integration-spec.md
-- docs/18-market-regime-and-multitimeframe-spec.md
-- docs/decisions/0006-local-laravel-mysql-manual-analysis-mvp.md
+## Research and safety constraints
+- Thresholds and scores are strategy hypotheses, not calibrated probabilities.
+- Backtest completion does not imply profitability.
+- AI is advisory and cannot override deterministic levels or decisions.
+- No exchange order submission is enabled.
+- Do not deploy publicly until API authentication and watchlist ownership controls are added.
 
-## Deferred documents
-- docs/14-market-monitoring-and-data-pipeline.md describes future continuous/event-driven monitoring, not the first local MVP.
-- docs/15-opportunity-detection-and-decision-pipeline.md remains a logical decision framework; streaming triggers and subscriber distribution are deferred.
-
-## Definition of first local test
-- Fresh XAMPP setup and migrations succeed against verified MySQL.
-- Manual dashboard action creates an analysis run.
-- Database queue worker processes it.
-- Binance REST data is fetched, validated, and rate-limited.
-- Per-timeframe regime outputs are generated for each profile.
-- Three separate reports are rendered, including NO OPPORTUNITY where appropriate.
-- Candidate plans include entry, stop/invalidation, targets, costs, expiry, evidence, and reason codes.
-- Tests cover data quality, calculations, multi-timeframe alignment, decision gates, queue workflow, report rendering, AI schema validation, provider failures, and deterministic fallback.
-- Exact commands and test outcomes are documented.
-- No profitability claim is made from the first smoke test.
-
-## Future gates
-- Backtesting/replay harness and untouched out-of-sample validation.
-- Evidence that any strategy family has positive net expectancy after costs.
-- Prospective order-book capture only if research justifies it.
-- Validate AI review quality, cost, latency, and consistency against human-reviewed cases; AI remains advisory and cannot override deterministic gates.
-- Commercial data rights and legal/jurisdiction review before paid signal distribution.
-- Hosting, subscriptions, and SaaS only after local proof of value and separate approval.
-
-## Current status
-Initial vertical slice implemented: a Laravel dashboard creates an idempotency-keyed queued analysis run, the database worker persists independent Scalping, Intraday, and Swing reports, and Binance public REST failure produces auditable `NO_OPPORTUNITY` reports rather than invented plans. The first slice includes a bounded Binance exchange/ticker client and a NOT_CONFIGURED AI fallback state. Regime calculations, candle normalization, scenario/risk geometry, OpenAI adapter/schema validation, and detailed opportunity persistence remain incomplete. Do not mark the local MVP complete until the Definition of First Local Test is met and the user can run it on their machine.
-
-
-## ICT Comprehensive implementation branch update (2026-11-12)
-
-- Created feature branch: feature/ict-comprehensive, based on phase-1-local-mvp commit 176504ec2f7bc501ef89688622b93f3ac320c890.
-- Added an initial deterministic ICT engine and dedicated ICT configuration.
-- Integrated the ICT engine into the queued analysis workflow and stored the ICT result in the opportunity evidence snapshot.
-- Added an ICT section to the report view.
-- Three core scenario evaluators are present: SSL Sweep Reversal, Bullish FVG Continuation, and Bullish Order Block Reaction.
-- ICT-01 now uses an ordered sweep/displacement/MSS/FVG event chain, and the entry planner guards Market distance while retaining conditional Limit plans. This is not yet a complete ICT Comprehensive delivery: advanced model gates, complete evidence lifecycle, Limit fill tracking, and robust historical replay remain outstanding.
-- Tests have been added but have not been executed in this environment. Do not mark implementation or validation complete until code review and local test execution.
-
-
-## ICT Comprehensive status (feature/ict-comprehensive)
-
-- Added dedicated ICT configuration for long-only, 24-hour analysis, existing Scalping/Intraday/Swing profiles, and Market/Limit research plans.
-- Added deterministic engine and integrated it into the queued analysis workflow in place of the legacy scenario selection path.
-- Implemented the three core ICT scenario evaluators and snapshot/report persistence.
-- Added optional confluence evidence for equal liquidity levels, OTE, rejection-block candidates, breaker-block retests, and configured session windows.
-- SMT intentionally remains unavailable without a synchronized reference asset and approved pairing rule.
-- Market and Limit outputs are plans only. Exchange order submission remains disabled.
-- The implementation is not yet complete or validated: ICT-01 has an ordered event chain, basic FVG/OB post-creation lifecycle, and liquidity-aware targets. Other models still use heuristics; full event-state replay, advanced model gates, and historical replay/backtesting remain outstanding.
-- Added a PHP 8.3 GitHub Actions workflow. An initial run detected a PHP syntax error in newly added test class references; the references have been corrected and a rerun is pending.
-- Tests were added but not executed here. No test pass or profitability claim is recorded.
-
-
-## ICT Comprehensive implementation validation update (2026-11-12)
-
-- Current implementation branch: `feature/ict-comprehensive`; Pull Request #3 remains draft and is not merged.
-- Five scenario evaluators are implemented: ICT-01 ordered SSL sweep/displacement/MSS/FVG reversal, ICT-02 FVG continuation, ICT-03 Order Block reaction, ICT-04 Breaker Block reaction, and ICT-05 Rejection Block reaction.
-- Added basic FVG/OB lifecycle, OTE confluence evidence, liquidity-aware targets with explicit fallback, Market/Limit research plans, and OHLCV-only historical replay service.
-- GitHub Actions PHP syntax check passed and Laravel suite passed: 58 tests, 186 assertions on commit `4bb1356a498bdbd2220e95e83e5b6da3c9fc500b`.
-- No exchange orders are submitted. Limit fills in replay are modeled OHLCV touches, not confirmed fills.
-- Not complete for production validation: Silver Bullet/Judas pattern recognition needs explicitly configured session definitions; SMT needs reference-asset integration; historical data acquisition, persisted backtest reports, out-of-sample partitioning, parameter calibration, and paper validation remain outstanding.
-- The passing CI result validates code tests and syntax only; it does not establish trading profitability or live exchange behavior.
-
-
-## ICT Comprehensive latest implementation and CI status
-
-- Seven long-only scenario evaluators are present: ICT-01 SSL Sweep Reversal, ICT-02 FVG Continuation, ICT-03 Order Block Reaction, ICT-04 Breaker Block Reaction, ICT-05 Rejection Block Reaction, ICT-06 Silver Bullet Long, and ICT-07 Judas Swing Long.
-- Silver Bullet and Judas Swing are only eligible inside explicitly configured session windows. General analysis remains 24 hours with no global kill-zone filter.
-- SMT bullish swing-low divergence evidence is implemented when the caller supplies synchronized reference candles. The queued analysis job can fetch an optional setup-timeframe reference symbol via `ICT_SMT_REFERENCE_SYMBOL`; reference failures do not block core ICT analysis.
-- OHLCV historical replay service is available with clearly labeled Market/Limit fill assumptions, stop-first same-bar resolution, split target exits, fees/slippage, and basic performance metrics.
-- Latest relevant GitHub Actions validation passed PHP syntax checks and 62 tests / 199 assertions on commit `51bca3dc0d1152a690cb0b19b52f21ffa8a07feb` (includes seven scenario families, SMT reference-fetch integration, session windows, true-range ATR displacement, and optional reference-data completeness checks).
-- Remaining gaps: reference-symbol acquisition, historical data ingestion and persisted backtest reports, full event lifecycle for every model, out-of-sample partitions, parameter calibration, and paper trading.
-- This is code/test validation only. No profitability, historical fill accuracy, or live execution claim is made.
-
-
-## EGX / Thndr provider implementation update (2026-11-12)
-
-- Added a separate Thndr REST client and EGX market-data path; the existing Binance client and crypto analysis workflow were not modified.
-- Added the legacy-compatible token capture endpoint `POST /api/thndr/token`, using `X-Capture-Key` and storing the token in `market_settings`. Configure `THNDR_CAPTURE_KEY`; never commit the secret or captured token.
-- Added marketwatch synchronization to `storage/app/private/markets/egx/stocks.json` and a queryable `egx_stocks` mirror.
-- Added EGX watchlists with ordered stock membership and create/update/list API endpoints.
-- Added persistent OHLCV candle storage with unique `asset_id + timeframe + open_time` key. Incremental sync fetches from the last stored candle with a small overlap to refresh recent bars. 15m is aggregated from 5m; 4h from 1h.
-- Added a watchlist-scoped EGX scan endpoint that invokes the existing ICT Comprehensive engine for Scalping, Intraday, and Swing profiles, rejects profiles with insufficient candle history, and persists each run separately in `egx_scan_runs`.
-- Added paginated watchlist scan history.
-- Current automated CI on the latest EGX implementation commit passed PHP syntax checks and **67 tests / 214 assertions**.
-- Important remaining validation: verify the live Thndr marketwatch/candle payloads and timestamp semantics; verify aggregation boundaries against EGX session hours; current sync repairs the newest data tail and refreshes recent candles but does not detect arbitrary interior historical gaps or apply an official holiday calendar. No live Thndr smoke test has been run.
-- The Chrome extension source itself was not present in the `doji_trade` repository tree. The server endpoint contract matches the old `/api/thndr/token` + `X-Capture-Key` receiver; the extension must be pointed at the new project URL and use the same capture secret.
-- The new EGX API routes are not yet protected by user authentication. Do not expose the application publicly until authentication and watchlist ownership checks are added.
-- This implementation remains on `feature/ict-comprehensive`; PR #3 remains unmerged. No profitability or production-readiness claim is made.
+## Verification status
+The GitHub changes are being authored on the isolated working branch. A local PHP runtime and Composer dependencies are not available in this execution environment, and GitHub's read/write connector cannot execute the Laravel test suite. Therefore PHP lint, migrations, full tests, live Binance/Thndr smoke tests and chart-by-chart validation are **not yet verified**. No passing test claim or profitability claim is made.
