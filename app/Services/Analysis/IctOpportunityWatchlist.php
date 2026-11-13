@@ -22,7 +22,7 @@ class IctOpportunityWatchlist
         // Require observable bullish structure evidence; a zone by itself is not a setup.
         if (! in_array($structureBias, ['BULLISH', 'RANGING'], true)
             || ! ($mss || $sequence || $breaker)
-            || $contextBias === 'BEARISH') {
+            || ($contextBias === 'BEARISH' && ! ($mss || $sequence))) {
             return null;
         }
 
@@ -68,6 +68,7 @@ class IctOpportunityWatchlist
         if ($mss) $reasons[] = 'BULLISH_MSS_OBSERVED';
         if ($sequence) $reasons[] = 'ORDERED_BULLISH_SEQUENCE_CONFIRMED';
         if ($breaker) $reasons[] = 'BULLISH_BREAKER_RETEST_CANDIDATE';
+        if ($contextBias === 'BEARISH') $reasons[] = 'COUNTERTREND_SETUP_AGAINST_HIGHER_TIMEFRAME';
         $reasons[] = $selected['distance_pct'] == 0.0 ? 'PRICE_INSIDE_ACTIVE_ZONE' : 'PRICE_NEAR_ACTIVE_ZONE';
         if (! ($entry['bullish_trigger'] ?? false)) $reasons[] = 'WAITING_FOR_BULLISH_ENTRY_TRIGGER';
 
@@ -78,7 +79,7 @@ class IctOpportunityWatchlist
             'zone_type' => $selected['type'],
             'zone' => ['low' => (float) $zone['low'], 'high' => (float) $zone['high'], 'ce' => isset($zone['ce']) ? (float) $zone['ce'] : (((float) $zone['low'] + (float) $zone['high']) / 2)],
             'distance_to_zone_pct' => round($selected['distance_pct'], 3),
-            'structure' => ['context_bias' => $contextBias, 'structure_bias' => $structureBias, 'mss_confirmed' => $mss, 'sequence_confirmed' => $sequence],
+            'structure' => ['context_bias' => $contextBias, 'context_alignment' => $contextBias === 'BEARISH' ? 'COUNTERTREND' : 'SUPPORTIVE_OR_NEUTRAL', 'structure_bias' => $structureBias, 'mss_confirmed' => $mss, 'sequence_confirmed' => $sequence],
             'lifecycle' => $selected['lifecycle'],
             'reasons' => $reasons,
             'required_confirmation' => ['completed_bullish_entry_candle', 'zone_holds_without_invalidation'],
