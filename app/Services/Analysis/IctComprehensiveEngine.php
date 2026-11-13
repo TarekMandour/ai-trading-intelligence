@@ -94,7 +94,12 @@ class IctComprehensiveEngine
             $mss['close_time'] = $sequence['mss']['close_time'];
             $fvg = $sequence['fvg'];
         }
-        $ob = $this->bullishOrderBlock($candles, $displacement, $mss);
+        // An order block is anchored to the candle immediately preceding the
+        // confirmed displacement, not an arbitrary bearish candle near the
+        // latest bar. Without a confirmed impulse there is no ICT order block.
+        $ob = ($sequence['status'] ?? null) === 'CONFIRMED'
+            ? $this->bullishOrderBlock($candles, (int) $sequence['displacement']['index'])
+            : null;
         return compact('swings', 'liquidity', 'displacement', 'mss', 'fvg', 'ob', 'sequence');
     }
 
@@ -394,13 +399,27 @@ class IctComprehensiveEngine
         return null;
     }
 
-    private function bullishOrderBlock(array $candles, array $displacement, array $mss): ?array
+    private function bullishOrderBlock(array $candles, int $displacementIndex): ?array
     {
-        if (! $displacement['bullish'] || ! $mss['confirmed']) return null;
-        $last = count($candles) - 1;
-        for ($i = $last - 1; $i >= max(0, $last - 5); $i--) {
-            if ((float) $candles[$i]['close'] < (float) $candles[$i]['open']) return ['low' => (float) $candles[$i]['low'], 'high' => (float) $candles[$i]['open'], 'source_index' => $i, 'created_at' => $candles[$i]['close_time'] ?? null, 'status' => 'ACTIVE'];
+        if ($displacementIndex < 1 || ! isset($candles[$displacementIndex])) return null;
+
+        // Use the last bearish candle before the actual displacement candle.
+        // Limit the search to five preceding candles to avoid assigning an
+        // unrelated, stale down candle as the origin of the impulse.
+        for ($i = $displacementIndex - 1; $i >= max(0, $displacementIndex - 5); $i--) {
+            if ((float) $candles[$i]['close'] < (float) $candles[$i]['open']) {
+                return [
+                    'low' => (float) $candles[$i]['low'],
+                    'high' => (float) $candles[$i]['open'],
+                    'source_index' => $i,
+                    'source_close_time' => (int) ($candles[$i]['close_time'] ?? 0),
+                    // The zone only becomes actionable after the impulse closes.
+                    'created_at' => (int) ($candles[$displacementIndex]['close_time'] ?? 0),
+                    'status' => 'ACTIVE',
+                ];
+            }
         }
+
         return null;
     }
 
