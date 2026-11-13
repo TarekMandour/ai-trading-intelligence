@@ -1,6 +1,6 @@
 <?php
 
-namespace App\\Services\\Analysis;
+namespace App\Services\Analysis;
 
 /**
  * Causal pivot detector. A pivot is exposed only at its confirmation index;
