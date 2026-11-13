@@ -46,7 +46,7 @@ class EgxIctBacktestService
 
         $result = $this->backtest->runChronologicalSplits($series, $profile, $assumptions);
         return array_merge($result, [
-            'status' => 'COMPLETED',
+            'status' => $result['status'] ?? 'COMPLETED',
             'market' => 'EGX',
             'venue' => 'THNDR_HISTORICAL_CANDLES',
             'asset_id' => $assetId,
