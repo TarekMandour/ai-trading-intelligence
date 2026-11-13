@@ -20,12 +20,21 @@ class IctComprehensiveEngine
         $structure = $candlesByRole['structure'];
         $setup = $candlesByRole['setup'];
         $entry = $candlesByRole['entry'];
+        // The causal pipeline is the authoritative market-reading layer.
+        // Legacy scenario families remain in the response for comparison during
+        // migration, but the top-level decision is derived from this pipeline.
+        $pipeline = new IctAnalysisPipeline;
+        $contextAnalysis = $pipeline->analyze($context);
+        $structureAnalysis = $pipeline->analyze($structure);
+        $setupAnalysis = $pipeline->analyze($setup, $entry);
         $contextEvidence = [
-            'bias' => $this->structureBias($context),
-            'structure_bias' => $this->structureBias($structure),
-            'dealing_range' => $this->dealingRange($context),
+            'bias' => $contextAnalysis['market_structure']['bias'],
+            'structure_bias' => $structureAnalysis['market_structure']['bias'],
+            'dealing_range' => $contextAnalysis['dealing_range'],
+            'last_structure_event' => $structureAnalysis['market_structure']['last_event'],
         ];
         $setupEvidence = $this->analyzeSetup($setup);
+        $setupEvidence['causal_pipeline'] = $setupAnalysis;
         $lifecycle = new IctZoneLifecycleAnalyzer;
         $postSetupCandles = array_values(array_filter($setup, fn (array $c): bool => (int) ($c['close_time'] ?? 0) > (int) ($setupEvidence['fvg']['created_at'] ?? PHP_INT_MAX)));
         $fvgLifecycleCandles = array_merge($postSetupCandles, $entry);
@@ -57,20 +66,86 @@ class IctComprehensiveEngine
             $this->judasSwing($profile, $contextEvidence, $setupEvidence, $advancedEvidence, $entryEvidence),
         ];
 
-        $watchlist = (new IctOpportunityWatchlist)->evaluate($contextEvidence, $setupEvidence, $advancedEvidence, $entryEvidence);
+        $legacyWatchlist = (new IctOpportunityWatchlist)->evaluate($contextEvidence, $setupEvidence, $advancedEvidence, $entryEvidence);
+        $tradePlan = $setupAnalysis['trade_plan'];
+        $watchlist = $legacyWatchlist ?? $this->structuralWatchlist($setupAnalysis, (float) $entryEvidence['last_close']);
+        $canonicalScenario = $this->canonicalScenario($profile, $tradePlan);
+        $decision = $tradePlan['status'] === 'ENTERABLE'
+            ? 'ENTERABLE'
+            : ($watchlist !== null ? 'WATCHLIST' : (($tradePlan['reason'] ?? null) === 'WAITING_FOR_ZONE_RETEST' ? 'WAIT' : 'NO_OPPORTUNITY'));
 
         return [
             'engine' => 'ICT_COMPREHENSIVE',
-            'version' => config('ict.version', 'ict-v1'),
+            'version' => 'ict-v2-causal',
             'profile' => $profile,
             'direction' => 'LONG',
             'context' => $contextEvidence,
             'setup_evidence' => $setupEvidence,
             'advanced_evidence' => $advancedEvidence,
             'entry_evidence' => $entryEvidence,
+            'structural_analysis' => $setupAnalysis,
+            'structural_trade_plan' => $tradePlan,
+            'canonical_scenario' => $canonicalScenario,
             'scenarios' => $results,
             'watchlist' => $watchlist,
-            'decision' => $this->selectDecision($results, $watchlist),
+            'decision' => $decision,
+        ];
+    }
+
+    private function canonicalScenario(string $profile, array $plan): array
+    {
+        $candidate = null;
+        if (($plan['status'] ?? null) === 'ENTERABLE') {
+            $candidate = [
+                'entry' => $plan['entry'],
+                'stop' => $plan['stop_loss'],
+                'target1' => $plan['target1'],
+                'target2' => $plan['target2'],
+                'risk_reward' => $plan['target1_r'],
+                'entry_zone' => $plan['entry_zone'],
+                'entry_plans' => $plan['entry_plans'],
+                'target_source' => $plan['target_source'],
+                'invalidation' => $plan['invalidation'],
+            ];
+        }
+
+        return [
+            'scenario' => 'ICT_CAUSAL_STRUCTURE_LIQUIDITY',
+            'profile' => $profile,
+            'direction' => 'LONG',
+            'status' => $plan['status'] ?? 'WAIT',
+            'reasons' => isset($plan['reason']) ? [$plan['reason']] : ['CAUSAL_ICT_EVIDENCE_CONFIRMED'],
+            'candidate' => $candidate,
+            'evidence' => ['zone' => $plan['entry_zone'] ?? $plan['watchlist_zone'] ?? null],
+        ];
+    }
+
+    private function structuralWatchlist(array $analysis, float $price): ?array
+    {
+        $zone = $analysis['zones']['best_bullish_zone'] ?? null;
+        if (! is_array($zone) || $price <= 0) return null;
+        $structure = $analysis['market_structure'];
+        $bias = $structure['bias'] ?? 'UNCERTAIN';
+        $lastEvent = $structure['last_event']['type'] ?? null;
+        if ($bias !== 'BULLISH' && $lastEvent !== 'CHOCH_BULLISH' && $lastEvent !== 'BOS_BULLISH') return null;
+        $low = (float) $zone['low'];
+        $high = (float) $zone['high'];
+        $distance = $price < $low ? ($low - $price) / $price * 100
+            : ($price > $high ? ($price - $high) / $price * 100 : 0.0);
+        if ($distance > max(0.1, (float) config('ict.watchlist_max_zone_distance_pct', 3.0))) return null;
+
+        return [
+            'status' => 'WATCHLIST',
+            'direction' => 'LONG',
+            'reference_price' => $price,
+            'zone_type' => $zone['type'],
+            'zone' => ['low' => $low, 'high' => $high, 'ce' => (float) $zone['ce']],
+            'distance_to_zone_pct' => round($distance, 3),
+            'structure' => ['context_bias' => $bias, 'structure_bias' => $bias, 'mss_confirmed' => in_array($lastEvent, ['CHOCH_BULLISH', 'BOS_BULLISH'], true)],
+            'reasons' => ['CAUSAL_BULLISH_STRUCTURE', 'QUALIFIED_ACTIVE_ZONE', 'WAITING_FOR_ENTRY_TIMEFRAME_CONFIRMATION'],
+            'required_confirmation' => ['completed_bullish_entry_candle', 'close_above_previous_entry_high', 'zone_holds_without_invalidation'],
+            'invalidation' => 'A completed close below the selected bullish zone low invalidates this watchlist setup.',
+            'entry_authorized' => false,
         ];
     }
 
