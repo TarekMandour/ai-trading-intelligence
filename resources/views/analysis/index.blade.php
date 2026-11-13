@@ -13,6 +13,7 @@
         .status{font-weight:600}.stock-list{border:1px solid #e4e8f0;border-radius:8px;max-height:360px;overflow:auto;margin-top:12px}
         .stock-row{display:flex;gap:10px;padding:9px 12px;border-bottom:1px solid #eef0f4;align-items:center}.stock-row:last-child{border:0}.stock-row small{color:#667085}
         .result-card{border:1px solid #e4e8f0;border-radius:8px;padding:12px;margin:10px 0}.pill{display:inline-block;background:#eef2ff;border-radius:20px;padding:3px 8px;font-size:12px}
+        .opportunity-summary{border:1px solid #cbd5e1;border-radius:10px;padding:14px;margin:12px 0;background:#fff}.opportunity-summary h5{margin:0 0 8px;font-size:15px}.opportunity-summary .watch{color:#1d4ed8;background:#dbeafe}.opportunity-summary .ready{color:#166534;background:#dcfce7}.opportunity-summary .metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px;margin:10px 0}.opportunity-summary .metric{background:#f3f4f6;padding:9px;border-radius:7px}.opportunity-summary .metric small{display:block;color:#667085}.opportunity-summary .metric strong{display:block;margin-top:4px}.opportunity-summary .disclaimer{font-size:12px;color:#667085}
         pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#101828;color:#e6edf7;padding:14px;border-radius:8px;max-height:520px;overflow:auto}
         .message{min-height:22px;margin:10px 0;color:#475467}.success{color:#087443}.error{color:#b42318}.inline{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
         @media(max-width:800px){body{padding:14px}.grid{grid-template-columns:1fr}}
@@ -192,6 +193,46 @@
                 const line=document.createElement('p');const status=result.status||result.decision||'UNKNOWN';line.innerHTML='<span class="pill">'+profile+'</span> <strong>'+status+'</strong>';
                 const reasons=result.reasons||[];if(reasons.length)line.textContent+=' · '+reasons.join(', ');
                 card.append(line);
+                if(result.status === 'WATCHLIST' && result.watchlist){
+                    const w=result.watchlist;
+                    const summary=document.createElement('section');summary.className='opportunity-summary';
+                    const heading=document.createElement('h5');heading.textContent='Potential opportunity · WATCHLIST (monitor only)';summary.append(heading);
+                    const metrics=document.createElement('div');metrics.className='metric-grid';
+                    const addMetric=(label,value)=>{const box=document.createElement('div');box.className='metric';const small=document.createElement('small');small.textContent=label;const strong=document.createElement('strong');strong.textContent=value;box.append(small,strong);metrics.append(box);};
+                    addMetric('Last price',Number(w.reference_price||0).toFixed(3));
+                    addMetric('Zone low – high',Number(w.zone?.low||0).toFixed(3)+' – '+Number(w.zone?.high||0).toFixed(3));
+                    addMetric('Distance to zone',(w.distance_to_zone_pct??'—')+'%');
+                    summary.append(metrics);
+                    const zone=document.createElement('p');zone.textContent='Zone: '+(w.zone_type||'—');summary.append(zone);
+                    const structure=document.createElement('p');structure.textContent='Structure: '+(w.structure?.context_bias||'—')+' / '+(w.structure?.structure_bias||'—')+' · Alignment: '+(w.structure?.context_alignment||'—')+' · MSS: '+(w.structure?.mss_confirmed?'Confirmed':'Not confirmed');summary.append(structure);
+                    const evidence=document.createElement('p');evidence.textContent='Evidence: '+(w.reasons||[]).join(', ');summary.append(evidence);
+                    const confirmation=document.createElement('p');confirmation.textContent='Required confirmation: '+(w.required_confirmation||[]).join('; ');summary.append(confirmation);
+                    const invalidation=document.createElement('p');invalidation.textContent='Invalidation: '+(w.invalidation||'—');summary.append(invalidation);
+                    const note=document.createElement('p');note.className='disclaimer';note.textContent='Monitoring only. This card is not an entry signal and does not authorize order execution.';summary.append(note);
+                    card.append(summary);
+                } else if(result.status === 'ENTERABLE' && Array.isArray(result.scenarios)){
+                    const candidateScenario=result.scenarios.find(x=>x.status==='ENTERABLE' && x.candidate);
+                    if(candidateScenario){
+                        const summary=document.createElement('section');summary.className='opportunity-summary';
+                        const heading=document.createElement('h5');heading.textContent='Entry candidate · '+(candidateScenario.scenario||'ICT');summary.append(heading);
+                        const metrics=document.createElement('div');metrics.className='metric-grid';
+                        [['Entry',candidateScenario.candidate.entry],['Stop loss',candidateScenario.candidate.stop],['Target 1',candidateScenario.candidate.target1],['Target 2',candidateScenario.candidate.target2]].forEach(([label,value])=>{const box=document.createElement('div');box.className='metric';const small=document.createElement('small');small.textContent=label;const strong=document.createElement('strong');strong.textContent=value??'—';box.append(small,strong);metrics.append(box);});
+                        summary.append(metrics);card.append(summary);
+                    }
+                } else if(result.status !== 'WATCHLIST'){
+                    const summary=document.createElement('section');summary.className='opportunity-summary';
+                    const heading=document.createElement('h5');heading.textContent='Analysis result · '+status;summary.append(heading);
+                    const note=document.createElement('p');
+                    note.textContent=result.status === 'REJECTED'
+                        ? 'Analysis rejected: required market data is incomplete or invalid. This is not a NO-SETUP decision.'
+                        : (result.status === 'NO_OPPORTUNITY'
+                            ? 'No qualifying setup was detected with the current evidence. Review the reasons and timeframe diagnostics below.'
+                            : 'No confirmed entry is available. Continue monitoring the next completed candles.');
+                    summary.append(note);
+                    if(reasons.length){const why=document.createElement('p');why.textContent='Reasons: '+reasons.join(', ');summary.append(why);}
+                    const disclaimer=document.createElement('p');disclaimer.className='disclaimer';disclaimer.textContent='No order is authorized by this result.';summary.append(disclaimer);
+                    card.append(summary);
+                }
                 if(result.context){
                     const context=document.createElement('p');
                     context.textContent='Context: '+(result.context.bias||'—')+' | Structure: '+(result.context.structure_bias||'—');

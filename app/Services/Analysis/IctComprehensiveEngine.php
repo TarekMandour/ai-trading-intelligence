@@ -57,6 +57,8 @@ class IctComprehensiveEngine
             $this->judasSwing($profile, $contextEvidence, $setupEvidence, $advancedEvidence, $entryEvidence),
         ];
 
+        $watchlist = (new IctOpportunityWatchlist)->evaluate($contextEvidence, $setupEvidence, $advancedEvidence, $entryEvidence);
+
         return [
             'engine' => 'ICT_COMPREHENSIVE',
             'version' => config('ict.version', 'ict-v1'),
@@ -67,7 +69,8 @@ class IctComprehensiveEngine
             'advanced_evidence' => $advancedEvidence,
             'entry_evidence' => $entryEvidence,
             'scenarios' => $results,
-            'decision' => $this->selectDecision($results),
+            'watchlist' => $watchlist,
+            'decision' => $this->selectDecision($results, $watchlist),
         ];
     }
 
@@ -314,9 +317,12 @@ class IctComprehensiveEngine
         ];
     }
 
-    private function selectDecision(array $results): string
+    private function selectDecision(array $results, ?array $watchlist = null): string
     {
         if (collect($results)->contains(fn (array $r): bool => $r['status'] === 'ENTERABLE')) return 'ENTERABLE';
+        // An early opportunity deserves its own state even when strict entry
+        // scenarios are still waiting for a retest or trigger.
+        if ($watchlist !== null) return 'WATCHLIST';
         if (collect($results)->contains(fn (array $r): bool => $r['status'] === 'WAIT')) return 'WAIT';
         return 'NO_OPPORTUNITY';
     }
