@@ -616,6 +616,24 @@ class AnalysisComponentsTest extends TestCase
         $this->assertGreaterThan(0, $result['metrics']['expectancy_r']);
     }
 
+    public function test_ict_historical_backtest_models_gap_through_stop_at_worse_open_price(): void
+    {
+        $service = new IctHistoricalBacktestService(new IctComprehensiveEngine);
+        $method = new \\ReflectionMethod($service, 'simulateTrade');
+        $candles = [
+            ['open' => 100.0, 'high' => 101.0, 'low' => 99.0, 'close' => 100.0, 'close_time' => 1000],
+            ['open' => 90.0, 'high' => 96.0, 'low' => 89.0, 'close' => 94.0, 'close_time' => 2000],
+        ];
+
+        $trade = $method->invoke($service, $candles, [
+            'type' => 'MARKET', 'index' => 0, 'price' => 100.0, 'assumption' => 'TEST',
+        ], 95.0, 105.0, 110.0, 5, 0.0, 0.0, 'ICT_TEST');
+
+        $this->assertSame(90.0, $trade['target1_exit']);
+        $this->assertSame(90.0, $trade['target2_or_final_exit']);
+        $this->assertSame('LOSS', $trade['outcome']);
+    }
+
     public function test_ict_historical_backtest_rejects_missing_timeframe_series(): void
     {
         $result = (new IctHistoricalBacktestService(new IctComprehensiveEngine))->run([], 'Swing');
