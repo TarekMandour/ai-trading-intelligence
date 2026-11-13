@@ -115,7 +115,7 @@ class IctComprehensiveEngine
         if (($fvgLifecycle['status'] ?? null) === 'INVALIDATED' || ($fvgLifecycle['status'] ?? null) === 'FULLY_FILLED') $fvg = null;
         $fvgTouched = $fvg !== null && ($fvgLifecycle['touch_count'] ?? 0) > 0;
         $contextOk = $context['bias'] === 'BULLISH' && $context['structure_bias'] !== 'BEARISH';
-        $trigger = $entry['bullish_trigger'];
+        $trigger = $this->triggerAfterZoneTouch($entry, $fvgLifecycle);
         $reasons = [];
         if (! $contextOk) $reasons[] = 'ICT01_BULLISH_CONTEXT_MISSING';
         if (! $sweep) $reasons[] = 'ICT01_SWEEP_NOT_CONFIRMED';
@@ -136,7 +136,7 @@ class IctComprehensiveEngine
         $fvgLifecycle = $setup['fvg_lifecycle'] ?? null;
         if (($fvgLifecycle['status'] ?? null) === 'INVALIDATED' || ($fvgLifecycle['status'] ?? null) === 'FULLY_FILLED') $fvg = null;
         $touched = $fvg !== null && ($fvgLifecycle['touch_count'] ?? 0) > 0;
-        $trigger = $entry['bullish_trigger'];
+        $trigger = $this->triggerAfterZoneTouch($entry, $fvgLifecycle);
         $reasons = [];
         if (! $contextOk) $reasons[] = 'ICT02_NO_BULLISH_CONTEXT';
         if (! $displacement) $reasons[] = 'ICT02_NO_CONFIRMED_SWEEP_DISPLACEMENT_MSS_SEQUENCE';
@@ -153,7 +153,7 @@ class IctComprehensiveEngine
         $obLifecycle = $setup['ob_lifecycle'] ?? null;
         if (($obLifecycle['status'] ?? null) === 'INVALIDATED') $ob = null;
         $touched = $ob !== null && ($obLifecycle['touch_count'] ?? 0) > 0;
-        $trigger = $entry['bullish_trigger'];
+        $trigger = $this->triggerAfterZoneTouch($entry, $obLifecycle);
         $reasons = [];
         if (! $contextOk) $reasons[] = 'ICT03_NO_BULLISH_CONTEXT';
         if ($ob === null) $reasons[] = 'ICT03_NO_VALID_ORDER_BLOCK';
@@ -217,7 +217,7 @@ class IctComprehensiveEngine
         if (in_array($lifecycle['status'] ?? null, ['FULLY_FILLED', 'INVALIDATED'], true)) $fvg = null;
         $retraced = $fvg !== null && ($lifecycle['touch_count'] ?? 0) > 0;
         $structure = ($setup['displacement']['bullish'] ?? false) && ($setup['mss']['confirmed'] ?? false);
-        $trigger = $entry['bullish_trigger'];
+        $trigger = $this->triggerAfterZoneTouch($entry, $lifecycle);
         $reasons = [];
         if (! $activeWindow) $reasons[] = 'ICT06_OUTSIDE_OR_UNCONFIGURED_SILVER_BULLET_WINDOW';
         if (! $contextOk) $reasons[] = 'ICT06_NO_BULLISH_CONTEXT';
@@ -246,7 +246,7 @@ class IctComprehensiveEngine
         $lifecycle = $setup['fvg_lifecycle'] ?? null;
         $retraced = $fvg !== null && ($lifecycle['touch_count'] ?? 0) > 0
             && ! in_array($lifecycle['status'] ?? null, ['FULLY_FILLED', 'INVALIDATED'], true);
-        $trigger = $entry['bullish_trigger'];
+        $trigger = $this->triggerAfterZoneTouch($entry, $lifecycle);
         $reasons = [];
         if (! $activeWindow) $reasons[] = 'ICT07_OUTSIDE_OR_UNCONFIGURED_JUDAS_WINDOW';
         if (! $contextOk) $reasons[] = 'ICT07_NO_BULLISH_CONTEXT';
@@ -424,6 +424,22 @@ class IctComprehensiveEngine
         }
 
         return null;
+    }
+
+    private function triggerAfterZoneTouch(array $entryCandles, ?array $lifecycle): bool
+    {
+        if (! $this->bullishTrigger($entryCandles)) return false;
+
+        $touchTime = (int) ($lifecycle['last_touch_close_time'] ?? 0);
+        if ($touchTime <= 0) return false;
+
+        $barsAfterTouch = count(array_filter(
+            $entryCandles,
+            fn (array $candle): bool => (int) ($candle['close_time'] ?? 0) > $touchTime,
+        ));
+
+        return $barsAfterTouch >= 1
+            && $barsAfterTouch <= max(1, (int) config('ict.max_entry_bars_after_retest', 3));
     }
 
     private function bullishTrigger(array $candles): bool
