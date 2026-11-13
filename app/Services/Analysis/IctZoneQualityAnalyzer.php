@@ -43,12 +43,15 @@ class IctZoneQualityAnalyzer
             $zone['touch_count'] = $zone['lifecycle_evidence']['touch_count'];
         }
         unset($zone);
-        $zones = array_values(array_filter($zones, fn (array $z): bool =>
-            $z['quality_score'] >= (int) config('ict.minimum_zone_quality', 45)
-            && ! in_array($z['lifecycle'], ['INVALIDATED', 'FULLY_FILLED'], true)
-        ));
+        foreach ($zones as &$zone) {
+            $zone['eligible'] = $zone['quality_score'] >= (int) config('ict.minimum_zone_quality', 45)
+                && ! in_array($zone['lifecycle'], ['INVALIDATED', 'FULLY_FILLED'], true);
+        }
+        unset($zone);
+        $eligibleZones = array_values(array_filter($zones, fn (array $z): bool => $z['eligible']));
+        usort($eligibleZones, fn (array $a, array $b): int => $b['quality_score'] <=> $a['quality_score']);
         usort($zones, fn (array $a, array $b): int => $b['quality_score'] <=> $a['quality_score']);
-        return ['zones' => $zones, 'best_bullish_zone' => $zones[0] ?? null];
+        return ['zones' => $zones, 'eligible_zones' => $eligibleZones, 'best_bullish_zone' => $eligibleZones[0] ?? null];
     }
 
     private function zone(string $type, float $low, float $high, int $impulseIndex, array $impulse, array $structure, array $liquidity, int $createdAt, ?int $originIndex = null): array
