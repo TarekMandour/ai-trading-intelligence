@@ -34,7 +34,7 @@ class IctReplayIntegrityTest extends TestCase
         $candles[30]['high'] = 101.0;
         $candles[31]['open'] = 105.0;
         $candles[31]['high'] = 106.0;
-        $candles[31]['low'] = 99.0;
+        $candles[31]['low'] = 101.0;
         $candles[31]['close'] = 104.5;
         $candles[32]['low'] = 99.0;
         $candles[32]['open'] = 104.0;
