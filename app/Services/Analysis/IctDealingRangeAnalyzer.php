@@ -1,6 +1,6 @@
 <?php
 
-namespace App\\Services\\Analysis;
+namespace App\Services\Analysis;
 
 /** Derives premium/discount from the latest confirmed directional swing leg. */
 class IctDealingRangeAnalyzer
