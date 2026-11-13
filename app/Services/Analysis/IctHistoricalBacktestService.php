@@ -4,7 +4,7 @@ namespace App\Services\Analysis;
 
 /**
  * Chronological OHLCV-only replay. Fills and costs are explicit assumptions.
- * The engine is evaluated only with candles closed by the decision timestamp.
+ * Each scenario family is replayed with isolated capital and its own equity curve.
  */
 class IctHistoricalBacktestService
 {
@@ -26,16 +26,19 @@ class IctHistoricalBacktestService
         $slippageBps = max(0.0, (float) ($assumptions['slippage_bps'] ?? 0.0));
         $riskFraction = min(1.0, max(0.0001, (float) ($assumptions['risk_fraction'] ?? 0.01)));
         $initialCapital = max(0.01, (float) ($assumptions['initial_capital'] ?? 10000.0));
-        $trades = [];
-        $rejected = 0;
-        $unfilledLimits = 0;
+        $tradesByScenario = [];
+        $capitalByScenario = [];
+        $nextEligibleIndex = [];
+        $unfilledByScenario = [];
+        $rejectedByScenario = [];
         $testStartIndex = max($minimumHistory - 1, (int) ($assumptions['test_start_index'] ?? ($minimumHistory - 1)));
         if ($testStartIndex >= count($entryCandles) - 1) {
             return $this->emptyResult($profile, 'BACKTEST_HOLDOUT_HAS_NO_FORWARD_BARS');
         }
 
-        $index = $testStartIndex;
-        while ($index < count($entryCandles) - 1) {
+        // Every scenario has its own replay state. A loss or open position in one
+        // model family must not suppress or subsidize a different model family.
+        for ($index = $testStartIndex; $index < count($entryCandles) - 1; $index++) {
             $decisionTime = (int) $entryCandles[$index]['close_time'];
             $history = [];
             $hasHistory = true;
@@ -46,28 +49,23 @@ class IctHistoricalBacktestService
                 ));
                 if (count($history[$role]) < $minimumHistory) $hasHistory = false;
             }
-            if (! $hasHistory) {
-                $index++;
-                continue;
-            }
+            if (! $hasHistory) continue;
 
             $analysis = $this->engine->evaluate($history, $profile);
-            $eligible = array_values(array_filter(
-                $analysis['scenarios'] ?? [],
-                fn (array $item): bool => in_array($item['status'] ?? null, ['ENTERABLE', 'WAIT'], true)
-                    && is_array($item['candidate'] ?? null),
-            ));
-            if ($eligible === []) {
-                $index++;
-                continue;
-            }
+            foreach (($analysis['scenarios'] ?? []) as $scenario) {
+                $scenarioKey = (string) ($scenario['scenario'] ?? 'UNKNOWN');
+                if ($scenarioKey === 'UNKNOWN' || $index < ($nextEligibleIndex[$scenarioKey] ?? $testStartIndex)) continue;
+                if (! in_array($scenario['status'] ?? null, ['ENTERABLE', 'WAIT'], true)
+                    || ! is_array($scenario['candidate'] ?? null)) continue;
 
-            $fills = [];
-            foreach ($eligible as $scenario) {
                 $candidate = $scenario['candidate'];
-                $fill = $this->findFill($candidate, $entryCandles, $index, $maxLimitWaitBars, $slippageBps);
+                $fillResult = $this->findFill($candidate, $entryCandles, $index, $maxLimitWaitBars, $slippageBps);
+                $fill = $fillResult['fill'];
                 if ($fill === null) {
-                    if (($candidate['entry_plans']['limit']['status'] ?? null) === 'PLANNED') $unfilledLimits++;
+                    if (($candidate['entry_plans']['limit']['status'] ?? null) === 'PLANNED') {
+                        $unfilledByScenario[$scenarioKey] = ($unfilledByScenario[$scenarioKey] ?? 0) + 1;
+                    }
+                    $nextEligibleIndex[$scenarioKey] = max($index + 1, (int) $fillResult['next_eligible_index']);
                     continue;
                 }
 
@@ -76,33 +74,53 @@ class IctHistoricalBacktestService
                 $signalStop = (float) ($candidate['stop'] ?? 0.0);
                 $signalRisk = $signalEntry - $signalStop;
                 if ($signalEntry <= 0 || $signalRisk <= 0 || $entryPrice <= 0) {
-                    $rejected++;
+                    $rejectedByScenario[$scenarioKey] = ($rejectedByScenario[$scenarioKey] ?? 0) + 1;
+                    $nextEligibleIndex[$scenarioKey] = (int) $fill['index'] + 1;
                     continue;
                 }
 
-                // Preserve structural stop distance, then anchor the stop and
-                // R-multiple targets to the actual simulated fill price.
+                // Keep the original structural stop distance, then translate
+                // all price levels to the actual simulated fill price.
                 $stop = $entryPrice - $signalRisk;
                 $target1R = max(0.01, (float) config('ict.target_1_r', 2.0));
                 $target2R = max($target1R, (float) config('ict.target_2_r', 3.0));
                 $target1 = $entryPrice + ($signalRisk * $target1R);
                 $target2 = $entryPrice + ($signalRisk * $target2R);
-
-                $fills[] = $this->simulateTrade(
+                $scenarioCapital = $capitalByScenario[$scenarioKey] ?? $initialCapital;
+                $trade = $this->simulateTrade(
                     $entryCandles, $fill, $stop, $target1, $target2,
-                    $maxHoldingBars, $feeRate, $slippageBps,
-                    (string) ($scenario['scenario'] ?? 'UNKNOWN'),
-                    $initialCapital, $riskFraction,
+                    $maxHoldingBars, $feeRate, $slippageBps, $scenarioKey,
+                    $scenarioCapital, $riskFraction,
                 );
-            }
 
-            if ($fills !== []) {
-                foreach ($fills as $trade) $trades[] = $trade;
-                $index = max($index + 1, max(array_column($fills, 'exit_index')) + 1);
-            } else {
-                $index++;
+                $tradesByScenario[$scenarioKey][] = $trade;
+                $capitalByScenario[$scenarioKey] = max(0.0, $scenarioCapital + $trade['net_pnl_cash']);
+                $nextEligibleIndex[$scenarioKey] = (int) $trade['exit_index'] + 1;
             }
         }
+
+        $scenarioMetrics = [];
+        $scenarioCounts = [];
+        $trades = [];
+        $totalUnfilled = 0;
+        $totalRejected = 0;
+        foreach ($tradesByScenario as $scenarioKey => $scenarioTrades) {
+            usort($scenarioTrades, fn (array $a, array $b): int => $a['entry_time'] <=> $b['entry_time']);
+            $scenarioMetrics[$scenarioKey] = $this->metrics($scenarioTrades, $initialCapital);
+            $scenarioCounts[$scenarioKey] = [
+                'trades' => count($scenarioTrades),
+                'unfilled_limits' => $unfilledByScenario[$scenarioKey] ?? 0,
+                'rejected_candidates' => $rejectedByScenario[$scenarioKey] ?? 0,
+            ];
+            $totalUnfilled += $scenarioCounts[$scenarioKey]['unfilled_limits'];
+            $totalRejected += $scenarioCounts[$scenarioKey]['rejected_candidates'];
+            foreach ($scenarioTrades as $trade) $trades[] = $trade;
+        }
+        usort($trades, fn (array $a, array $b): int => $a['entry_time'] <=> $b['entry_time']);
+
+        // Do not fabricate a portfolio equity curve by summing independent
+        // scenario tests against the same initial capital.
+        $metrics = count($scenarioMetrics) === 1 ? reset($scenarioMetrics) : null;
 
         return [
             'engine' => 'ICT_OHLCV_HISTORICAL_REPLAY',
@@ -115,7 +133,8 @@ class IctHistoricalBacktestService
                 'max_limit_wait_bars' => $maxLimitWaitBars,
                 'max_holding_bars' => $maxHoldingBars,
                 'risk_fraction_of_equity' => $riskFraction,
-                'initial_capital' => $initialCapital,
+                'initial_capital_per_scenario' => $initialCapital,
+                'scenario_capital_isolated' => true,
                 'limit_fill_model' => 'LOW_TOUCH_ASSUMED_FILL_NOT_QUEUE_CONFIRMED',
                 'same_bar_stop_target_policy' => 'STOP_FIRST_CONSERVATIVE',
                 'partial_exit_policy' => '50_PERCENT_AT_TARGET_1_50_PERCENT_AT_TARGET_2_OR_FINAL_EXIT',
@@ -128,56 +147,78 @@ class IctHistoricalBacktestService
                 'start_index' => $testStartIndex,
                 'end_index' => count($entryCandles) - 1,
             ],
-            'counts' => ['trades' => count($trades), 'unfilled_limits' => $unfilledLimits, 'rejected_candidates' => $rejected],
-            'metrics' => $this->metrics($trades, $initialCapital),
+            'counts' => [
+                'trades' => count($trades),
+                'unfilled_limits' => $totalUnfilled,
+                'rejected_candidates' => $totalRejected,
+                'scenario_families' => count($scenarioMetrics),
+            ],
+            'scenario_counts' => $scenarioCounts,
+            'scenario_metrics' => $scenarioMetrics,
+            'metrics' => $metrics,
+            'metrics_scope' => count($scenarioMetrics) > 1 ? 'PER_SCENARIO_ONLY_NO_CROSS_STRATEGY_PORTFOLIO' : 'SINGLE_SCENARIO',
             'trades' => $trades,
         ];
     }
 
-    private function findFill(array $candidate, array $candles, int $decisionIndex, int $maxLimitWaitBars, float $slippageBps): ?array
+    /**
+     * @return array{fill: ?array, next_eligible_index: int}
+     */
+    private function findFill(array $candidate, array $candles, int $decisionIndex, int $maxLimitWaitBars, float $slippageBps): array
     {
         if (($candidate['entry_plans']['market']['status'] ?? null) === 'PLANNED') {
             $nextIndex = $decisionIndex + 1;
             $next = $candles[$nextIndex] ?? null;
-            if ($next === null) return null;
+            if ($next === null) return ['fill' => null, 'next_eligible_index' => $nextIndex];
 
             return [
-                'type' => 'MARKET',
-                'index' => $nextIndex,
-                'price' => (float) $next['open'] * (1 + ($slippageBps / 10000)),
-                'assumption' => 'NEXT_BAR_OPEN_PLUS_CONFIGURED_SLIPPAGE',
+                'fill' => [
+                    'type' => 'MARKET',
+                    'index' => $nextIndex,
+                    'price' => (float) $next['open'] * (1 + ($slippageBps / 10000)),
+                    'assumption' => 'NEXT_BAR_OPEN_PLUS_CONFIGURED_SLIPPAGE',
+                ],
+                'next_eligible_index' => $nextIndex,
             ];
         }
 
-        if (($candidate['entry_plans']['limit']['status'] ?? null) !== 'PLANNED') return null;
+        if (($candidate['entry_plans']['limit']['status'] ?? null) !== 'PLANNED') {
+            return ['fill' => null, 'next_eligible_index' => $decisionIndex + 1];
+        }
         $limitPrice = (float) ($candidate['entry_plans']['limit']['limit_price'] ?? 0);
-        if ($limitPrice <= 0) return null;
+        if ($limitPrice <= 0) return ['fill' => null, 'next_eligible_index' => $decisionIndex + 1];
 
         $lastWaitIndex = min(count($candles) - 1, $decisionIndex + $maxLimitWaitBars);
         for ($futureIndex = $decisionIndex + 1; $futureIndex <= $lastWaitIndex; $futureIndex++) {
             $bar = $candles[$futureIndex];
             if ((float) $bar['open'] <= $limitPrice) {
                 return [
-                    'type' => 'LIMIT',
-                    'index' => $futureIndex,
-                    'price' => (float) $bar['open'],
-                    'assumption' => 'LIMIT_GAP_OPEN_BETTER_PRICE_ASSUMED',
+                    'fill' => [
+                        'type' => 'LIMIT',
+                        'index' => $futureIndex,
+                        'price' => (float) $bar['open'],
+                        'assumption' => 'LIMIT_GAP_OPEN_BETTER_PRICE_ASSUMED',
+                    ],
+                    'next_eligible_index' => $lastWaitIndex + 1,
                 ];
             }
             if ((float) $bar['low'] <= $limitPrice) {
                 return [
-                    'type' => 'LIMIT',
-                    'index' => $futureIndex,
-                    'price' => $limitPrice,
-                    'assumption' => 'OHLCV_LOW_TOUCH_ASSUMED_FILL_NOT_QUEUE_CONFIRMED',
+                    'fill' => [
+                        'type' => 'LIMIT',
+                        'index' => $futureIndex,
+                        'price' => $limitPrice,
+                        'assumption' => 'OHLCV_LOW_TOUCH_ASSUMED_FILL_NOT_QUEUE_CONFIRMED',
+                    ],
+                    'next_eligible_index' => $lastWaitIndex + 1,
                 ];
             }
         }
 
-        return null;
+        return ['fill' => null, 'next_eligible_index' => $lastWaitIndex + 1];
     }
 
-    private function simulateTrade(array $candles, array $fill, float $stop, float $target1, float $target2, int $maxHoldingBars, float $feeRate, float $slippageBps, string $scenario, float $initialCapital = 10000.0, float $riskFraction = 0.01): array
+    private function simulateTrade(array $candles, array $fill, float $stop, float $target1, float $target2, int $maxHoldingBars, float $feeRate, float $slippageBps, string $scenario, float $capital, float $riskFraction): array
     {
         $entry = (float) $fill['price'];
         $riskPerUnit = $entry - $stop;
@@ -192,6 +233,8 @@ class IctHistoricalBacktestService
             $low = (float) $candle['low'];
             $high = (float) $candle['high'];
 
+            // Conservative OHLC convention: stop wins when both stop and
+            // target can be touched inside one candle and tick order is unknown.
             if ($low <= $stop) {
                 $rawStopExit = min($stop, (float) $candle['open']);
                 $exitPrice = $rawStopExit * (1 - ($slippageBps / 10000));
@@ -225,7 +268,7 @@ class IctHistoricalBacktestService
         $exitFee = (($firstExit + $secondExit) / 2) * $feeRate;
         $netPnlPerUnit = $grossPnlPerUnit - $entryFee - $exitFee;
         $netR = $riskPerUnit > 0 ? $netPnlPerUnit / $riskPerUnit : 0.0;
-        $plannedRiskCash = $initialCapital * $riskFraction;
+        $plannedRiskCash = $capital * $riskFraction;
         $quantity = $riskPerUnit > 0 ? $plannedRiskCash / $riskPerUnit : 0.0;
         $netPnlCash = $netPnlPerUnit * $quantity;
 
@@ -252,7 +295,7 @@ class IctHistoricalBacktestService
             'net_pnl_per_unit' => $netPnlPerUnit,
             'net_pnl_cash' => $netPnlCash,
             'net_r' => $netR,
-            'return_on_initial_capital' => $initialCapital > 0 ? $netPnlCash / $initialCapital : 0.0,
+            'return_on_initial_capital' => $capital > 0 ? $netPnlCash / $capital : 0.0,
             'outcome' => $netPnlPerUnit > 0 ? 'WIN' : ($netPnlPerUnit < 0 ? 'LOSS' : 'BREAKEVEN'),
         ];
     }
@@ -262,11 +305,10 @@ class IctHistoricalBacktestService
         $start = $candles[$startIndex] ?? null;
         $end = $candles[array_key_last($candles)] ?? null;
         if ($start === null || $end === null || (float) $start['close'] <= 0) return 0.0;
-
         return ((float) $end['close'] / (float) $start['close']) - 1;
     }
 
-    private function metrics(array $trades, float $initialCapital = 10000.0): array
+    private function metrics(array $trades, float $initialCapital): array
     {
         $count = count($trades);
         if ($count === 0) return [
@@ -312,7 +354,6 @@ class IctHistoricalBacktestService
                 || (float) $candle['low'] > min((float) $candle['open'], (float) $candle['close'])) return false;
             $previous = (int) $candle['close_time'];
         }
-
         return true;
     }
 
@@ -323,8 +364,11 @@ class IctHistoricalBacktestService
             'profile' => $profile,
             'data_source' => 'OHLCV_ONLY',
             'historical_order_book_used' => false,
-            'counts' => ['trades' => 0, 'unfilled_limits' => 0, 'rejected_candidates' => 0],
-            'metrics' => $this->metrics([]),
+            'counts' => ['trades' => 0, 'unfilled_limits' => 0, 'rejected_candidates' => 0, 'scenario_families' => 0],
+            'scenario_counts' => [],
+            'scenario_metrics' => [],
+            'metrics' => [],
+            'metrics_scope' => 'NO_TRADES',
             'trades' => [],
             'reasons' => [$reason],
         ];
