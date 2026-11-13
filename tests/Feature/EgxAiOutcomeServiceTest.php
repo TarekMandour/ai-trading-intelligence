@@ -14,8 +14,8 @@ class EgxAiOutcomeServiceTest extends TestCase
 
     public function test_it_does_not_use_candles_at_or_before_the_ai_timestamp(): void
     {
-        EgxScanRun::create([
-            'egx_watchlist_id' => 1, 'status' => 'COMPLETED', 'profiles' => ['Scalping'],
+        $watchlist = EgxWatchlist::create(['name' => 'Test']);\n        EgxScanRun::create([
+            'egx_watchlist_id' => $watchlist->id, 'status' => 'COMPLETED', 'profiles' => ['Scalping'],
             'results' => [[
                 'asset_id' => 'asset-1', 'symbol' => 'TEST', 'profiles' => ['Scalping' => [
                     'gemini_analysis' => [
