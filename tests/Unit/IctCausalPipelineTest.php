@@ -128,7 +128,9 @@ class IctCausalPipelineTest extends TestCase
         $closes = array_fill(0, 30, 100.2);
         $volumes = array_fill(0, 30, 100.0);
         $highs[29] = 104.0; $lows[29] = 100.0; $closes[29] = 103.7; $volumes[29] = 300.0;
-        $result = (new IctDisplacementAnalyzer)->analyze($this->candles($highs, $lows, $closes, $volumes));
+        $candles = $this->candles($highs, $lows, $closes, $volumes);
+        $candles[29]['open'] = 100.1;
+        $result = (new IctDisplacementAnalyzer)->analyze($candles);
 
         $this->assertNotNull($result['latest_bullish']);
         $this->assertSame(29, $result['latest_bullish']['index']);
@@ -148,6 +150,7 @@ class IctCausalPipelineTest extends TestCase
         $highs[31] = 104.0; $lows[31] = 102.0; $closes[31] = 103.0;
         $highs[32] = 103.0; $lows[32] = 99.0; $closes[32] = 99.5;
         $candles = $this->candles($highs, $lows, $closes, $volumes);
+        $candles[30]['open'] = 100.3;
         $displacements = (new IctDisplacementAnalyzer)->analyze($candles);
         $structure = (new IctMarketStructureAnalyzer)->analyze($candles);
         $liquidity = ['sweeps' => [], 'latest_bullish_sweep' => null];
