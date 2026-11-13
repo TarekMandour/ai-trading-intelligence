@@ -68,7 +68,7 @@ class IctComprehensiveEngine
 
         $legacyWatchlist = (new IctOpportunityWatchlist)->evaluate($contextEvidence, $setupEvidence, $advancedEvidence, $entryEvidence);
         $tradePlan = $setupAnalysis['trade_plan'];
-        $watchlist = $legacyWatchlist ?? $this->structuralWatchlist($setupAnalysis, (float) $entryEvidence['last_close'], $contextEvidence);
+        $watchlist = $this->structuralWatchlist($setupAnalysis, (float) $entryEvidence['last_close'], $contextEvidence);
         $canonicalScenario = $this->canonicalScenario($profile, $tradePlan);
         $decision = $tradePlan['status'] === 'ENTERABLE'
             ? 'ENTERABLE'
@@ -88,6 +88,7 @@ class IctComprehensiveEngine
             'canonical_scenario' => $canonicalScenario,
             'scenarios' => $results,
             'watchlist' => $watchlist,
+            'legacy_watchlist_diagnostic' => $legacyWatchlist,
             'decision' => $decision,
         ];
     }
