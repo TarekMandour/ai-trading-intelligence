@@ -15,14 +15,14 @@ class IctAnalysisPipeline
         private readonly IctStructuralTradePlanner $tradePlanner = new IctStructuralTradePlanner,
     ) {}
 
-    public function analyze(array $candles): array
+    public function analyze(array $candles, array $entryCandles = []): array
     {
         $structure = $this->structureAnalyzer->analyze($candles);
         $liquidity = $this->liquidityAnalyzer->analyze($candles, $structure['swings']);
         $displacement = $this->displacementAnalyzer->analyze($candles);
         $zones = $this->zoneAnalyzer->analyze($candles, $displacement, $structure, $liquidity);
         $range = $this->rangeAnalyzer->analyze($candles, $structure);
-        $tradePlan = $this->tradePlanner->plan($candles, $structure, $liquidity, $displacement, $zones, $range);
+        $tradePlan = $this->tradePlanner->plan($candles, $structure, $liquidity, $displacement, $zones, $range, $entryCandles);
 
         return [
             'market_structure' => $structure,
