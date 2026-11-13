@@ -78,7 +78,7 @@ The endpoint requires explicit `fee_rate` and `slippage_bps` inputs (both are pe
 - Intraday: 4h / 1h / 15m / 5m.
 - Swing: 1w / 1d / 4h / 1h.
 
-The response contains chronological train/validation/test replay results (60/20/20), per-scenario metrics, a Buy-and-Hold benchmark, trade counts, fill assumptions, fees and slippage. The splits are reporting partitions; no parameter optimizer is run. Do not inspect or tune against the test partition and then call it out-of-sample.
+The response contains chronological train/validation/test replay results (60/20/20), per-scenario metrics, a Buy-and-Hold benchmark, trade counts, fill assumptions, fees and slippage. By default, each split must contain at least 20 forward evaluation bars in addition to the warm-up history; older or sparse symbols are rejected rather than reported on a tiny sample. Set `minimum_evaluation_bars` explicitly only when the reduced sample is intentional. The splits are reporting partitions; no parameter optimizer is run. Do not inspect or tune against the test partition and then call it out-of-sample.
 
 ### EGX-specific validation caveats
 
