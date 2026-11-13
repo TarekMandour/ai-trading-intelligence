@@ -285,7 +285,7 @@ class AnalysisComponentsTest extends TestCase
     public function test_ict_scenario_is_no_opportunity_when_core_structure_is_missing(): void
     {
         $engine = new IctComprehensiveEngine;
-        $method = new \\ReflectionMethod($engine, 'scenario');
+        $method = new \ReflectionMethod($engine, 'scenario');
         $result = $method->invoke(
             $engine,
             'ICT_TEST_CORE_BLOCKER',
@@ -303,7 +303,7 @@ class AnalysisComponentsTest extends TestCase
     public function test_ict_scenario_waits_when_only_entry_confirmation_is_missing(): void
     {
         $engine = new IctComprehensiveEngine;
-        $method = new \\ReflectionMethod($engine, 'scenario');
+        $method = new \ReflectionMethod($engine, 'scenario');
         $result = $method->invoke(
             $engine,
             'ICT_TEST_PENDING_TRIGGER',
@@ -490,7 +490,7 @@ class AnalysisComponentsTest extends TestCase
         $candles[32]['close'] = 101.4;
 
         $engine = new IctComprehensiveEngine;
-        $method = new \\ReflectionMethod($engine, 'analyzeSetup');
+        $method = new \ReflectionMethod($engine, 'analyzeSetup');
         $setup = $method->invoke($engine, $candles);
 
         $this->assertSame('CONFIRMED', $setup['sequence']['status']);
@@ -533,7 +533,7 @@ class AnalysisComponentsTest extends TestCase
         $candles[36]['close'] = 103.8;
         $candles[37]['low'] = 103.0;
 
-        $sequence = (new \\App\\Services\\Analysis\\IctBullishSequenceAnalyzer)->detect($candles);
+        $sequence = (new \App\Services\Analysis\IctBullishSequenceAnalyzer)->detect($candles);
 
         $this->assertSame('NOT_CONFIRMED', $sequence['status']);
     }
