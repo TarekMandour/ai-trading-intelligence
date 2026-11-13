@@ -167,6 +167,71 @@ class IctHistoricalBacktestService
     }
 
     /**
+     * Chronological 60/20/20 train-validation-test reporting.
+     * No parameters are fitted on these splits; this is a leakage-resistant
+     * evaluation layout, not an optimizer or a profitability guarantee.
+     */
+    public function runChronologicalSplits(array $candlesByRole, string $profile, array $assumptions = []): array
+    {
+        foreach (['context', 'structure', 'setup', 'entry'] as $role) {
+            if (! isset($candlesByRole[$role]) || ! $this->validSeries($candlesByRole[$role])) {
+                return ['status' => 'REJECTED', 'reason' => 'BACKTEST_INVALID_'.$role.'_SERIES', 'splits' => []];
+            }
+        }
+
+        $entry = array_values($candlesByRole['entry']);
+        $count = count($entry);
+        $minimumHistory = max(30, (int) ($assumptions['minimum_history'] ?? config('ict.minimum_candles', 30)));
+        $trainEnd = (int) floor($count * 0.60) - 1;
+        $validationEnd = (int) floor($count * 0.80) - 1;
+        $validationStart = $trainEnd + 1;
+        $testStart = $validationEnd + 1;
+        if ($trainEnd < $minimumHistory || $validationEnd <= $validationStart || $testStart >= $count - 1) {
+            return [
+                'status' => 'REJECTED', 'reason' => 'INSUFFICIENT_DATA_FOR_CHRONOLOGICAL_60_20_20_SPLITS',
+                'entry_candles' => $count, 'minimum_history' => $minimumHistory, 'splits' => [],
+            ];
+        }
+
+        $trainSeries = $this->truncateRolesAt($candlesByRole, (int) $entry[$trainEnd]['close_time']);
+        $validationSeries = $this->truncateRolesAt($candlesByRole, (int) $entry[$validationEnd]['close_time']);
+        $train = $this->run($trainSeries, $profile, array_merge($assumptions, ['test_start_index' => $minimumHistory - 1]));
+        $validation = $this->run($validationSeries, $profile, array_merge($assumptions, ['test_start_index' => $validationStart]));
+        $test = $this->run($candlesByRole, $profile, array_merge($assumptions, ['test_start_index' => $testStart]));
+
+        return [
+            'engine' => 'ICT_CHRONOLOGICAL_60_20_20_REPLAY',
+            'profile' => $profile,
+            'data_source' => 'CALLER_SUPPLIED_COMPLETED_OHLCV',
+            'split_indices' => [
+                'train' => ['start' => $minimumHistory - 1, 'end' => $trainEnd],
+                'validation' => ['start' => $validationStart, 'end' => $validationEnd],
+                'test' => ['start' => $testStart, 'end' => $count - 1],
+            ],
+            'splits' => ['train' => $train, 'validation' => $validation, 'test' => $test],
+            'promotion_status' => 'NOT_APPROVED_WITHOUT_PREDECLARED_THRESHOLDS_AND_PAPER_TRADING',
+            'limitations' => [
+                'No parameter fitting or optimization is performed.',
+                'OHLCV limit touches are assumed fills, not queue-confirmed fills.',
+                'No historical order-book depth or tick-level intrabar sequence is available.',
+                'The test split must remain untouched until all hypotheses and thresholds are frozen.',
+            ],
+        ];
+    }
+
+    private function truncateRolesAt(array $candlesByRole, int $cutoff): array
+    {
+        $result = [];
+        foreach (['context', 'structure', 'setup', 'entry'] as $role) {
+            $result[$role] = array_values(array_filter(
+                $candlesByRole[$role],
+                fn (array $candle): bool => (int) $candle['close_time'] <= $cutoff,
+            ));
+        }
+        return $result;
+    }
+
+    /**
      * @return array{fill: ?array, next_eligible_index: int}
      */
     private function findFill(array $candidate, array $candles, int $decisionIndex, int $maxLimitWaitBars, float $slippageBps): array
