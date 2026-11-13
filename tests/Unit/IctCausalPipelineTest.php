@@ -1,15 +1,15 @@
 <?php
 
-namespace Tests\\Unit;
+namespace Tests\Unit;
 
-use App\\Services\\Analysis\\IctDealingRangeAnalyzer;
-use App\\Services\\Analysis\\IctDisplacementAnalyzer;
-use App\\Services\\Analysis\\IctLiquidityAnalyzer;
-use App\\Services\\Analysis\\IctMarketStructureAnalyzer;
-use App\\Services\\Analysis\\IctStructuralTradePlanner;
-use App\\Services\\Analysis\\IctSwingPointDetector;
-use App\\Services\\Analysis\\IctZoneQualityAnalyzer;
-use Tests\\TestCase;
+use App\Services\Analysis\IctDealingRangeAnalyzer;
+use App\Services\Analysis\IctDisplacementAnalyzer;
+use App\Services\Analysis\IctLiquidityAnalyzer;
+use App\Services\Analysis\IctMarketStructureAnalyzer;
+use App\Services\Analysis\IctStructuralTradePlanner;
+use App\Services\Analysis\IctSwingPointDetector;
+use App\Services\Analysis\IctZoneQualityAnalyzer;
+use Tests\TestCase;
 
 class IctCausalPipelineTest extends TestCase
 {
@@ -49,7 +49,7 @@ class IctCausalPipelineTest extends TestCase
         }
         $roles = ['context' => $candles, 'structure' => $candles, 'setup' => $candles, 'entry' => $candles];
 
-        $result = (new \\App\\Services\\Analysis\\IctComprehensiveEngine)->evaluate($roles, 'Scalping');
+        $result = (new \App\Services\Analysis\IctComprehensiveEngine)->evaluate($roles, 'Scalping');
 
         $this->assertSame('ict-v2-causal', $result['version']);
         $this->assertArrayHasKey('market_structure', $result['structural_analysis']);
