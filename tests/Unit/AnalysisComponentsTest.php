@@ -450,7 +450,7 @@ class AnalysisComponentsTest extends TestCase
         $this->assertSame(30, $sequence['sweep']['index']);
         $this->assertSame(31, $sequence['displacement']['index']);
         $this->assertSame(31, $sequence['mss']['index']);
-        $this->assertSame([29, 30, 31], $sequence['fvg']['source_indices']);
+        $this->assertSame([30, 31, 32], $sequence['fvg']['source_indices']);
     }
 
     public function test_confirmed_sequence_displacement_metadata_comes_from_the_confirmed_impulse_candle(): void
@@ -485,6 +485,7 @@ class AnalysisComponentsTest extends TestCase
         $this->assertSame('CONFIRMED', $setup['sequence']['status']);
         $this->assertTrue($setup['displacement']['bullish']);
         $this->assertSame(31, $setup['displacement']['index']);
+        $this->assertSame([30, 31, 32], $setup['fvg']['source_indices']);
         $this->assertGreaterThan(0, $setup['displacement']['body_ratio']);
         $this->assertEqualsWithDelta(
             $setup['sequence']['displacement']['body_ratio'],
