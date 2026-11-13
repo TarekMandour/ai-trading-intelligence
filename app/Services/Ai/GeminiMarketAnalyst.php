@@ -12,7 +12,7 @@ class GeminiMarketAnalyst
     public function analyze(array $marketPacket): array
     {
         $apiKey = (string) config('services.gemini.key', '');
-        $model = (string) config('services.gemini.model', 'gemini-3.8-flash');
+        $model = (string) config('services.gemini.model', 'gemini-flash-lite-latest');
         if ($apiKey === '') {
             throw new RuntimeException('GEMINI_API_KEY is not configured.');
         }
@@ -45,14 +45,14 @@ class GeminiMarketAnalyst
             $response = Http::baseUrl('https://generativelanguage.googleapis.com/v1beta')
                 ->withHeaders(['x-goog-api-key' => $apiKey])
                 ->acceptJson()->connectTimeout(5)
-                ->timeout((int) config('services.gemini.timeout', 45))
+                ->timeout((int) config('services.gemini.timeout', 20))
                 ->retry([200, 500])
                 ->post('/models/'.rawurlencode($model).':generateContent', [
                     'systemInstruction' => ['parts' => [['text' => $instructions]]],
                     'contents' => [['role' => 'user', 'parts' => [['text' => json_encode($marketPacket, JSON_THROW_ON_ERROR)]]]],
                     'generationConfig' => [
                         'temperature' => 0,
-                        'maxOutputTokens' => max(800, (int) config('services.gemini.max_output_tokens', 1800)),
+                        'maxOutputTokens' => max(200, (int) config('services.gemini.max_output_tokens', 600)),
                         'responseMimeType' => 'application/json',
                         'responseJsonSchema' => $schema,
                     ],
