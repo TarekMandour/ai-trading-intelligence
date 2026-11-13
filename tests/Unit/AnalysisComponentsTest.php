@@ -497,6 +497,36 @@ class AnalysisComponentsTest extends TestCase
         $this->assertSame($candles[31]['close_time'], $setup['ob']['created_at']);
     }
 
+    public function test_ict_bullish_sequence_rejects_displacement_too_far_after_sweep(): void
+    {
+        $candles = [];
+        $now = now()->getTimestampMs();
+        for ($i = 0; $i < 50; $i++) {
+            $candles[] = [
+                'open_time' => $now - ((50 - $i) * 60000),
+                'close_time' => $now - ((50 - $i) * 60000) + 59999,
+                'open' => 99.9, 'high' => 100.5, 'low' => 99.5,
+                'close' => 100.0, 'volume' => 100.0,
+            ];
+        }
+        $candles[20]['low'] = 97.5;
+        $candles[25]['high'] = 102.0;
+        $candles[29]['high'] = 101.5;
+        $candles[30]['low'] = 97.0;
+        $candles[30]['close'] = 99.5;
+        // An otherwise strong impulse six bars after the sweep is not part of
+        // the same immediate liquidity-reversal sequence.
+        $candles[36]['open'] = 99.0;
+        $candles[36]['high'] = 104.0;
+        $candles[36]['low'] = 98.8;
+        $candles[36]['close'] = 103.8;
+        $candles[37]['low'] = 103.0;
+
+        $sequence = (new \\App\\Services\\Analysis\\IctBullishSequenceAnalyzer)->detect($candles);
+
+        $this->assertSame('NOT_CONFIRMED', $sequence['status']);
+    }
+
     public function test_ict_fvg_invalidation_is_terminal_after_later_retests(): void
     {
         $zone = ['low' => 100.0, 'high' => 102.0, 'created_at' => 2000];
