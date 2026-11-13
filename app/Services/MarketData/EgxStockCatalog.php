@@ -27,15 +27,20 @@ class EgxStockCatalog
             $id = $asset['id'] ?? $asset['asset_id'] ?? $asset['assetId'] ?? null;
             if (!is_string($id) && !is_numeric($id)) continue;
 
-            $symbol = $asset['symbol'] ?? $asset['ticker'] ?? $asset['code'] ?? $asset['short_name'] ?? $asset['shortName'] ?? '';
-            $name = $asset['name'] ?? $asset['english_name'] ?? $asset['company_name'] ?? $asset['display_name'] ?? $asset['englishName'] ?? '';
-            $arabicName = $asset['arabic_name'] ?? $asset['name_ar'] ?? $asset['arabicName'] ?? '';
+            // Thndr marketwatch field names (verified against a real marketwatch asset).
+            $symbol = $asset['reuters'] ?? $asset['symbol'] ?? $asset['ticker'] ?? $asset['code'] ?? $asset['short_name'] ?? $asset['shortName'] ?? '';
+            $name = $asset['eng_name'] ?? $asset['name'] ?? $asset['english_name'] ?? $asset['company_name'] ?? $asset['display_name'] ?? $asset['englishName'] ?? '';
+            $arabicName = $asset['arb_name'] ?? $asset['arabic_name'] ?? $asset['name_ar'] ?? $asset['arabicName'] ?? '';
+            $symbolCode = $asset['symbol_code'] ?? ''; 
 
             $stocks[] = [
                 'asset_id' => (string) $id,
                 'symbol' => is_scalar($symbol) ? trim((string) $symbol) : '',
+                'reuters' => is_scalar($symbol) ? trim((string) $symbol) : '',
+                'symbol_code' => is_scalar($symbolCode) ? trim((string) $symbolCode) : '',
                 'name' => is_scalar($name) ? trim((string) $name) : '',
                 'arabic_name' => is_scalar($arabicName) ? trim((string) $arabicName) : '',
+                'market_id' => isset($asset['market_id']) && is_scalar($asset['market_id']) ? trim((string) $asset['market_id']) : '',
                 'metadata' => $asset,
             ];
         }
