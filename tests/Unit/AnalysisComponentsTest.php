@@ -634,6 +634,45 @@ class AnalysisComponentsTest extends TestCase
         $this->assertSame('LOSS', $trade['outcome']);
     }
 
+    public function test_ict_historical_backtest_supports_chronological_holdout_and_buy_and_hold_benchmark(): void
+    {
+        $now = now()->getTimestampMs();
+        $candles = [];
+        for ($i = 0; $i < 45; $i++) {
+            $candles[] = [
+                'open_time' => $now - ((45 - $i) * 60000),
+                'close_time' => $now - ((45 - $i) * 60000) + 59999,
+                'open' => 100.0, 'high' => 101.0, 'low' => 99.0,
+                'close' => 100.0 + ($i * 0.1), 'volume' => 100.0,
+            ];
+        }
+
+        $engine = $this->mock(IctComprehensiveEngine::class);
+        $engine->shouldReceive('evaluate')->atLeast()->once()->andReturn([
+            'decision' => 'WAIT',
+            'scenarios' => [[
+                'scenario' => 'ICT_TEST_HOLDOUT',
+                'status' => 'WAIT',
+                'candidate' => [
+                    'entry' => 100.0, 'stop' => 95.0, 'target1' => 105.0, 'target2' => 110.0,
+                    'entry_plans' => ['market' => ['status' => 'WAIT'], 'limit' => ['status' => 'PLANNED', 'limit_price' => 100.0]],
+                ],
+            ]],
+        ]);
+
+        $result = (new IctHistoricalBacktestService($engine))->run(
+            ['context' => $candles, 'structure' => $candles, 'setup' => $candles, 'entry' => $candles],
+            'Scalping',
+            ['fee_rate' => 0, 'slippage_bps' => 0, 'max_holding_bars' => 2, 'test_start_index' => 38],
+        );
+
+        $this->assertSame(38, $result['assumptions']['test_start_index']);
+        $this->assertSame('CHRONOLOGICAL_HOLDOUT_FROM_TEST_START_INDEX', $result['assumptions']['evaluation_window']);
+        $this->assertSame('BUY_AND_HOLD_ENTRY_TIMEFRAME', $result['benchmark']['name']);
+        $this->assertGreaterThanOrEqual(39, $result['trades'][0]['entry_index']);
+        $this->assertGreaterThan(0, $result['benchmark']['return']);
+    }
+
     public function test_ict_historical_backtest_rejects_missing_timeframe_series(): void
     {
         $result = (new IctHistoricalBacktestService(new IctComprehensiveEngine))->run([], 'Swing');
