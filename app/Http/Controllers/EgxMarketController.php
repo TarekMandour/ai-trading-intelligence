@@ -143,12 +143,13 @@ class EgxMarketController extends Controller
             'risk_fraction' => ['sometimes', 'numeric', 'gt:0', 'max:1'],
             'max_holding_bars' => ['sometimes', 'integer', 'min:1', 'max:10000'],
             'candle_limit' => ['sometimes', 'integer', 'min:100', 'max:10000'],
+            'minimum_evaluation_bars' => ['sometimes', 'integer', 'min:5', 'max:1000'],
         ]);
 
         return response()->json($backtest->run(
             $data['asset_id'],
             $data['profile'],
-            array_intersect_key($data, array_flip(['fee_rate', 'slippage_bps', 'initial_capital', 'risk_fraction', 'max_holding_bars', 'candle_limit'])),
+            array_intersect_key($data, array_flip(['fee_rate', 'slippage_bps', 'initial_capital', 'risk_fraction', 'max_holding_bars', 'candle_limit', 'minimum_evaluation_bars'])),
         ));
     }
 
