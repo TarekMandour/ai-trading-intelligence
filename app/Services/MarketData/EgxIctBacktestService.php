@@ -1,8 +1,8 @@
 <?php
 
-namespace App\\Services\\MarketData;
+namespace App\Services\MarketData;
 
-use App\\Services\\Analysis\\IctHistoricalBacktestService;
+use App\Services\Analysis\IctHistoricalBacktestService;
 
 /** Replays persisted Thndr/EGX candles through the same deterministic ICT engine. */
 class EgxIctBacktestService
