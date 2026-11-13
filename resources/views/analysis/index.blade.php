@@ -204,7 +204,7 @@
                     addMetric('Distance to zone',(w.distance_to_zone_pct??'—')+'%');
                     summary.append(metrics);
                     const zone=document.createElement('p');zone.textContent='Zone: '+(w.zone_type||'—');summary.append(zone);
-                    const structure=document.createElement('p');structure.textContent='Structure: '+(w.structure?.context_bias||'—')+' / '+(w.structure?.structure_bias||'—')+' · MSS: '+(w.structure?.mss_confirmed?'Confirmed':'Not confirmed');summary.append(structure);
+                    const structure=document.createElement('p');structure.textContent='Structure: '+(w.structure?.context_bias||'—')+' / '+(w.structure?.structure_bias||'—')+' · Alignment: '+(w.structure?.context_alignment||'—')+' · MSS: '+(w.structure?.mss_confirmed?'Confirmed':'Not confirmed');summary.append(structure);
                     const evidence=document.createElement('p');evidence.textContent='Evidence: '+(w.reasons||[]).join(', ');summary.append(evidence);
                     const confirmation=document.createElement('p');confirmation.textContent='Required confirmation: '+(w.required_confirmation||[]).join('; ');summary.append(confirmation);
                     const invalidation=document.createElement('p');invalidation.textContent='Invalidation: '+(w.invalidation||'—');summary.append(invalidation);
