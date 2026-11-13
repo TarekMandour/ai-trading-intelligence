@@ -12,6 +12,7 @@ class IctStructuralTradePlanner
         $zone = $zones['best_bullish_zone'] ?? null;
         if ($last === null || $zone === null) return $this->wait('NO_QUALIFIED_BULLISH_ZONE');
         $price = (float) $last['close'];
+        if ((int) ($last['close_time'] ?? 0) <= (int) ($zone['created_at'] ?? 0)) return $this->wait('ENTRY_CANDLE_PRECEDES_ZONE_CREATION', $zone, $price);
         $touch = (float) $last['low'] <= (float) $zone['high'] && (float) $last['high'] >= (float) $zone['low'];
         $previousEntry = $entryCandles[count($entryCandles) - 2] ?? null;
         $trigger = $previousEntry !== null
@@ -33,8 +34,9 @@ class IctStructuralTradePlanner
         foreach (($liquidity['pools'] ?? []) as $pool) {
             if ($pool['side'] === 'BSL' && (float) $pool['level'] > $price) $targets[] = (float) $pool['level'];
         }
+        $alreadyBroken = array_map('intval', $structure['broken_levels']['highs'] ?? []);
         foreach (($structure['swings']['highs'] ?? []) as $swing) {
-            if ((float) $swing['price'] > $price) $targets[] = (float) $swing['price'];
+            if ((float) $swing['price'] > $price && ! in_array((int) $swing['index'], $alreadyBroken, true)) $targets[] = (float) $swing['price'];
         }
         $targets = array_values(array_unique($targets));
         sort($targets);
