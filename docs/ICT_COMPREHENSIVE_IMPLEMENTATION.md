@@ -74,5 +74,5 @@ The engine returns `structural_analysis`, `structural_trade_plan`, and `canonica
 - The first structural plan confirms a bullish retest/reclaim on the entry timeframe; more nuanced trigger types (engulfing, micro BOS, reclaim of CE) remain future variants to compare.
 - Higher-timeframe alignment and live order-book cost checks remain hard gates in the existing queued workflow.
 - The OHLCV backtest still uses explicit fill assumptions and cannot reproduce queue priority, intrabar tick order, or historical order-book depth.
-- EGX/Thndr is not yet connected to this Binance ICT pipeline. EGX candles require their own exchange-session calendar, corporate-action adjustment, tick/lot/price-band handling, fees, and slippage model before an EGX backtest can be considered valid.
+- EGX/Thndr now feeds the same causal ICT engine through a separate stored-candle adapter and chronological backtest endpoint. Real EGX approval still requires exchange-session validation, corporate-action adjustment, tick/lot/price-band handling, and verified broker fees/slippage.
 - No profitability claim is made. Approval requires scenario-isolated train/validation/untouched test, walk-forward and sensitivity analysis, and prospective paper-trading evidence.
