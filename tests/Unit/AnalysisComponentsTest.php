@@ -453,6 +453,46 @@ class AnalysisComponentsTest extends TestCase
         $this->assertSame([29, 30, 31], $sequence['fvg']['source_indices']);
     }
 
+    public function test_confirmed_sequence_displacement_metadata_comes_from_the_confirmed_impulse_candle(): void
+    {
+        $candles = [];
+        $now = now()->getTimestampMs();
+        for ($i = 0; $i < 40; $i++) {
+            $candles[] = [
+                'open_time' => $now - ((40 - $i) * 60000),
+                'close_time' => $now - ((40 - $i) * 60000) + 59999,
+                'open' => 99.9,
+                'high' => 100.5,
+                'low' => 99.5,
+                'close' => 100.0,
+                'volume' => 100.0,
+            ];
+        }
+        $candles[20]['low'] = 97.5;
+        $candles[25]['high'] = 102.0;
+        $candles[29]['high'] = 101.5;
+        $candles[30]['low'] = 97.0;
+        $candles[30]['close'] = 99.5;
+        $candles[31]['open'] = 102.2;
+        $candles[31]['high'] = 104.0;
+        $candles[31]['low'] = 101.8;
+        $candles[31]['close'] = 103.8;
+
+        $engine = new IctComprehensiveEngine;
+        $method = new \\ReflectionMethod($engine, 'analyzeSetup');
+        $setup = $method->invoke($engine, $candles);
+
+        $this->assertSame('CONFIRMED', $setup['sequence']['status']);
+        $this->assertTrue($setup['displacement']['bullish']);
+        $this->assertSame(31, $setup['displacement']['index']);
+        $this->assertGreaterThan(0, $setup['displacement']['body_ratio']);
+        $this->assertEqualsWithDelta(
+            $setup['sequence']['displacement']['body_ratio'],
+            $setup['displacement']['body_ratio'],
+            0.000001,
+        );
+    }
+
     public function test_ict_fvg_invalidation_is_terminal_after_later_retests(): void
     {
         $zone = ['low' => 100.0, 'high' => 102.0, 'created_at' => 2000];
