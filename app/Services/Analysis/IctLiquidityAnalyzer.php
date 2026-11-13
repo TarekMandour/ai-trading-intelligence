@@ -1,6 +1,6 @@
 <?php
 
-namespace App\\Services\\Analysis;
+namespace App\Services\Analysis;
 
 /** Finds equal-high/low pools and wick-through/reclaim sweeps of confirmed levels. */
 class IctLiquidityAnalyzer
