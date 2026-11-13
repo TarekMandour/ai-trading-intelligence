@@ -29,12 +29,12 @@ class IctOpportunityWatchlistTest extends TestCase
         $this->assertSame(126.0, $result['zone']['low']);
     }
 
-    public function test_watchlist_rejects_bearish_context_even_when_zone_is_nearby(): void
+    public function test_watchlist_rejects_bearish_context_without_local_mss(): void
     {
         $result = (new IctOpportunityWatchlist)->evaluate(
             ['bias' => 'BEARISH', 'structure_bias' => 'BULLISH'],
             [
-                'mss' => ['confirmed' => true],
+                'mss' => ['confirmed' => false],
                 'fvg' => ['low' => 126.0, 'high' => 127.0],
                 'fvg_lifecycle' => ['status' => 'ACTIVE'],
             ],
@@ -43,6 +43,27 @@ class IctOpportunityWatchlistTest extends TestCase
         );
 
         $this->assertNull($result);
+    }
+
+    public function test_local_mss_can_create_countertrend_watchlist_against_bearish_context(): void
+    {
+        $result = (new IctOpportunityWatchlist)->evaluate(
+            ['bias' => 'BEARISH', 'structure_bias' => 'BULLISH'],
+            [
+                'mss' => ['confirmed' => true],
+                'sequence' => ['status' => 'NOT_CONFIRMED'],
+                'fvg' => null,
+                'ob' => null,
+            ],
+            ['ote' => ['direction' => 'LONG', 'low' => 126.0, 'high' => 128.0]],
+            ['last_close' => 127.0, 'bullish_trigger' => false],
+        );
+
+        $this->assertNotNull($result);
+        $this->assertSame('WATCHLIST', $result['status']);
+        $this->assertSame('COUNTERTREND', $result['structure']['context_alignment']);
+        $this->assertContains('COUNTERTREND_SETUP_AGAINST_HIGHER_TIMEFRAME', $result['reasons']);
+        $this->assertFalse($result['entry_authorized']);
     }
 
     public function test_watchlist_rejects_price_far_from_all_active_zones(): void
