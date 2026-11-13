@@ -320,8 +320,10 @@ class IctComprehensiveEngine
     private function selectDecision(array $results, ?array $watchlist = null): string
     {
         if (collect($results)->contains(fn (array $r): bool => $r['status'] === 'ENTERABLE')) return 'ENTERABLE';
-        if (collect($results)->contains(fn (array $r): bool => $r['status'] === 'WAIT')) return 'WAIT';
+        // An early opportunity deserves its own state even when strict entry
+        // scenarios are still waiting for a retest or trigger.
         if ($watchlist !== null) return 'WATCHLIST';
+        if (collect($results)->contains(fn (array $r): bool => $r['status'] === 'WAIT')) return 'WAIT';
         return 'NO_OPPORTUNITY';
     }
 
