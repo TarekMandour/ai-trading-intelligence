@@ -1,10 +1,10 @@
 <?php
 
-namespace Tests\\Unit;
+namespace Tests\Unit;
 
-use App\\Services\\Analysis\\IctComprehensiveEngine;
-use App\\Services\\Analysis\\IctHistoricalBacktestService;
-use Tests\\TestCase;
+use App\Services\Analysis\IctComprehensiveEngine;
+use App\Services\Analysis\IctHistoricalBacktestService;
+use Tests\TestCase;
 
 class IctChronologicalBacktestSplitTest extends TestCase
 {
