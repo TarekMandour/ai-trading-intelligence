@@ -120,7 +120,6 @@ class ProcessAnalysisRun implements ShouldQueue
                 $entryState = $states['entry'] ?? null;
                 $regime = $entryState ?? ['direction' => 'UNCERTAIN', 'behavior' => 'UNCERTAIN', 'volatility' => 'NORMAL', 'reasons' => ['INSUFFICIENT_VALIDATED_CANDLE_EVIDENCE'], 'candidate' => null];
                 $scenarioResults = $ictResult['scenarios'] ?? [];
-                $watchlist = $ictResult['watchlist'] ?? null;
                 $selectedScenario = collect($scenarioResults)->first(fn (array $scenario): bool => $scenario['status'] === 'ENTERABLE' && is_array($scenario['candidate'] ?? null));
                 $selectedScenario ??= collect($scenarioResults)->first(fn (array $scenario): bool => $scenario['status'] === 'WAIT' && is_array($scenario['candidate'] ?? null));
                 $candidate = $selectedScenario['candidate'] ?? null;
@@ -129,9 +128,6 @@ class ProcessAnalysisRun implements ShouldQueue
                 $executionCosts = ['available' => false, 'fee' => 0, 'spread' => 0, 'slippage' => 0, 'total' => 0, 'reason' => 'NOT_REQUESTED_NO_ENTERABLE_CANDIDATE'];
                 if ($candidate === null && $decision !== 'REJECTED' && collect($scenarioResults)->contains(fn (array $scenario): bool => $scenario['status'] === 'WAIT')) {
                     $decision = 'WAIT';
-                }
-                if ($candidate === null && in_array($decision, ['NO_OPPORTUNITY', 'WAIT'], true) && is_array($watchlist)) {
-                    $decision = 'WATCHLIST';
                 }
 
                 if ($candidate !== null && $marketEntryReady && ($alignmentResult['allow_entry'] ?? false)) {
@@ -171,14 +167,12 @@ class ProcessAnalysisRun implements ShouldQueue
                     'timeframe_alignment' => $alignmentResult,
                     'regime' => array_diff_key($regime, ['candidate' => true, 'reasons' => true]),
                     'scenarios' => $scenarioResults,
-                    'watchlist' => $watchlist,
                     'execution_costs' => $executionCosts,
                     'decision' => $decision,
                     'decision_reasons' => array_values(array_unique(array_merge(
                         $regime['reasons'] ?? [],
                         $alignmentResult['reasons'] ?? [],
                         collect($scenarioResults)->flatMap(fn (array $scenario): array => $scenario['reasons'] ?? [])->all(),
-                        $watchlist['reasons'] ?? [],
                         isset($executionCosts['reason']) ? [$executionCosts['reason']] : [],
                         $decision === 'WAIT' ? ['ENTRY_GATES_NOT_FULLY_SATISFIED'] : [],
                         $profileWarnings,
