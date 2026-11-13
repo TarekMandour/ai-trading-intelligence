@@ -13,7 +13,7 @@ class IctOpportunityWatchlistTest extends TestCase
             ['bias' => 'RANGING', 'structure_bias' => 'BULLISH'],
             [
                 'mss' => ['confirmed' => true],
-                'sequence' => ['status' => 'NOT_CONFIRMED'],
+                'sequence' => ['status' => 'CONFIRMED'],
                 'fvg' => ['low' => 126.0, 'high' => 127.0, 'ce' => 126.5],
                 'fvg_lifecycle' => ['status' => 'ACTIVE', 'touch_count' => 0],
             ],
@@ -56,6 +56,23 @@ class IctOpportunityWatchlistTest extends TestCase
             ],
             [],
             ['last_close' => 110.0, 'bullish_trigger' => false],
+        );
+
+        $this->assertNull($result);
+    }
+
+    public function test_unlinked_geometric_fvg_does_not_create_ict_watchlist(): void
+    {
+        $result = (new IctOpportunityWatchlist)->evaluate(
+            ['bias' => 'RANGING', 'structure_bias' => 'BULLISH'],
+            [
+                'mss' => ['confirmed' => true],
+                'sequence' => ['status' => 'NOT_CONFIRMED'],
+                'fvg' => ['low' => 126.0, 'high' => 127.0],
+                'fvg_lifecycle' => ['status' => 'ACTIVE'],
+            ],
+            [],
+            ['last_close' => 127.0, 'bullish_trigger' => false],
         );
 
         $this->assertNull($result);
