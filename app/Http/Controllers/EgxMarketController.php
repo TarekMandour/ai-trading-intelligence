@@ -190,6 +190,8 @@ class EgxMarketController extends Controller
 
         try {
             $results = [];
+            $aiCandidateCount = 0;
+            $aiCandidateLimit = max(1, (int) config('services.gemini.max_candidates_per_run', 5));
             foreach ($watchlist->stocks as $stock) {
                 $stockResult = ['asset_id' => $stock->asset_id, 'symbol' => $stock->symbol, 'name' => $stock->name, 'arabic_name' => $stock->arabic_name, 'profiles' => []];
                 foreach ($profiles as $profile) {
@@ -236,18 +238,29 @@ class EgxMarketController extends Controller
                             'stock_metadata' => $stock->metadata ?? [],
                             'timeframes' => $timeframes,
                         ];
-                        try {
-                            $geminiResult = $gemini->analyze($aiSnapshot);
-                            $geminiResult['as_of'] = $asOf;
-                            $geminiResult['input_snapshot'] = $aiSnapshot;
-                        } catch (Throwable $aiException) {
+                        if ($aiCandidateCount >= $aiCandidateLimit) {
+                            $geminiResult = [
+                                'status' => 'SKIPPED_LIMIT',
+                                'provider' => 'gemini',
+                                'model' => config('services.gemini.model'),
+                                'as_of' => $asOf,
+                                'input_snapshot' => $aiSnapshot,
+                            ];
+                        } else {
+                            $aiCandidateCount++;
+                            try {
+                                $geminiResult = $gemini->analyze($aiSnapshot);
+                                $geminiResult['as_of'] = $asOf;
+                                $geminiResult['input_snapshot'] = $aiSnapshot;
+                            } catch (Throwable $aiException) {
                             $geminiResult = [
                                 'status' => 'FAILED',
                                 'provider' => 'gemini',
                                 'as_of' => $asOf,
                                 'error' => class_basename($aiException).': '.$aiException->getMessage(),
-                                'input_snapshot' => $aiSnapshot,
-                            ];
+                                    'input_snapshot' => $aiSnapshot,
+                                ];
+                            }
                         }
                         $profileResult = $ict->evaluate($series, $profile) + ['sync' => $syncReport];
                         $profileResult['gemini_analysis'] = $geminiResult;
