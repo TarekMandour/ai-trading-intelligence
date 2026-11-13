@@ -30,7 +30,23 @@ class IctZoneQualityAnalyzer
             }
         }
 
-        $zones = array_values(array_filter($zones, fn (array $z): bool => $z['quality_score'] >= (int) config('ict.minimum_zone_quality', 45)));
+        $lifecycle = new IctZoneLifecycleAnalyzer;
+        foreach ($zones as &$zone) {
+            $afterCreation = array_values(array_filter(
+                $candles,
+                fn (array $c): bool => (int) ($c['close_time'] ?? 0) > (int) $zone['created_at'],
+            ));
+            $zone['lifecycle_evidence'] = $zone['type'] === 'BULLISH_FVG'
+                ? $lifecycle->bullishFvg($zone, $afterCreation)
+                : $lifecycle->bullishOrderBlock($zone, $afterCreation);
+            $zone['lifecycle'] = $zone['lifecycle_evidence']['status'];
+            $zone['touch_count'] = $zone['lifecycle_evidence']['touch_count'];
+        }
+        unset($zone);
+        $zones = array_values(array_filter($zones, fn (array $z): bool =>
+            $z['quality_score'] >= (int) config('ict.minimum_zone_quality', 45)
+            && ! in_array($z['lifecycle'], ['INVALIDATED', 'FULLY_FILLED'], true)
+        ));
         usort($zones, fn (array $a, array $b): int => $b['quality_score'] <=> $a['quality_score']);
         return ['zones' => $zones, 'best_bullish_zone' => $zones[0] ?? null];
     }
@@ -38,8 +54,11 @@ class IctZoneQualityAnalyzer
     private function zone(string $type, float $low, float $high, int $impulseIndex, array $impulse, array $structure, array $liquidity, int $createdAt, ?int $originIndex = null): array
     {
         $hasBreak = collect($structure['events'] ?? [])->contains(fn (array $e): bool => $e['direction'] === 'BULLISH' && $e['break_index'] === $impulseIndex);
-        $sweep = $liquidity['latest_bullish_sweep'] ?? null;
-        $linkedSweep = $sweep !== null && $sweep['index'] < $impulseIndex && $impulseIndex - $sweep['index'] <= max(1, (int) config('ict.sequence_max_bars_after_sweep', 5));
+        $linkedSweep = collect($liquidity['sweeps'] ?? [])->contains(fn (array $sweep): bool =>
+            $sweep['side'] === 'SSL'
+            && $sweep['index'] < $impulseIndex
+            && $impulseIndex - $sweep['index'] <= max(1, (int) config('ict.sequence_max_bars_after_sweep', 5))
+        );
         $score = (int) round(
             min(2.5, (float) $impulse['range_atr']) / 2.5 * 30
             + min(1, (float) $impulse['body_ratio']) * 25
