@@ -403,6 +403,7 @@ class AnalysisComponentsTest extends TestCase
         $this->assertSame('PARTIALLY_FILLED', $result['status']);
         $this->assertSame(1, $result['touch_count']);
         $this->assertFalse($result['touch_is_fill']);
+        $this->assertSame(2500, $result['last_touch_close_time']);
     }
 
     public function test_ict_fvg_lifecycle_distinguishes_full_fill_from_invalidation(): void
