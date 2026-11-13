@@ -37,22 +37,25 @@ class IctBullishSequenceAnalyzer
                 $priorHigh = $this->latestConfirmed($swings['highs'], $displacementIndex);
                 if ($priorHigh === null || (float) $displacement['close'] <= $priorHigh['price']) continue;
 
-                for ($fvgIndex = $displacementIndex; $fvgIndex < $count; $fvgIndex++) {
-                    if ($fvgIndex < 2) continue;
-                    $first = $candles[$fvgIndex - 2];
-                    $third = $candles[$fvgIndex];
-                    $zoneLow = (float) $first['high'];
-                    $zoneHigh = (float) $third['low'];
-                    if ($zoneHigh <= $zoneLow) continue;
+                // The displacement candle must be the middle candle of the
+                // three-candle FVG. The third candle confirms the gap only after
+                // the impulse has closed; unrelated later gaps cannot complete
+                // this sequence.
+                $fvgIndex = $displacementIndex + 1;
+                if ($fvgIndex >= $count) continue;
+                $first = $candles[$displacementIndex - 1];
+                $third = $candles[$fvgIndex];
+                $zoneLow = (float) $first['high'];
+                $zoneHigh = (float) $third['low'];
+                if ($zoneHigh <= $zoneLow) continue;
 
-                    return [
-                        'status' => 'CONFIRMED',
-                        'sweep' => ['index' => $sweepIndex, 'level' => $ssl['price'], 'low' => (float) $sweep['low'], 'close_time' => (int) $sweep['close_time']],
-                        'displacement' => ['index' => $displacementIndex, 'atr' => $atr, 'body_ratio' => $bodyRatio, 'close_time' => (int) $displacement['close_time']],
-                        'mss' => ['level' => $priorHigh['price'], 'index' => $displacementIndex, 'close_time' => (int) $displacement['close_time']],
-                        'fvg' => ['low' => $zoneLow, 'high' => $zoneHigh, 'ce' => ($zoneLow + $zoneHigh) / 2, 'created_at' => (int) $third['close_time'], 'source_indices' => [$fvgIndex - 2, $fvgIndex - 1, $fvgIndex]],
-                    ];
-                }
+                return [
+                    'status' => 'CONFIRMED',
+                    'sweep' => ['index' => $sweepIndex, 'level' => $ssl['price'], 'low' => (float) $sweep['low'], 'close_time' => (int) $sweep['close_time']],
+                    'displacement' => ['index' => $displacementIndex, 'atr' => $atr, 'body_ratio' => $bodyRatio, 'close_time' => (int) $displacement['close_time']],
+                    'mss' => ['level' => $priorHigh['price'], 'index' => $displacementIndex, 'close_time' => (int) $displacement['close_time']],
+                    'fvg' => ['low' => $zoneLow, 'high' => $zoneHigh, 'ce' => ($zoneLow + $zoneHigh) / 2, 'created_at' => (int) $third['close_time'], 'source_indices' => [$displacementIndex - 1, $displacementIndex, $fvgIndex]],
+                ];
             }
         }
 
