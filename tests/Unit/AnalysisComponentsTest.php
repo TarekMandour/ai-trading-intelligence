@@ -694,7 +694,7 @@ class AnalysisComponentsTest extends TestCase
         $candles[35]['high'] = 105.0;
 
         $engine = new IctComprehensiveEngine;
-        $method = new \\ReflectionMethod($engine, 'dealingRange');
+        $method = new \ReflectionMethod($engine, 'dealingRange');
         $range = $method->invoke($engine, $candles);
 
         $this->assertSame(98.0, $range['low']);
