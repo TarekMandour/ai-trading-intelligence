@@ -48,3 +48,42 @@ Important limitation: this first sync implementation repairs the newest tail and
 ## Security and validation
 
 The token endpoint is protected by the shared capture key, requires `thndr_capture_enabled=1`, and is rate-limited. Do not expose `market_settings.value` in API responses or logs. The EGX scan/universe/watchlist endpoints are currently API endpoints without user authentication because the current MVP has no authentication flow. Do not expose them to the public internet; add authenticated dashboard middleware and user ownership checks before deployment. Token values are never returned by these endpoints.
+
+
+## ICT causal engine and historical EGX backtest (2026-11-13)
+
+The EGX scan endpoint now calls the same `IctComprehensiveEngine` contract, which includes the `ict-v2-causal` evidence pipeline. It reports confirmed swings, close-based BOS/CHoCH, equal-liquidity pools and sweeps, ATR/body/relative-volume displacement, quality-scored FVG/OB zones, structural dealing range, and a lower-timeframe retest/reclaim plan.
+
+### Historical backtest endpoint
+
+`POST /api/egx/backtest`
+
+Example request:
+
+```json
+{
+  "asset_id": "THNDR_ASSET_ID",
+  "profile": "Intraday",
+  "fee_rate": 0.002,
+  "slippage_bps": 15,
+  "initial_capital": 100000,
+  "risk_fraction": 0.01,
+  "max_holding_bars": 100
+}
+```
+
+The endpoint reads already stored completed candles from `egx_candles`; it does not silently fetch new history or invent missing candles. Profile roles are:
+
+- Scalping: 1h / 15m / 5m / 1m.
+- Intraday: 4h / 1h / 15m / 5m.
+- Swing: 1w / 1d / 4h / 1h.
+
+The response contains chronological train/validation/test replay results (60/20/20), per-scenario metrics, a Buy-and-Hold benchmark, trade counts, fill assumptions, fees and slippage. The splits are reporting partitions; no parameter optimizer is run. Do not inspect or tune against the test partition and then call it out-of-sample.
+
+### EGX-specific validation caveats
+
+- Thndr candle timestamps and the existing derived-candle aggregation are used as stored; exchange-session gaps are not reconstructed by this adapter.
+- Corporate actions, dividends, rights issues, symbol changes, price bands, tick sizes, lot sizes, EGX-specific taxes/fees, and liquidity/market-impact models are not yet fully modeled.
+- The default fee/slippage values are not asserted as current EGX broker tariffs. Supply verified assumptions for the broker and historical period being tested.
+- OHLCV limit touches are modeled fills, not queue-priority-confirmed fills. Intrabar order is unavailable; same-bar stop/target ambiguity is handled conservatively.
+- A completed backtest response is a completed calculation, not an approved strategy. Insufficient history is returned as REJECTED.
