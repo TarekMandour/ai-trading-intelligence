@@ -492,6 +492,9 @@ class AnalysisComponentsTest extends TestCase
             $setup['displacement']['body_ratio'],
             0.000001,
         );
+        $this->assertNotNull($setup['ob']);
+        $this->assertSame(30, $setup['ob']['source_index']);
+        $this->assertSame($candles[31]['close_time'], $setup['ob']['created_at']);
     }
 
     public function test_ict_fvg_invalidation_is_terminal_after_later_retests(): void
