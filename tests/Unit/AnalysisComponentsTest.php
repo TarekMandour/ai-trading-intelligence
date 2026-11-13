@@ -681,6 +681,28 @@ class AnalysisComponentsTest extends TestCase
         $this->assertContains('BACKTEST_INVALID_context_SERIES', $result['reasons']);
     }
 
+    public function test_ict_dealing_range_uses_confirmed_swing_low_to_high_not_rolling_extremes(): void
+    {
+        $candles = [];
+        for ($i = 0; $i < 40; $i++) {
+            $candles[] = [
+                'open' => 100.0, 'high' => 100.5, 'low' => 99.5,
+                'close' => 100.0, 'volume' => 100.0, 'close_time' => ($i + 1) * 60000,
+            ];
+        }
+        $candles[30]['low'] = 98.0;
+        $candles[35]['high'] = 105.0;
+
+        $engine = new IctComprehensiveEngine;
+        $method = new \\ReflectionMethod($engine, 'dealingRange');
+        $range = $method->invoke($engine, $candles);
+
+        $this->assertSame(98.0, $range['low']);
+        $this->assertSame(105.0, $range['high']);
+        $this->assertSame('DISCOUNT', $range['location']);
+        $this->assertSame('LATEST_CONFIRMED_SWING_LOW_TO_HIGH', $range['source']);
+    }
+
     public function test_ict_smt_requires_exactly_synchronized_reference_timestamps(): void
     {
         $candles = [];
