@@ -2,7 +2,7 @@ name: ICT Comprehensive CI
 
 on:
   pull_request:
-    branches: [phase-1-local-mvp, feature/ict-comprehensive, fix/ict-replay-integrity]
+    branches: [phase-1-local-mvp, feature/ict-comprehensive, fix/ict-replay-integrity, feature/ict-opportunity-watchlist-cards]
   push:
     branches: [feature/ict-comprehensive, fix/ict-replay-integrity, feature/ict-opportunity-watchlist-cards, feature/ict-engine-rebuild-v2]
 
