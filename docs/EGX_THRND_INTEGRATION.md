@@ -72,7 +72,7 @@ Example request:
 }
 ```
 
-The endpoint reads already stored completed candles from `egx_candles`; it does not silently fetch new history or invent missing candles. Profile roles are:
+The endpoint requires explicit `fee_rate` and `slippage_bps` inputs (both are per side) and reads already stored completed candles from `egx_candles`; it does not silently fetch new history or invent missing candles. This prevents Binance cost defaults from being silently reused for EGX. Profile roles are:
 
 - Scalping: 1h / 15m / 5m / 1m.
 - Intraday: 4h / 1h / 15m / 5m.
