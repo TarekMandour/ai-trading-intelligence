@@ -21,7 +21,10 @@ class IctStructuralTradePlanner
         if (! $touch || ! $trigger) return $this->wait(! $touch ? 'WAITING_FOR_ZONE_RETEST' : 'WAITING_FOR_BULLISH_REACTION_CLOSE', $zone, $price);
 
         $swingLows = $structure['swings']['lows'] ?? [];
-        $priorLows = array_values(array_filter($swingLows, fn (array $p): bool => $p['confirmation_index'] < count($candles)));
+        $zoneOriginIndex = (int) ($zone['origin_index'] ?? $zone['impulse_index'] ?? -1);
+        $priorLows = array_values(array_filter($swingLows, fn (array $p): bool =>
+            $p['confirmation_index'] < count($candles) && $p['index'] >= $zoneOriginIndex
+        ));
         $structuralLow = $priorLows === [] ? (float) $zone['low'] : (float) $priorLows[array_key_last($priorLows)]['price'];
         $invalidation = min((float) $zone['low'], $structuralLow);
         $atr = (float) (($displacements['latest_bullish']['atr'] ?? 0));
@@ -32,7 +35,13 @@ class IctStructuralTradePlanner
 
         $targets = [];
         foreach (($liquidity['pools'] ?? []) as $pool) {
-            if ($pool['side'] === 'BSL' && (float) $pool['level'] > $price) $targets[] = (float) $pool['level'];
+            if ($pool['side'] !== 'BSL' || (float) $pool['level'] <= $price) continue;
+            $alreadySwept = collect($liquidity['sweeps'] ?? [])->contains(fn (array $sweep): bool =>
+                $sweep['side'] === 'BSL'
+                && abs((float) $sweep['level'] - (float) $pool['level']) / max(0.00000001, (float) $pool['level']) * 10000 <= (float) config('ict.equal_level_tolerance_bps', 8)
+                && $sweep['index'] > max($pool['pivot_indices'])
+            );
+            if (! $alreadySwept) $targets[] = (float) $pool['level'];
         }
         $alreadyBroken = array_map('intval', $structure['broken_levels']['highs'] ?? []);
         foreach (($structure['swings']['highs'] ?? []) as $swing) {
@@ -42,7 +51,9 @@ class IctStructuralTradePlanner
         sort($targets);
         $target1 = $targets[0] ?? ($price + $risk * (float) config('ict.target_1_r', 2.0));
         $target2 = $targets[1] ?? ($price + $risk * (float) config('ict.target_2_r', 3.0));
-        if ($target2 <= $target1) $target2 = $price + $risk * (float) config('ict.target_2_r', 3.0);
+        if ($target2 <= $target1) {
+            $target2 = $target1 + ($risk * max(0.5, (float) config('ict.target_2_r', 3.0) - (float) config('ict.target_1_r', 2.0)));
+        }
         $rr = ($target1 - $price) / $risk;
         if ($rr < (float) config('ict.minimum_structural_rr', 1.5)) return $this->wait('STRUCTURAL_TARGET_REWARD_RISK_TOO_LOW', $zone, $price);
 
