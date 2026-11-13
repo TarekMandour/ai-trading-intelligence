@@ -37,7 +37,7 @@ class EgxIctBacktestServiceTest extends TestCase
                 && $assumptions['fee_rate'] === 0.002;
         })->andReturn(['engine' => 'ICT_CHRONOLOGICAL_60_20_20_REPLAY', 'splits' => []]);
 
-        $result = (new EgxIctBacktestService($sync, $backtest))->run('EGX-ASSET-1', 'Intraday', ['fee_rate' => 0.002]);
+        $result = (new EgxIctBacktestService($sync, $backtest))->run('EGX-ASSET-1', 'Intraday', ['fee_rate' => 0.002, 'slippage_bps' => 15]);
 
         $this->assertSame('COMPLETED', $result['status']);
         $this->assertSame('EGX', $result['market']);
@@ -52,7 +52,7 @@ class EgxIctBacktestServiceTest extends TestCase
         $backtest = $this->mock(IctHistoricalBacktestService::class);
         $backtest->shouldNotReceive('runChronologicalSplits');
 
-        $result = (new EgxIctBacktestService($sync, $backtest))->run('EGX-ASSET-2', 'Swing');
+        $result = (new EgxIctBacktestService($sync, $backtest))->run('EGX-ASSET-2', 'Swing', ['fee_rate' => 0.002, 'slippage_bps' => 15]);
 
         $this->assertSame('REJECTED', $result['status']);
         $this->assertSame('INSUFFICIENT_HISTORICAL_CANDLES_1w', $result['reason']);
