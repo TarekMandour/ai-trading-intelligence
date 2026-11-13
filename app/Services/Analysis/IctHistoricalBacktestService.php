@@ -155,7 +155,10 @@ class IctHistoricalBacktestService
             $high = (float) $candle['high'];
 
             if ($low <= $stop) {
-                $exitPrice = $stop * (1 - ($slippageBps / 10000));
+                // A stop-market order gaps through to the opening price; it
+                // cannot be assumed to fill at the stop level in a gap.
+                $rawStopExit = min($stop, (float) $candle['open']);
+                $exitPrice = $rawStopExit * (1 - ($slippageBps / 10000));
                 if (! $target1Reached) {
                     $firstExit = $secondExit = $exitPrice;
                     $firstExitIndex = $secondExitIndex = $i;
