@@ -190,14 +190,23 @@ class IctHistoricalBacktestService
         $entry = array_values($candlesByRole['entry']);
         $count = count($entry);
         $minimumHistory = max(30, (int) ($assumptions['minimum_history'] ?? config('ict.minimum_candles', 30)));
+        $minimumEvaluationBars = max(5, (int) ($assumptions['minimum_evaluation_bars'] ?? 20));
         $trainEnd = (int) floor($count * 0.60) - 1;
         $validationEnd = (int) floor($count * 0.80) - 1;
         $validationStart = $trainEnd + 1;
         $testStart = $validationEnd + 1;
-        if ($trainEnd < $minimumHistory || $validationEnd <= $validationStart || $testStart >= $count - 1) {
+        $trainEvaluationBars = $trainEnd - ($minimumHistory - 1);
+        $validationEvaluationBars = $validationEnd - $validationStart;
+        $testEvaluationBars = ($count - 1) - $testStart;
+        if ($trainEvaluationBars < $minimumEvaluationBars
+            || $validationEvaluationBars < $minimumEvaluationBars
+            || $testEvaluationBars < $minimumEvaluationBars) {
             return [
                 'status' => 'REJECTED', 'reason' => 'INSUFFICIENT_DATA_FOR_CHRONOLOGICAL_60_20_20_SPLITS',
-                'entry_candles' => $count, 'minimum_history' => $minimumHistory, 'splits' => [],
+                'entry_candles' => $count, 'minimum_history' => $minimumHistory,
+                'minimum_evaluation_bars_per_split' => $minimumEvaluationBars,
+                'available_evaluation_bars' => ['train' => $trainEvaluationBars, 'validation' => $validationEvaluationBars, 'test' => $testEvaluationBars],
+                'splits' => [],
             ];
         }
 
@@ -211,6 +220,7 @@ class IctHistoricalBacktestService
             'engine' => 'ICT_CHRONOLOGICAL_60_20_20_REPLAY',
             'profile' => $profile,
             'data_source' => 'CALLER_SUPPLIED_COMPLETED_OHLCV',
+            'minimum_evaluation_bars_per_split' => $minimumEvaluationBars,
             'split_indices' => [
                 'train' => ['start' => $minimumHistory - 1, 'end' => $trainEnd],
                 'validation' => ['start' => $validationStart, 'end' => $validationEnd],
