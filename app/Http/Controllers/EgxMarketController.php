@@ -131,6 +131,26 @@ class EgxMarketController extends Controller
         return response()->json(EgxScanRun::where('egx_watchlist_id', $watchlist->id)->latest()->paginate(20));
     }
 
+    public function backtest(Request $request, EgxIctBacktestService $backtest): JsonResponse
+    {
+        $data = $request->validate([
+            'asset_id' => ['required', 'string', 'exists:egx_stocks,asset_id'],
+            'profile' => ['required', 'string', 'in:Scalping,Intraday,Swing'],
+            'fee_rate' => ['sometimes', 'numeric', 'min:0', 'max:0.1'],
+            'slippage_bps' => ['sometimes', 'numeric', 'min:0', 'max:1000'],
+            'initial_capital' => ['sometimes', 'numeric', 'gt:0'],
+            'risk_fraction' => ['sometimes', 'numeric', 'gt:0', 'max:1'],
+            'max_holding_bars' => ['sometimes', 'integer', 'min:1', 'max:10000'],
+            'candle_limit' => ['sometimes', 'integer', 'min:100', 'max:10000'],
+        ]);
+
+        return response()->json($backtest->run(
+            $data['asset_id'],
+            $data['profile'],
+            array_intersect_key($data, array_flip(['fee_rate', 'slippage_bps', 'initial_capital', 'risk_fraction', 'max_holding_bars', 'candle_limit'])),
+        ));
+    }
+
     public function scan(Request $request, ThndrApiClient $api, EgxCandleSyncService $sync, IctComprehensiveEngine $ict): JsonResponse
     {
         $data = $request->validate([
