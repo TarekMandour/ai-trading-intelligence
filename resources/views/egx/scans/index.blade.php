@@ -10,7 +10,7 @@
 @forelse($runs as $run)
 <div class="run">
 <div><h3>فحص #{{ $run->id }} — {{ $run->watchlist->name ?? 'قائمة محذوفة' }}</h3>
-<p class="muted">التاريخ: {{ $run->started_at?->format('Y-m-d H:i') ?? $run->created_at?->format('Y-m-d H:i') }} · الأسهم: {{ count($run->results ?? []) }} · الفريمات: {{ implode('، ', $run->profiles ?? []) }}</p></div>
+<p class="muted">التاريخ: {{ $run->started_at?->format('Y-m-d H:i') ?? $run->created_at?->format('Y-m-d H:i') }} · الاستراتيجيات: {{ implode('، ', $run->profiles ?? []) }}</p></div>
 <div><span class="tag {{ $run->status === 'COMPLETED' ? 'good' : ($run->status === 'FAILED' ? 'bad' : 'wait') }}">{{ $run->status === 'COMPLETED' ? 'مكتمل' : ($run->status === 'FAILED' ? 'فشل' : 'قيد التنفيذ') }}</span>
 <a href="{{ route('egx.scans.show',$run) }}">عرض التفاصيل ←</a></div>
 </div>
