@@ -23,6 +23,10 @@ class EgxIctBacktestService
         if (! isset(self::PROFILE_FRAMES[$profile])) {
             return ['status' => 'REJECTED', 'market' => 'EGX', 'reason' => 'UNSUPPORTED_PROFILE'];
         }
+        if (! isset($assumptions['fee_rate'], $assumptions['slippage_bps'])
+            || ! is_numeric($assumptions['fee_rate']) || ! is_numeric($assumptions['slippage_bps'])) {
+            return ['status' => 'REJECTED', 'market' => 'EGX', 'reason' => 'EGX_EXECUTION_COST_ASSUMPTIONS_REQUIRED'];
+        }
 
         $series = [];
         $counts = [];
