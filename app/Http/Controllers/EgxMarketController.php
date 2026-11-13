@@ -154,6 +154,19 @@ class EgxMarketController extends Controller
         ));
     }
 
+    public function aiOutcomes(Request $request, EgxAiOutcomeService $outcomes): JsonResponse
+    {
+        $data = $request->validate([
+            'asset_id' => ['sometimes', 'string', 'exists:egx_stocks,asset_id'],
+            'horizon_bars' => ['sometimes', 'integer', 'min:1', 'max:500'],
+        ]);
+
+        return response()->json($outcomes->evaluate(
+            $data['asset_id'] ?? null,
+            (int) ($data['horizon_bars'] ?? 20),
+        ));
+    }
+
     public function scan(Request $request, ThndrApiClient $api, EgxCandleSyncService $sync, IctComprehensiveEngine $ict, GeminiMarketAnalyst $gemini): JsonResponse
     {
         $data = $request->validate([
