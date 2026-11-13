@@ -7,6 +7,7 @@ use App\Models\EgxStock;
 use App\Models\EgxWatchlist;
 use App\Models\MarketSetting;
 use App\Services\Analysis\IctComprehensiveEngine;
+use App\Services\Ai\GeminiMarketAnalyst;
 use App\Services\MarketData\EgxCandleSyncService;
 use App\Services\MarketData\EgxIctBacktestService;
 use App\Services\MarketData\EgxStockCatalog;
