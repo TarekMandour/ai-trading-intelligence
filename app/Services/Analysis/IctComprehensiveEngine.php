@@ -81,9 +81,17 @@ class IctComprehensiveEngine
         if (($sequence['status'] ?? null) === 'CONFIRMED') {
             $liquidity['sweep_confirmed'] = true;
             $liquidity['sweep_low'] = $sequence['sweep']['low'];
-            $displacement['bullish'] = true;
+            // Keep all displacement fields tied to the same historical event.
+            // Do not combine a confirmed old displacement with the latest candle's
+            // body_ratio/ATR, which may have the opposite direction.
+            $displacement = array_merge($displacement, $sequence['displacement'], [
+                'bullish' => true,
+                'source' => 'CONFIRMED_BULLISH_SEQUENCE',
+            ]);
             $mss['confirmed'] = true;
             $mss['level'] = $sequence['mss']['level'];
+            $mss['index'] = $sequence['mss']['index'];
+            $mss['close_time'] = $sequence['mss']['close_time'];
             $fvg = $sequence['fvg'];
         }
         $ob = $this->bullishOrderBlock($candles, $displacement, $mss);
