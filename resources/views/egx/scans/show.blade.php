@@ -43,7 +43,7 @@ $modalId='scan-detail-'.$rowCount;
 <td>{{ $number($metrics['opportunity_score']??null,1) }} / 100</td>
 <td><button type="button" class="details-btn" data-modal="{{ $modalId }}">عرض الشرح</button></td>
 </tr>
-<div hidden id="{{ $modalId }}-content">
+<tr hidden><td colspan="6"><div id="{{ $modalId }}-content">
 <div class="section">
 <h3>الخلاصة وقرار المحرك</h3>
 <p><span class="tag {{ $badge }}">{{ $statusText[$status]??$status }}</span> <span class="tag">درجة الفرصة: {{ $number($metrics['opportunity_score']??null,1) }}/100 · {{ $metrics['opportunity_grade']??'—' }}</span></p>
@@ -77,7 +77,7 @@ $modalId='scan-detail-'.$rowCount;
 <details><summary>بيانات مراجعة Gemini الخام</summary><pre>{{ json_encode($ai,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) }}</pre></details>
 </div>@endif
 <div class="section"><h3>البيانات الفنية الكاملة</h3><details><summary>عرض بيانات التحليل الخام</summary><pre>{{ json_encode($result,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) }}</pre></details></div>
-</div>
+</div></td></tr>
 @endforeach
 @empty
 <tr><td colspan="6" class="muted">لا توجد نتائج أسهم محفوظة في عملية الفحص هذه.</td></tr>
