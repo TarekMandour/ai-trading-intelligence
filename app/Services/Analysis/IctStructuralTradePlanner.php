@@ -5,14 +5,18 @@ namespace App\\Services\\Analysis;
 /** Builds a long-only structural plan. No plan is produced without a confirmed trigger. */
 class IctStructuralTradePlanner
 {
-    public function plan(array $candles, array $structure, array $liquidity, array $displacements, array $zones, array $range): array
+    public function plan(array $candles, array $structure, array $liquidity, array $displacements, array $zones, array $range, array $entryCandles = []): array
     {
-        $last = $candles[array_key_last($candles)] ?? null;
+        $entryCandles = $entryCandles !== [] ? $entryCandles : $candles;
+        $last = $entryCandles[array_key_last($entryCandles)] ?? null;
         $zone = $zones['best_bullish_zone'] ?? null;
         if ($last === null || $zone === null) return $this->wait('NO_QUALIFIED_BULLISH_ZONE');
         $price = (float) $last['close'];
         $touch = (float) $last['low'] <= (float) $zone['high'] && (float) $last['high'] >= (float) $zone['low'];
-        $trigger = (float) $last['close'] > (float) $last['open'];
+        $previousEntry = $entryCandles[count($entryCandles) - 2] ?? null;
+        $trigger = $previousEntry !== null
+            && (float) $last['close'] > (float) $last['open']
+            && (float) $last['close'] > (float) $previousEntry['high'];
         if (! $touch || ! $trigger) return $this->wait(! $touch ? 'WAITING_FOR_ZONE_RETEST' : 'WAITING_FOR_BULLISH_REACTION_CLOSE', $zone, $price);
 
         $swingLows = $structure['swings']['lows'] ?? [];
@@ -46,7 +50,7 @@ class IctStructuralTradePlanner
             'risk_per_unit' => $risk, 'target1_r' => round($rr, 3),
             'entry_zone' => $zone, 'target_source' => $targets === [] ? 'R_MULTIPLE_FALLBACK' : 'NEAREST_CONFIRMED_OPPOSING_LIQUIDITY',
             'invalidation' => ['close_below' => $invalidation, 'buffer' => $buffer],
-            'confirmation' => ['completed_bullish_reaction_candle' => true, 'zone_retest' => true],
+            'confirmation' => ['completed_bullish_reaction_candle' => true, 'close_above_previous_entry_high' => true, 'zone_retest' => true],
             'entry_plans' => (new IctEntryPlanner)->plan($price, $zone, true, $stop),
             'order_submission_enabled' => false,
         ];
