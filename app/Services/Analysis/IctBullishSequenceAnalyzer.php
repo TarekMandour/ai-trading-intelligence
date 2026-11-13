@@ -15,6 +15,8 @@ class IctBullishSequenceAnalyzer
         $swings = $this->swings($candles, $left, $right);
         $count = count($candles);
 
+        $maxBarsAfterSweep = max(1, (int) config('ict.sequence_max_bars_after_sweep', 5));
+
         for ($sweepIndex = $count - 4; $sweepIndex >= max(14, $left + $right + 1); $sweepIndex--) {
             $ssl = $this->latestConfirmed($swings['lows'], $sweepIndex);
             if ($ssl === null) continue;
@@ -22,7 +24,8 @@ class IctBullishSequenceAnalyzer
             $sweep = $candles[$sweepIndex];
             if ((float) $sweep['low'] >= $ssl['price'] || (float) $sweep['close'] <= $ssl['price']) continue;
 
-            for ($displacementIndex = $sweepIndex + 1; $displacementIndex < $count - 2; $displacementIndex++) {
+            $lastAllowedDisplacement = min($count - 2, $sweepIndex + $maxBarsAfterSweep);
+            for ($displacementIndex = $sweepIndex + 1; $displacementIndex <= $lastAllowedDisplacement; $displacementIndex++) {
                 $displacement = $candles[$displacementIndex];
                 $atr = $this->priorAtr($candles, $displacementIndex, 14);
                 $range = (float) $displacement['high'] - (float) $displacement['low'];
