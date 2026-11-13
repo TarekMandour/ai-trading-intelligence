@@ -453,11 +453,40 @@ class IctComprehensiveEngine
 
     private function dealingRange(array $candles): array
     {
-        $window = array_slice($candles, -max(10, (int) config('ict.dealing_range_lookback', 50)));
-        $high = (float) max(array_column($window, 'high'));
-        $low = (float) min(array_column($window, 'low'));
+        $swings = $this->swings($candles);
+        $latestHigh = $swings['highs'] === [] ? null : $swings['highs'][array_key_last($swings['highs'])];
+        if ($latestHigh === null) {
+            return ['high' => null, 'low' => null, 'equilibrium' => null, 'location' => 'UNCERTAIN', 'source' => 'NO_CONFIRMED_SWING_RANGE'];
+        }
+
+        // Anchor the bullish dealing range to the latest confirmed swing low
+        // preceding the latest confirmed swing high. A rolling max/min window
+        // can combine unrelated legs and mislabel premium/discount.
+        $precedingLows = array_values(array_filter(
+            $swings['lows'],
+            fn (array $swing): bool => $swing['index'] < $latestHigh['index'],
+        ));
+        if ($precedingLows === []) {
+            return ['high' => null, 'low' => null, 'equilibrium' => null, 'location' => 'UNCERTAIN', 'source' => 'NO_CONFIRMED_SWING_RANGE'];
+        }
+
+        $latestLow = $precedingLows[array_key_last($precedingLows)];
+        $high = (float) $latestHigh['price'];
+        $low = (float) $latestLow['price'];
+        if ($high <= $low) {
+            return ['high' => null, 'low' => null, 'equilibrium' => null, 'location' => 'UNCERTAIN', 'source' => 'INVALID_SWING_RANGE'];
+        }
+
         $mid = ($high + $low) / 2;
-        return ['high' => $high, 'low' => $low, 'equilibrium' => $mid, 'location' => (float) $candles[array_key_last($candles)]['close'] < $mid ? 'DISCOUNT' : 'PREMIUM'];
+
+        return [
+            'high' => $high,
+            'low' => $low,
+            'equilibrium' => $mid,
+            'location' => (float) $candles[array_key_last($candles)]['close'] < $mid ? 'DISCOUNT' : 'PREMIUM',
+            'source' => 'LATEST_CONFIRMED_SWING_LOW_TO_HIGH',
+            'swing_indices' => ['low' => $latestLow['index'], 'high' => $latestHigh['index']],
+        ];
     }
 
     private function validSeries(array $candles): bool
