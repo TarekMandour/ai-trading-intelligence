@@ -27,7 +27,10 @@ class IctHistoricalBacktestService
         $trades = [];
         $rejected = 0;
         $unfilledLimits = 0;
-        $index = $minimumHistory - 1;
+        // A chronological holdout can be specified without changing the rules.
+        // Each decision still receives only candles closed at or before decisionTime.
+        $testStartIndex = max($minimumHistory - 1, (int) ($assumptions['test_start_index'] ?? ($minimumHistory - 1)));
+        $index = $testStartIndex;
 
         while ($index < count($entryCandles) - 1) {
             $decisionTime = (int) $entryCandles[$index]['close_time'];
@@ -131,6 +134,14 @@ class IctHistoricalBacktestService
                 'limit_fill_model' => 'LOW_TOUCH_ASSUMED_FILL_NOT_QUEUE_CONFIRMED',
                 'same_bar_stop_target_policy' => 'STOP_FIRST_CONSERVATIVE',
                 'partial_exit_policy' => '50_PERCENT_AT_TARGET_1_50_PERCENT_AT_TARGET_2_OR_FINAL_EXIT',
+                'test_start_index' => $testStartIndex,
+                'evaluation_window' => 'CHRONOLOGICAL_HOLDOUT_FROM_TEST_START_INDEX',
+            ],
+            'benchmark' => [
+                'name' => 'BUY_AND_HOLD_ENTRY_TIMEFRAME',
+                'return' => $this->buyAndHoldReturn($entryCandles, $testStartIndex),
+                'start_index' => $testStartIndex,
+                'end_index' => count($entryCandles) - 1,
             ],
             'counts' => ['trades' => count($trades), 'unfilled_limits' => $unfilledLimits, 'rejected_candidates' => $rejected],
             'metrics' => $this->metrics($trades),
@@ -212,6 +223,15 @@ class IctHistoricalBacktestService
             'net_r' => $netR,
             'outcome' => $netPnlPerUnit > 0 ? 'WIN' : ($netPnlPerUnit < 0 ? 'LOSS' : 'BREAKEVEN'),
         ];
+    }
+
+    private function buyAndHoldReturn(array $candles, int $startIndex): float
+    {
+        $start = $candles[$startIndex] ?? null;
+        $end = $candles[array_key_last($candles)] ?? null;
+        if ($start === null || $end === null || (float) $start['close'] <= 0) return 0.0;
+
+        return ((float) $end['close'] / (float) $start['close']) - 1;
     }
 
     private function metrics(array $trades): array
