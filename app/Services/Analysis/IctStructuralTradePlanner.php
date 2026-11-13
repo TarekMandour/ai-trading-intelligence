@@ -1,6 +1,6 @@
 <?php
 
-namespace App\\Services\\Analysis;
+namespace App\Services\Analysis;
 
 /** Builds a long-only structural plan. No plan is produced without a confirmed trigger. */
 class IctStructuralTradePlanner
