@@ -61,7 +61,10 @@ class IctStructuralTradePlanner
             'status' => 'ENTERABLE', 'direction' => 'LONG', 'entry' => $price,
             'stop_loss' => $stop, 'target1' => $target1, 'target2' => $target2,
             'risk_per_unit' => $risk, 'target1_r' => round($rr, 3),
-            'entry_zone' => $zone, 'target_source' => $targets === [] ? 'R_MULTIPLE_FALLBACK' : 'NEAREST_CONFIRMED_OPPOSING_LIQUIDITY',
+            'entry_zone' => $zone, 'dealing_range' => $range,
+            'dealing_range_location' => $range['location'] ?? 'UNCERTAIN',
+            'dealing_range_confluence' => ($range['location'] ?? null) === 'DISCOUNT' ? 'SUPPORTIVE_FOR_LONG' : (($range['location'] ?? null) === 'PREMIUM' ? 'CAUTION_LONG_ENTRY_IN_PREMIUM' : 'RANGE_UNAVAILABLE'),
+            'target_source' => $targets === [] ? 'R_MULTIPLE_FALLBACK' : 'NEAREST_CONFIRMED_OPPOSING_LIQUIDITY',
             'invalidation' => ['close_below' => $invalidation, 'buffer' => $buffer],
             'confirmation' => ['completed_bullish_reaction_candle' => true, 'close_above_previous_entry_high' => true, 'zone_retest' => true],
             'entry_plans' => (new IctEntryPlanner)->plan($price, $zone, true, $stop),
@@ -74,7 +77,7 @@ class IctStructuralTradePlanner
         return [
             'status' => 'WAIT', 'direction' => 'LONG', 'entry' => null, 'stop_loss' => null,
             'target1' => null, 'target2' => null, 'reason' => $reason,
-            'watchlist_zone' => $zone, 'reference_price' => $price, 'order_submission_enabled' => false,
+            'watchlist_zone' => $zone, 'reference_price' => $price, 'dealing_range' => null, 'order_submission_enabled' => false,
         ];
     }
 }
