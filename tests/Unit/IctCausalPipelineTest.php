@@ -31,6 +31,37 @@ class IctCausalPipelineTest extends TestCase
         return $rows;
     }
 
+    public function test_comprehensive_engine_exposes_causal_pipeline_as_authoritative_plan(): void
+    {
+        $candles = [];
+        $now = now()->getTimestampMs();
+        for ($i = 0; $i < 60; $i++) {
+            $close = 100.0 + sin($i / 2) * 2;
+            $candles[] = [
+                'open_time' => $now - ((60 - $i) * 60000),
+                'close_time' => $now - ((60 - $i) * 60000) + 59999,
+                'open' => $close - 0.1,
+                'high' => $close + 0.5,
+                'low' => $close - 0.5,
+                'close' => $close,
+                'volume' => 100.0,
+            ];
+        }
+        $roles = ['context' => $candles, 'structure' => $candles, 'setup' => $candles, 'entry' => $candles];
+
+        $result = (new \\App\\Services\\Analysis\\IctComprehensiveEngine)->evaluate($roles, 'Scalping');
+
+        $this->assertSame('ict-v2-causal', $result['version']);
+        $this->assertArrayHasKey('market_structure', $result['structural_analysis']);
+        $this->assertArrayHasKey('liquidity', $result['structural_analysis']);
+        $this->assertArrayHasKey('displacement', $result['structural_analysis']);
+        $this->assertArrayHasKey('zones', $result['structural_analysis']);
+        $this->assertArrayHasKey('dealing_range', $result['structural_analysis']);
+        $this->assertArrayHasKey('structural_trade_plan', $result);
+        $this->assertSame('ICT_CAUSAL_STRUCTURE_LIQUIDITY', $result['canonical_scenario']['scenario']);
+        $this->assertFalse($result['structural_trade_plan']['order_submission_enabled']);
+    }
+
     public function test_swing_points_are_only_available_after_right_side_confirmation(): void
     {
         config(['ict.swing_left' => 1, 'ict.swing_right' => 2]);
