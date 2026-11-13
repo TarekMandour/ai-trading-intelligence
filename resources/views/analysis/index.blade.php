@@ -248,7 +248,7 @@
     });
     $('scan-history').addEventListener('click',async()=>{
         if(!currentWatchlist)return;
-        try{const data=await request('/egx/watchlists/'+currentWatchlist.id+'/scans');const host=$('scan-results');host.replaceChildren();const pre=document.createElement('pre');pre.textContent=JSON.stringify(data,null,2);host.append(pre);}
+        try{window.location.href='/egx/scans';}
         catch(e){message('scan-message',e.message,'error');}
     });
 
