@@ -36,10 +36,11 @@ class IctReplayIntegrityTest extends TestCase
         $candles[31]['high'] = 106.0;
         $candles[31]['low'] = 101.0;
         $candles[31]['close'] = 104.5;
-        $candles[32]['low'] = 99.0;
+        // Later bars stay valid OHLC; the stop must not be touched during entry bar.
         $candles[32]['open'] = 104.0;
         $candles[32]['high'] = 105.0;
-        $candles[32]['close'] = 100.0;
+        $candles[32]['low'] = 101.0;
+        $candles[32]['close'] = 102.0;
 
         $engine = $this->mock(IctComprehensiveEngine::class);
         $engine->shouldReceive('evaluate')->atLeast()->once()->andReturn([
