@@ -145,3 +145,15 @@ Initial vertical slice implemented: a Laravel dashboard creates an idempotency-k
 - The Chrome extension source itself was not present in the `doji_trade` repository tree. The server endpoint contract matches the old `/api/thndr/token` + `X-Capture-Key` receiver; the extension must be pointed at the new project URL and use the same capture secret.
 - The new EGX API routes are not yet protected by user authentication. Do not expose the application publicly until authentication and watchlist ownership checks are added.
 - This implementation remains on `feature/ict-comprehensive`; PR #3 remains unmerged. No profitability or production-readiness claim is made.
+
+
+## ICT engine rebuild v2 — 2026-11-13
+
+- Branch: `feature/ict-engine-rebuild-v2`, stacked on `feature/ict-opportunity-watchlist-cards`.
+- Draft PR: https://github.com/TarekMandour/ai-trading-intelligence/pull/6
+- The comprehensive engine now calls the causal v2 pipeline for swing pivots, BOS/CHoCH, liquidity pools/sweeps, ATR/volume displacement, FVG/OB quality/lifecycle, directional dealing range, and structural entry/stop/targets.
+- The top-level ICT decision is driven by the v2 structural plan/watchlist. The previous seven scenario families and prior watchlist are retained only as diagnostics during migration.
+- Binance queue processing uses the canonical structural candidate first. A lower-timeframe bullish CHoCH can qualify a countertrend reversal alignment, explicitly labeled as countertrend.
+- Added an EGX adapter and `POST /api/egx/backtest` using stored Thndr candles and the same historical replay service. It requires explicit per-side EGX fee and slippage inputs and at least 20 forward evaluation bars per chronological split by default.
+- Latest completed CI: PHP 8.3 syntax passed; 104 tests passed (369 assertions).
+- Real Thndr historical replay, market-specific cost verification, chart-by-chart COMI/EGAL review, and paper-trading validation remain pending. Do not merge or mark the strategy profitable before these checks.
