@@ -8,6 +8,7 @@ use App\Models\EgxWatchlist;
 use App\Models\MarketSetting;
 use App\Services\Analysis\IctComprehensiveEngine;
 use App\Services\MarketData\EgxCandleSyncService;
+use App\Services\MarketData\EgxIctBacktestService;
 use App\Services\MarketData\EgxStockCatalog;
 use App\Services\MarketData\ThndrApiClient;
 use Illuminate\Http\JsonResponse;
