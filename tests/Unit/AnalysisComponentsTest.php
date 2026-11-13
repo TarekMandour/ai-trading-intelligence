@@ -619,7 +619,7 @@ class AnalysisComponentsTest extends TestCase
     public function test_ict_historical_backtest_models_gap_through_stop_at_worse_open_price(): void
     {
         $service = new IctHistoricalBacktestService(new IctComprehensiveEngine);
-        $method = new \\ReflectionMethod($service, 'simulateTrade');
+        $method = new \ReflectionMethod($service, 'simulateTrade');
         $candles = [
             ['open' => 100.0, 'high' => 101.0, 'low' => 99.0, 'close' => 100.0, 'close_time' => 1000],
             ['open' => 90.0, 'high' => 96.0, 'low' => 89.0, 'close' => 94.0, 'close_time' => 2000],
