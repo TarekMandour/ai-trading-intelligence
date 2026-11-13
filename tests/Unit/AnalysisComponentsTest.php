@@ -4,9 +4,11 @@ namespace Tests\Unit;
 
 use App\Services\Ai\AiReviewValidator;
 use App\Services\Analysis\ExecutionCostEstimator;
+use App\Services\Analysis\IctComprehensiveEngine;
+use App\Services\Analysis\IctHistoricalBacktestService;
 use App\Services\Analysis\MultiTimeframeAlignment;
 use App\Services\Analysis\ScenarioEvaluator;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 class AnalysisComponentsTest extends TestCase
 {
@@ -222,4 +224,553 @@ class AnalysisComponentsTest extends TestCase
     {
         $this->assertSame(false, (new AiReviewValidator)->validate(['assessment' => 'ABSTAIN', 'timeframe_alignment' => 'ALIGNED', 'supporting_evidence_ids' => ['bad'], 'contradicting_evidence_ids' => [], 'rationale' => 'x'], ['known']));
     }
+    public function test_ict_engine_rejects_missing_timeframe_evidence(): void
+    {
+        $result = (new IctComprehensiveEngine)->evaluate([], 'Scalping');
+
+        $this->assertSame('REJECTED', $result['decision']);
+        $this->assertContains('ICT_DATA_INCOMPLETE_context', $result['reasons']);
+    }
+
+    public function test_ict_engine_returns_three_long_only_core_scenarios_for_complete_series(): void
+    {
+        $candles = [];
+        for ($i = 0; $i < 60; $i++) {
+            $close = 100 + ($i * 0.1);
+            $candles[] = [
+                'open_time' => $i * 60000,
+                'close_time' => min(now()->getTimestampMs() - (60 - $i) * 60000, now()->getTimestampMs() - 1000),
+                'open' => $close - 0.03,
+                'high' => $close + 0.2,
+                'low' => $close - 0.2,
+                'close' => $close,
+                'volume' => 100.0,
+            ];
+        }
+        $roles = ['context' => $candles, 'structure' => $candles, 'setup' => $candles, 'entry' => $candles];
+        $result = (new IctComprehensiveEngine)->evaluate($roles, 'Scalping');
+
+        $this->assertSame('ICT_COMPREHENSIVE', $result['engine']);
+        $this->assertSame('LONG', $result['direction']);
+        $this->assertCount(7, $result['scenarios']);
+        $this->assertSame([
+            'ICT_01_SELL_SIDE_LIQUIDITY_SWEEP_REVERSAL',
+            'ICT_02_BULLISH_FVG_CONTINUATION',
+            'ICT_03_BULLISH_ORDER_BLOCK_REACTION',
+            'ICT_04_BULLISH_BREAKER_BLOCK_REACTION',
+            'ICT_05_BULLISH_REJECTION_BLOCK_REACTION',
+            'ICT_06_SILVER_BULLET_LONG',
+            'ICT_07_JUDAS_SWING_LONG',
+        ], array_column($result['scenarios'], 'scenario'));
+        foreach ($result['scenarios'] as $scenario) {
+            $this->assertSame('LONG', $scenario['direction']);
+        }
+    }
+
+    public function test_ict_engine_rejects_forming_or_non_monotonic_candles(): void
+    {
+        $candles = [];
+        for ($i = 0; $i < 40; $i++) {
+            $candles[] = ['open_time' => $i, 'close_time' => $i + 100, 'open' => 10.0, 'high' => 11.0, 'low' => 9.0, 'close' => 10.5, 'volume' => 1.0];
+        }
+        $roles = ['context' => $candles, 'structure' => $candles, 'setup' => $candles, 'entry' => $candles];
+        $roles['entry'][39]['close_time'] = now()->getTimestampMs() + 1000;
+
+        $result = (new IctComprehensiveEngine)->evaluate($roles, 'Intraday');
+
+        $this->assertSame('REJECTED', $result['decision']);
+        $this->assertContains('ICT_DATA_INCOMPLETE_entry', $result['reasons']);
+    }
+
+    public function test_ict_scenario_is_no_opportunity_when_core_structure_is_missing(): void
+    {
+        $engine = new IctComprehensiveEngine;
+        $method = new \ReflectionMethod($engine, 'scenario');
+        $result = $method->invoke(
+            $engine,
+            'ICT_TEST_CORE_BLOCKER',
+            'Scalping',
+            false,
+            ['ICT01_BULLISH_CONTEXT_MISSING', 'ICT01_SWEEP_NOT_CONFIRMED', 'ICT01_NO_ENTRY_TRIGGER'],
+            100.0,
+            null,
+            null,
+        );
+
+        $this->assertSame('NO_OPPORTUNITY', $result['status']);
+    }
+
+    public function test_ict_scenario_waits_when_only_entry_confirmation_is_missing(): void
+    {
+        $engine = new IctComprehensiveEngine;
+        $method = new \ReflectionMethod($engine, 'scenario');
+        $result = $method->invoke(
+            $engine,
+            'ICT_TEST_PENDING_TRIGGER',
+            'Scalping',
+            false,
+            ['ICT02_NO_ENTRY_TRIGGER'],
+            100.0,
+            98.0,
+            ['low' => 99.0, 'high' => 101.0],
+        );
+
+        $this->assertSame('WAIT', $result['status']);
+    }
+
+    public function test_ict_engine_attaches_entry_plans_to_confirmed_candidates(): void
+    {
+        $engine = new IctComprehensiveEngine;
+        $scenario = new \ReflectionMethod($engine, 'scenario');
+        $result = $scenario->invoke(
+            $engine,
+            'ICT_TEST_ENTRY_PLAN',
+            'Scalping',
+            true,
+            [],
+            100.1,
+            98.0,
+            ['low' => 99.0, 'high' => 101.0, 'ce' => 100.0],
+        );
+
+        $this->assertSame('ENTERABLE', $result['status']);
+        $this->assertSame('PLANNED', $result['candidate']['entry_plans']['market']['status']);
+        $this->assertSame('PLANNED', $result['candidate']['entry_plans']['limit']['status']);
+        $this->assertFalse($result['candidate']['entry_plans']['order_submission_enabled']);
+    }
+
+    public function test_ict_entry_planner_exposes_market_and_limit_without_submitting_orders(): void
+    {
+        $plan = (new \App\Services\Analysis\IctEntryPlanner)->plan(
+            100.1,
+            ['low' => 99.0, 'high' => 101.0, 'ce' => 100.0],
+            true,
+            98.0,
+        );
+
+        $this->assertSame('MARKET', $plan['market']['entry_type']);
+        $this->assertSame('PLANNED', $plan['market']['status']);
+        $this->assertSame('LIMIT', $plan['limit']['entry_type']);
+        $this->assertSame(100.0, $plan['limit']['limit_price']);
+        $this->assertSame('TOUCH_IS_NOT_A_FILL', $plan['limit']['fill_policy']);
+        $this->assertFalse($plan['order_submission_enabled']);
+    }
+
+    public function test_ict_market_plan_waits_when_price_is_too_far_from_zone(): void
+    {
+        $plan = (new \App\Services\Analysis\IctEntryPlanner)->plan(
+            105.0,
+            ['low' => 99.0, 'high' => 101.0, 'ce' => 100.0],
+            true,
+            98.0,
+        );
+
+        $this->assertSame('WAIT', $plan['market']['status']);
+        $this->assertSame('PLANNED', $plan['limit']['status']);
+    }
+
+    public function test_advanced_ict_evidence_marks_session_models_inactive_without_windows(): void
+    {
+        $candles = [];
+        for ($i = 0; $i < 40; $i++) {
+            $candles[] = [
+                'open_time' => $i * 60000,
+                'close_time' => now()->getTimestampMs() - ((40 - $i) * 60000),
+                'open' => 100.0,
+                'high' => 101.0,
+                'low' => 99.0,
+                'close' => 100.5,
+                'volume' => 10.0,
+            ];
+        }
+
+        $evidence = (new \App\Services\Analysis\IctAdvancedEvidenceAnalyzer)->analyze($candles);
+
+        $this->assertSame('INACTIVE_NOT_CONFIGURED', $evidence['session_models']['status']);
+        $this->assertSame('NOT_CONFIGURED', $evidence['smt']['status']);
+    }
+
+    public function test_ict_fvg_lifecycle_ignores_pre_creation_candles_and_tracks_partial_fill(): void
+    {
+        $zone = ['low' => 100.0, 'high' => 102.0, 'created_at' => 2000, 'status' => 'ACTIVE'];
+        $candles = [
+            ['close_time' => 1500, 'low' => 99.0, 'high' => 103.0, 'close' => 101.0],
+            ['close_time' => 2500, 'low' => 101.0, 'high' => 104.0, 'close' => 102.5],
+        ];
+
+        $result = (new \App\Services\Analysis\IctZoneLifecycleAnalyzer)->bullishFvg($zone, $candles);
+
+        $this->assertSame('PARTIALLY_FILLED', $result['status']);
+        $this->assertSame(1, $result['touch_count']);
+        $this->assertFalse($result['touch_is_fill']);
+        $this->assertSame(2500, $result['last_touch_close_time']);
+    }
+
+    public function test_ict_fvg_lifecycle_distinguishes_full_fill_from_invalidation(): void
+    {
+        $zone = ['low' => 100.0, 'high' => 102.0, 'created_at' => 2000, 'status' => 'ACTIVE'];
+        $candles = [
+            ['close_time' => 2500, 'low' => 99.0, 'high' => 103.0, 'close' => 100.5],
+            ['close_time' => 3500, 'low' => 98.0, 'high' => 101.0, 'close' => 99.5],
+        ];
+
+        $result = (new \App\Services\Analysis\IctZoneLifecycleAnalyzer)->bullishFvg($zone, $candles);
+
+        $this->assertSame('INVALIDATED', $result['status']);
+        $this->assertSame(98.0, $result['deepest_price']);
+    }
+
+    public function test_ict_bullish_sequence_requires_ordered_sweep_displacement_mss_and_fvg(): void
+    {
+        $candles = [];
+        $now = now()->getTimestampMs();
+        for ($i = 0; $i < 40; $i++) {
+            $candles[] = [
+                'open_time' => $now - ((40 - $i) * 60000),
+                'close_time' => $now - ((40 - $i) * 60000) + 59999,
+                'open' => 99.9,
+                'high' => 100.5,
+                'low' => 99.5,
+                'close' => 100.0,
+                'volume' => 100.0,
+            ];
+        }
+        $candles[20]['low'] = 97.5;
+        $candles[25]['high'] = 102.0;
+        $candles[29]['high'] = 101.5;
+        $candles[30]['low'] = 97.0;
+        $candles[30]['close'] = 99.5;
+        $candles[31]['open'] = 102.2;
+        $candles[31]['high'] = 104.0;
+        $candles[31]['low'] = 101.8;
+        $candles[31]['close'] = 103.8;
+        // The third candle must leave a bullish gap above candle 30's high.
+        $candles[32]['open'] = 101.1;
+        $candles[32]['high'] = 101.6;
+        $candles[32]['low'] = 101.0;
+        $candles[32]['close'] = 101.4;
+
+        $sequence = (new \App\Services\Analysis\IctBullishSequenceAnalyzer)->detect($candles);
+
+        $this->assertSame('CONFIRMED', $sequence['status']);
+        $this->assertSame(30, $sequence['sweep']['index']);
+        $this->assertSame(31, $sequence['displacement']['index']);
+        $this->assertSame(31, $sequence['mss']['index']);
+        $this->assertSame([30, 31, 32], $sequence['fvg']['source_indices']);
+    }
+
+    public function test_confirmed_sequence_displacement_metadata_comes_from_the_confirmed_impulse_candle(): void
+    {
+        $candles = [];
+        $now = now()->getTimestampMs();
+        for ($i = 0; $i < 40; $i++) {
+            $candles[] = [
+                'open_time' => $now - ((40 - $i) * 60000),
+                'close_time' => $now - ((40 - $i) * 60000) + 59999,
+                'open' => 99.9,
+                'high' => 100.5,
+                'low' => 99.5,
+                'close' => 100.0,
+                'volume' => 100.0,
+            ];
+        }
+        $candles[20]['low'] = 97.5;
+        $candles[25]['high'] = 102.0;
+        $candles[29]['high'] = 101.5;
+        $candles[30]['low'] = 97.0;
+        $candles[30]['close'] = 99.5;
+        $candles[31]['open'] = 102.2;
+        $candles[31]['high'] = 104.0;
+        $candles[31]['low'] = 101.8;
+        $candles[31]['close'] = 103.8;
+        // The third candle must leave a bullish gap above candle 30's high.
+        $candles[32]['open'] = 101.1;
+        $candles[32]['high'] = 101.6;
+        $candles[32]['low'] = 101.0;
+        $candles[32]['close'] = 101.4;
+
+        $engine = new IctComprehensiveEngine;
+        $method = new \ReflectionMethod($engine, 'analyzeSetup');
+        $setup = $method->invoke($engine, $candles);
+
+        $this->assertSame('CONFIRMED', $setup['sequence']['status']);
+        $this->assertTrue($setup['displacement']['bullish']);
+        $this->assertSame(31, $setup['displacement']['index']);
+        $this->assertSame([30, 31, 32], $setup['fvg']['source_indices']);
+        $this->assertGreaterThan(0, $setup['displacement']['body_ratio']);
+        $this->assertEqualsWithDelta(
+            $setup['sequence']['displacement']['body_ratio'],
+            $setup['displacement']['body_ratio'],
+            0.000001,
+        );
+        $this->assertNotNull($setup['ob']);
+        $this->assertSame(30, $setup['ob']['source_index']);
+        $this->assertSame($candles[31]['close_time'], $setup['ob']['created_at']);
+    }
+
+    public function test_ict_bullish_sequence_rejects_displacement_too_far_after_sweep(): void
+    {
+        $candles = [];
+        $now = now()->getTimestampMs();
+        for ($i = 0; $i < 50; $i++) {
+            $candles[] = [
+                'open_time' => $now - ((50 - $i) * 60000),
+                'close_time' => $now - ((50 - $i) * 60000) + 59999,
+                'open' => 99.9, 'high' => 100.5, 'low' => 99.5,
+                'close' => 100.0, 'volume' => 100.0,
+            ];
+        }
+        $candles[20]['low'] = 97.5;
+        $candles[25]['high'] = 102.0;
+        $candles[29]['high'] = 101.5;
+        $candles[30]['low'] = 97.0;
+        $candles[30]['close'] = 99.5;
+        // An otherwise strong impulse six bars after the sweep is not part of
+        // the same immediate liquidity-reversal sequence.
+        $candles[36]['open'] = 99.0;
+        $candles[36]['high'] = 104.0;
+        $candles[36]['low'] = 98.8;
+        $candles[36]['close'] = 103.8;
+        $candles[37]['low'] = 103.0;
+
+        $sequence = (new \App\Services\Analysis\IctBullishSequenceAnalyzer)->detect($candles);
+
+        $this->assertSame('NOT_CONFIRMED', $sequence['status']);
+    }
+
+    public function test_ict_fvg_invalidation_is_terminal_after_later_retests(): void
+    {
+        $zone = ['low' => 100.0, 'high' => 102.0, 'created_at' => 2000];
+        $candles = [
+            ['close_time' => 2500, 'low' => 99.0, 'high' => 103.0, 'close' => 99.5],
+            ['close_time' => 3500, 'low' => 101.0, 'high' => 104.0, 'close' => 102.0],
+        ];
+
+        $result = (new \App\Services\Analysis\IctZoneLifecycleAnalyzer)->bullishFvg($zone, $candles);
+
+        $this->assertSame('INVALIDATED', $result['status']);
+        $this->assertSame(99.5, $result['invalidation_close']);
+        $this->assertSame(1, $result['touch_count']);
+    }
+
+    public function test_ict_entry_planner_rejects_invalid_zones_without_non_finite_values(): void
+    {
+        $plan = (new \App\Services\Analysis\IctEntryPlanner)->plan(
+            100.0,
+            ['low' => 101.0, 'high' => 99.0],
+            true,
+        );
+
+        $this->assertSame('WAIT', $plan['market']['status']);
+        $this->assertSame('UNAVAILABLE', $plan['limit']['status']);
+        $this->assertNull($plan['market']['distance_from_zone_bps']);
+    }
+
+    public function test_ict_historical_backtest_labels_ohlcv_limit_fill_assumption_and_calculates_metrics(): void
+    {
+        $now = now()->getTimestampMs();
+        $candles = [];
+        for ($i = 0; $i < 40; $i++) {
+            $candles[] = [
+                'open_time' => $now - ((40 - $i) * 60000),
+                'close_time' => $now - ((40 - $i) * 60000) + 59999,
+                'open' => 100.0,
+                'high' => 101.0,
+                'low' => 99.0,
+                'close' => 100.5,
+                'volume' => 100.0,
+            ];
+        }
+
+        $engine = $this->mock(IctComprehensiveEngine::class);
+        $engine->shouldReceive('evaluate')->atLeast()->once()->andReturn([
+            'decision' => 'WAIT',
+            'scenarios' => [[
+                'scenario' => 'ICT_TEST_LIMIT',
+                'status' => 'WAIT',
+                'candidate' => [
+                    'entry' => 100.0,
+                    'stop' => 95.0,
+                    'target1' => 105.0,
+                    'target2' => 110.0,
+                    'entry_plans' => [
+                        'market' => ['status' => 'WAIT'],
+                        'limit' => ['status' => 'PLANNED', 'limit_price' => 100.0],
+                    ],
+                ],
+            ]],
+        ]);
+
+        $result = (new IctHistoricalBacktestService($engine))->run(
+            ['context' => $candles, 'structure' => $candles, 'setup' => $candles, 'entry' => $candles],
+            'Scalping',
+            ['fee_rate' => 0, 'slippage_bps' => 0, 'max_holding_bars' => 2, 'max_limit_wait_bars' => 2],
+        );
+
+        $this->assertGreaterThan(0, $result['counts']['trades']);
+        $this->assertFalse($result['historical_order_book_used']);
+        $this->assertSame('OHLCV_ONLY', $result['data_source']);
+        $this->assertSame('LIMIT', $result['trades'][0]['entry_type']);
+        $this->assertSame('OHLCV_LOW_TOUCH_ASSUMED_FILL_NOT_QUEUE_CONFIRMED', $result['trades'][0]['fill_assumption']);
+        $this->assertSame('WIN', $result['trades'][0]['outcome']);
+        $this->assertGreaterThan(0, $result['metrics']['expectancy_r']);
+    }
+
+    public function test_ict_historical_backtest_models_gap_through_stop_at_worse_open_price(): void
+    {
+        $service = new IctHistoricalBacktestService(new IctComprehensiveEngine);
+        $method = new \ReflectionMethod($service, 'simulateTrade');
+        $candles = [
+            ['open' => 100.0, 'high' => 101.0, 'low' => 99.0, 'close' => 100.0, 'close_time' => 1000],
+            ['open' => 90.0, 'high' => 96.0, 'low' => 89.0, 'close' => 94.0, 'close_time' => 2000],
+        ];
+
+        $trade = $method->invoke($service, $candles, [
+            'type' => 'MARKET', 'index' => 0, 'price' => 100.0, 'assumption' => 'TEST',
+        ], 95.0, 105.0, 110.0, 5, 0.0, 0.0, 'ICT_TEST');
+
+        $this->assertSame(90.0, $trade['target1_exit']);
+        $this->assertSame(90.0, $trade['target2_or_final_exit']);
+        $this->assertSame('LOSS', $trade['outcome']);
+    }
+
+    public function test_ict_historical_backtest_supports_chronological_holdout_and_buy_and_hold_benchmark(): void
+    {
+        $now = now()->getTimestampMs();
+        $candles = [];
+        for ($i = 0; $i < 45; $i++) {
+            $candles[] = [
+                'open_time' => $now - ((45 - $i) * 60000),
+                'close_time' => $now - ((45 - $i) * 60000) + 59999,
+                'open' => 100.0, 'high' => 101.0 + ($i * 0.1), 'low' => 99.0,
+                'close' => 100.0 + ($i * 0.1), 'volume' => 100.0,
+            ];
+        }
+
+        $engine = $this->mock(IctComprehensiveEngine::class);
+        $engine->shouldReceive('evaluate')->atLeast()->once()->andReturn([
+            'decision' => 'WAIT',
+            'scenarios' => [[
+                'scenario' => 'ICT_TEST_HOLDOUT',
+                'status' => 'WAIT',
+                'candidate' => [
+                    'entry' => 100.0, 'stop' => 95.0, 'target1' => 105.0, 'target2' => 110.0,
+                    'entry_plans' => ['market' => ['status' => 'WAIT'], 'limit' => ['status' => 'PLANNED', 'limit_price' => 100.0]],
+                ],
+            ]],
+        ]);
+
+        $result = (new IctHistoricalBacktestService($engine))->run(
+            ['context' => $candles, 'structure' => $candles, 'setup' => $candles, 'entry' => $candles],
+            'Scalping',
+            ['fee_rate' => 0, 'slippage_bps' => 0, 'max_holding_bars' => 2, 'test_start_index' => 38],
+        );
+
+        $this->assertSame(38, $result['assumptions']['test_start_index']);
+        $this->assertSame('CHRONOLOGICAL_HOLDOUT_FROM_TEST_START_INDEX', $result['assumptions']['evaluation_window']);
+        $this->assertSame('BUY_AND_HOLD_ENTRY_TIMEFRAME', $result['benchmark']['name']);
+        $this->assertGreaterThanOrEqual(39, $result['trades'][0]['entry_index']);
+        $this->assertGreaterThan(0, $result['benchmark']['return']);
+    }
+
+    public function test_ict_historical_backtest_rejects_missing_timeframe_series(): void
+    {
+        $result = (new IctHistoricalBacktestService(new IctComprehensiveEngine))->run([], 'Swing');
+
+        $this->assertSame(0, $result['counts']['trades']);
+        $this->assertContains('BACKTEST_INVALID_context_SERIES', $result['reasons']);
+    }
+
+    public function test_ict_dealing_range_uses_confirmed_swing_low_to_high_not_rolling_extremes(): void
+    {
+        $candles = [];
+        for ($i = 0; $i < 40; $i++) {
+            $candles[] = [
+                'open' => 100.0, 'high' => 100.5, 'low' => 99.5,
+                'close' => 100.0, 'volume' => 100.0, 'close_time' => ($i + 1) * 60000,
+            ];
+        }
+        $candles[30]['low'] = 98.0;
+        $candles[35]['high'] = 105.0;
+
+        $engine = new IctComprehensiveEngine;
+        $method = new \ReflectionMethod($engine, 'dealingRange');
+        $range = $method->invoke($engine, $candles);
+
+        $this->assertSame(98.0, $range['low']);
+        $this->assertSame(105.0, $range['high']);
+        $this->assertSame('DISCOUNT', $range['location']);
+        $this->assertSame('LATEST_CONFIRMED_SWING_LOW_TO_HIGH', $range['source']);
+    }
+
+    public function test_ict_smt_requires_exactly_synchronized_reference_timestamps(): void
+    {
+        $candles = [];
+        for ($i = 0; $i < 40; $i++) {
+            $candles[] = [
+                'open_time' => $i * 60000,
+                'close_time' => ($i + 1) * 60000,
+                'open' => 100.0,
+                'high' => 101.0,
+                'low' => 99.0,
+                'close' => 100.5,
+                'volume' => 10.0,
+            ];
+        }
+        $reference = $candles;
+        $reference[39]['close_time']++;
+
+        $evidence = (new \App\Services\Analysis\IctAdvancedEvidenceAnalyzer)->analyze($candles, $reference);
+
+        $this->assertSame('UNAVAILABLE', $evidence['smt']['status']);
+        $this->assertSame('SMT_CLOSE_TIMESTAMPS_NOT_ALIGNED', $evidence['smt']['reason']);
+    }
+
+    public function test_ict_session_windows_support_midnight_crossing_without_global_kill_zone_filter(): void
+    {
+        config([
+            'ict.session_timezone' => 'UTC',
+            'ict.session_windows' => ['JUDAS_SWING_NY' => ['start' => '23:00', 'end' => '02:00']],
+        ]);
+        $base = \Carbon\CarbonImmutable::parse('2026-11-12 01:00:00', 'UTC')->getTimestampMs();
+        $candles = [];
+        for ($i = 0; $i < 40; $i++) {
+            $candles[] = [
+                'open_time' => $base - ((40 - $i) * 60000),
+                'close_time' => $base - ((40 - $i - 1) * 60000) - 1,
+                'open' => 100.0,
+                'high' => 101.0,
+                'low' => 99.0,
+                'close' => 100.5,
+                'volume' => 10.0,
+            ];
+        }
+
+        $evidence = (new \App\Services\Analysis\IctAdvancedEvidenceAnalyzer)->analyze($candles);
+
+        $this->assertSame('ACTIVE', $evidence['session_models']['status']);
+        $this->assertContains('JUDAS_SWING_NY', $evidence['session_models']['models']);
+    }
+
+    public function test_ict_smt_returns_insufficient_when_synchronized_series_have_no_confirmed_swings(): void
+    {
+        $candles = [];
+        for ($i = 0; $i < 40; $i++) {
+            $candles[] = [
+                'open_time' => $i * 60000,
+                'close_time' => ($i + 1) * 60000,
+                'open' => 100.0,
+                'high' => 101.0,
+                'low' => 99.0,
+                'close' => 100.5,
+                'volume' => 10.0,
+            ];
+        }
+
+        $evidence = (new \App\Services\Analysis\IctAdvancedEvidenceAnalyzer)->analyze($candles, $candles);
+
+        $this->assertSame('INSUFFICIENT', $evidence['smt']['status']);
+        $this->assertSame('SMT_REQUIRES_TWO_CONFIRMED_SWING_LOWS_PER_SERIES', $evidence['smt']['reason']);
+    }
+
 }

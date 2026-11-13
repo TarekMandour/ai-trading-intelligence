@@ -60,3 +60,19 @@ Deliver the local, manual Laravel 13 analysis workflow for Binance Spot USDT lon
 - Reports display the AI review as advisory, including cautions and missing confirmations, separately from deterministic decision and levels.
 - Added tests for strict contract validation, malformed/failed provider responses, AI caution isolation and provider-failure fallback.
 - Automated tests use fakes. The complete test suite, migration and real OpenAI smoke test remain to be run in the user's Laragon environment.
+
+
+## ICT Comprehensive implementation progress (feature/ict-comprehensive)
+
+- Created a child feature branch from the latest Phase 1 baseline commit; no direct changes to main or phase-1-local-mvp.
+- Added IctComprehensiveEngine with strict candle-series quality checks, completed-candle constraints, swing pivots, liquidity sweep, displacement, MSS, FVG, OB, dealing-range context, and seven long-only scenario evaluators, including Silver Bullet and Judas Swing (active only in configured session windows).
+- Added IctBullishSequenceAnalyzer so ICT-01 requires ordered confirmed SSL sweep/reclaim -> later bullish displacement and close-based MSS -> bullish FVG formation.
+- Added IctAdvancedEvidenceAnalyzer for equal-level candidates, OTE range, rejection-block candidates, breaker-block retest candidates, configurable session windows, and SMT bullish swing-low divergence evidence when synchronized reference candles are supplied. The queued analysis job does not yet fetch a reference symbol.
+- Added IctEntryPlanner for research-only Market and Limit plans, valid-zone checks, max market distance, expiry metadata, and touch-is-not-fill policy. Market entry is blocked outside the zone-distance threshold while the conditional Limit plan is retained. Order submission is disabled.
+- Added liquidity-aware targets: nearest opposing confirmed swing highs are preferred; R-multiple fallback is identified explicitly.
+- Added `IctHistoricalBacktestService` for OHLCV-only chronological replay, explicit Market/Limit fill assumptions, conservative stop-first resolution, split exits, fees/slippage, and basic performance metrics. Historical data acquisition, persisted backtest reports, out-of-sample partitions, and parameter optimization remain future work.
+- Added a PHP 8.3 GitHub Actions test workflow with PHP syntax validation and the Laravel test suite.
+- Integrated ICT scenario evaluation and ICT evidence snapshots into ProcessAnalysisRun; legacy scenario selection and legacy alignment hard gates are no longer used for final ICT selection.
+- Added ICT report rendering and unit coverage for incomplete/forming data, three core scenarios, entry plan behavior, and optional session/SMT configuration.
+- Important limitations: ICT-01 has an ordered event chain; ICT-02 through ICT-07 still use heuristics and the full chronological event-state engine remains incomplete; Silver Bullet/Judas require configured windows/timezone; SMT requires an externally supplied reference series; historical data acquisition and persisted backtest reporting are not implemented.
+- CI has passed PHP syntax checks and the Laravel suite on the earlier backtest implementation; the latest Silver Bullet/Judas/SMT changes are awaiting a fresh CI run. Migrations and live Binance workflow validation remain pending.

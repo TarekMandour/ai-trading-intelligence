@@ -8,6 +8,7 @@ use App\Services\Ai\AiAnalysisProvider;
 use App\Services\Ai\AiReviewValidator;
 use App\Services\Analysis\DeterministicAnalysisEngine;
 use App\Services\Analysis\ExecutionCostEstimator;
+use App\Services\Analysis\IctComprehensiveEngine;
 use App\Services\Analysis\MultiTimeframeAlignment;
 use App\Services\Analysis\ScenarioEvaluator;
 use App\Services\MarketData\BinanceSpotClient;
@@ -96,15 +97,7 @@ class AnalysisRunWorkflowTest extends TestCase
             'reasons' => ['TEST_BULLISH_REGIME'],
         ]);
 
-        $scenarios = $this->mock(ScenarioEvaluator::class);
-        $scenarios->shouldReceive('evaluate')->once()->andReturn([
-            [
-                'scenario' => 'TEST_BREAKOUT',
-                'status' => 'ENTERABLE',
-                'candidate' => ['entry' => 100.0, 'stop' => 95.0, 'target1' => 125.0, 'target2' => 130.0],
-                'reasons' => ['TEST_SETUP_CONFIRMED'],
-            ],
-        ]);
+        $ict = $this->mockIctEngine();
 
         $ai = $this->mock(AiAnalysisProvider::class);
 
@@ -112,8 +105,7 @@ class AnalysisRunWorkflowTest extends TestCase
             $binance,
             $engine,
             app(ExecutionCostEstimator::class),
-            app(MultiTimeframeAlignment::class),
-            $scenarios,
+            $ict,
             $ai,
             app(AiReviewValidator::class),
         );
@@ -173,15 +165,7 @@ class AnalysisRunWorkflowTest extends TestCase
             'reasons' => ['TEST_BULLISH_REGIME'],
         ]);
 
-        $scenarios = $this->mock(ScenarioEvaluator::class);
-        $scenarios->shouldReceive('evaluate')->once()->andReturn([
-            [
-                'scenario' => 'TEST_BREAKOUT',
-                'status' => 'ENTERABLE',
-                'candidate' => ['entry' => 100.0, 'stop' => 95.0, 'target1' => 125.0, 'target2' => 130.0],
-                'reasons' => ['TEST_SETUP_CONFIRMED'],
-            ],
-        ]);
+        $ict = $this->mockIctEngine();
 
         $ai = $this->mock(AiAnalysisProvider::class);
 
@@ -189,8 +173,7 @@ class AnalysisRunWorkflowTest extends TestCase
             $binance,
             $engine,
             app(ExecutionCostEstimator::class),
-            app(MultiTimeframeAlignment::class),
-            $scenarios,
+            $ict,
             $ai,
             app(AiReviewValidator::class),
         );
@@ -211,7 +194,7 @@ class AnalysisRunWorkflowTest extends TestCase
 
         $ai = $this->mock(AiAnalysisProvider::class);
         try {
-            (new ProcessAnalysisRun($run->id))->handle($client, app(DeterministicAnalysisEngine::class), app(ExecutionCostEstimator::class), app(MultiTimeframeAlignment::class), app(ScenarioEvaluator::class), $ai, app(AiReviewValidator::class));
+            (new ProcessAnalysisRun($run->id))->handle($client, app(DeterministicAnalysisEngine::class), app(ExecutionCostEstimator::class), app(IctComprehensiveEngine::class), $ai, app(AiReviewValidator::class));
             $this->fail('Expected the unavailable market-data exception to be rethrown for queue retry handling.');
         } catch (\RuntimeException $exception) {
             $this->assertSame('offline', $exception->getMessage());
@@ -270,13 +253,7 @@ class AnalysisRunWorkflowTest extends TestCase
             'reasons' => ['TEST_BULLISH_REGIME'],
         ]);
 
-        $scenarios = $this->mock(ScenarioEvaluator::class);
-        $scenarios->shouldReceive('evaluate')->once()->andReturn([[
-            'scenario' => 'TEST_BREAKOUT',
-            'status' => 'ENTERABLE',
-            'candidate' => ['entry' => 100.0, 'stop' => 95.0, 'target1' => 125.0, 'target2' => 130.0],
-            'reasons' => ['TEST_SETUP_CONFIRMED'],
-        ]]);
+        $ict = $this->mockIctEngine();
 
         $ai = $this->mock(AiAnalysisProvider::class);
         $ai->shouldReceive('review')->once()->andReturn([
@@ -297,8 +274,7 @@ class AnalysisRunWorkflowTest extends TestCase
             $binance,
             $engine,
             app(ExecutionCostEstimator::class),
-            app(MultiTimeframeAlignment::class),
-            $scenarios,
+            $ict,
             $ai,
             app(AiReviewValidator::class),
         );
@@ -355,12 +331,8 @@ class AnalysisRunWorkflowTest extends TestCase
         $engine->shouldReceive('evaluate')->times(4)->andReturn([
             'direction' => 'BULLISH', 'behavior' => 'TRENDING', 'volatility' => 'NORMAL', 'reasons' => ['TEST_BULLISH_REGIME'],
         ]);
-        $scenarios = $this->mock(ScenarioEvaluator::class);
-        $scenarios->shouldReceive('evaluate')->once()->andReturn([[
-            'scenario' => 'TEST_BREAKOUT', 'status' => 'ENTERABLE',
-            'candidate' => ['entry' => 100.0, 'stop' => 95.0, 'target1' => 125.0, 'target2' => 130.0],
-            'reasons' => ['TEST_SETUP_CONFIRMED'],
-        ]]);
+        $ict = $this->mockIctEngine();
+
         $ai = $this->mock(AiAnalysisProvider::class);
         $ai->shouldReceive('review')->once()->andThrow(new \RuntimeException('provider unavailable'));
 
@@ -368,8 +340,7 @@ class AnalysisRunWorkflowTest extends TestCase
             $binance,
             $engine,
             app(ExecutionCostEstimator::class),
-            app(MultiTimeframeAlignment::class),
-            $scenarios,
+            $ict,
             $ai,
             app(AiReviewValidator::class),
         );
@@ -379,6 +350,85 @@ class AnalysisRunWorkflowTest extends TestCase
         $this->assertSame('FAILED', $report->opportunity->aiReview->status);
         $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $report->opportunity->aiReview->evidence_hash);
         $this->assertSame('COMPLETED', $run->fresh()->status);
+    }
+
+
+    public function test_optional_smt_reference_candles_do_not_fail_required_profile_completeness(): void
+    {
+        config([
+            'analysis.profiles' => ['Test' => [
+                'context' => '1h',
+                'structure' => '15m',
+                'setup' => '5m',
+                'entry' => '1m',
+            ]],
+            'ict.smt_reference_symbol' => 'ETHUSDT',
+            'analysis.ai_max_candidates_per_run' => 0,
+        ]);
+
+        $run = AnalysisRun::create([
+            'idempotency_key' => (string) Str::uuid(),
+            'status' => 'QUEUED',
+            'configuration_version' => 'test',
+            'ai_status' => 'NOT_CONFIGURED',
+            'audit' => ['universe_symbols' => [['symbol' => 'BTCUSDT']]],
+        ]);
+        $candles = array_fill(0, 20, [
+            'open' => 100.0, 'high' => 101.0, 'low' => 99.0, 'close' => 100.5, 'volume' => 100.0,
+        ]);
+
+        $binance = $this->mock(BinanceSpotClient::class);
+        $binance->shouldReceive('candles')->times(5)->andReturn($candles);
+        $regime = $this->mock(DeterministicAnalysisEngine::class);
+        $regime->shouldReceive('evaluate')->times(4)->andReturn([
+            'direction' => 'UNCERTAIN', 'behavior' => 'UNCERTAIN', 'volatility' => 'NORMAL', 'reasons' => [],
+        ]);
+        $ict = $this->mock(IctComprehensiveEngine::class);
+        $ict->shouldReceive('evaluate')->once()->withArgs(function (array $roles, string $profile): bool {
+            return $profile === 'Test' && isset($roles['reference']) && count($roles['reference']) === 20;
+        })->andReturn([
+            'context' => ['bias' => 'UNCERTAIN', 'structure_bias' => 'UNCERTAIN'],
+            'decision' => 'NO_OPPORTUNITY',
+            'scenarios' => [],
+            'reasons' => [],
+        ]);
+
+        (new ProcessAnalysisRun($run->id))->handle(
+            $binance,
+            $regime,
+            app(ExecutionCostEstimator::class),
+            $ict,
+            $this->mock(AiAnalysisProvider::class),
+            app(AiReviewValidator::class),
+        );
+
+        $report = $run->fresh()->reports()->where('profile', 'Test')->where('symbol', 'BTCUSDT')->firstOrFail();
+        $this->assertSame('NO_OPPORTUNITY', $report->status);
+        $this->assertSame('COMPLETED', $run->fresh()->status);
+    }
+
+    private function mockIctEngine(): IctComprehensiveEngine
+    {
+        $ict = $this->mock(IctComprehensiveEngine::class);
+        $ict->shouldReceive('evaluate')->once()->andReturn([
+            'engine' => 'ICT_COMPREHENSIVE',
+            'context' => ['bias' => 'BULLISH', 'structure_bias' => 'BULLISH'],
+            'decision' => 'ENTERABLE',
+            'scenarios' => [[
+                'scenario' => 'TEST_BREAKOUT',
+                'status' => 'ENTERABLE',
+                'candidate' => [
+                    'entry' => 100.0,
+                    'stop' => 95.0,
+                    'target1' => 125.0,
+                    'target2' => 130.0,
+                    'entry_plans' => ['market' => ['status' => 'PLANNED']],
+                ],
+                'reasons' => ['TEST_SETUP_CONFIRMED'],
+            ]],
+        ]);
+
+        return $ict;
     }
 
 }
