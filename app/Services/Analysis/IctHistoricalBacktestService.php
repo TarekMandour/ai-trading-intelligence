@@ -218,7 +218,7 @@ class IctHistoricalBacktestService
         return ['fill' => null, 'next_eligible_index' => $lastWaitIndex + 1];
     }
 
-    private function simulateTrade(array $candles, array $fill, float $stop, float $target1, float $target2, int $maxHoldingBars, float $feeRate, float $slippageBps, string $scenario, float $capital, float $riskFraction): array
+    private function simulateTrade(array $candles, array $fill, float $stop, float $target1, float $target2, int $maxHoldingBars, float $feeRate, float $slippageBps, string $scenario, float $capital = 10000.0, float $riskFraction = 0.01): array
     {
         $entry = (float) $fill['price'];
         $riskPerUnit = $entry - $stop;
