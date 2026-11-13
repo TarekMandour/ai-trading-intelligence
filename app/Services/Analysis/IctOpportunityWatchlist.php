@@ -29,7 +29,9 @@ class IctOpportunityWatchlist
         $zones = [];
         $fvg = $setup['fvg'] ?? null;
         $fvgState = $setup['fvg_lifecycle']['status'] ?? 'ACTIVE';
-        if (is_array($fvg) && ! in_array($fvgState, ['INVALIDATED', 'FULLY_FILLED'], true)) {
+        // Only use the FVG as an ICT zone when its sweep-displacement-MSS chain is linked.
+        // A standalone geometric gap is not enough to manufacture an ICT opportunity.
+        if ($sequence && is_array($fvg) && ! in_array($fvgState, ['INVALIDATED', 'FULLY_FILLED'], true)) {
             $zones[] = ['type' => 'BULLISH_FVG', 'zone' => $fvg, 'lifecycle' => $setup['fvg_lifecycle'] ?? null];
         }
         $ob = $setup['ob'] ?? null;
