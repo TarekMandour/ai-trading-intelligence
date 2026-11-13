@@ -84,6 +84,7 @@ class IctOpportunityWatchlistTest extends TestCase
             ['bias' => 'RANGING', 'structure_bias' => 'BULLISH'],
             [
                 'mss' => ['confirmed' => true],
+                'sequence' => ['status' => 'CONFIRMED'],
                 'fvg' => ['low' => 126.0, 'high' => 127.0],
                 'fvg_lifecycle' => ['status' => 'INVALIDATED'],
             ],
