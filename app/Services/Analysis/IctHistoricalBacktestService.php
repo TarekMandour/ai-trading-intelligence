@@ -169,7 +169,7 @@ class IctHistoricalBacktestService
             'scenario_counts' => $scenarioCounts,
             'scenario_metrics' => $scenarioMetrics,
             'metrics' => $metrics,
-            'metrics_scope' => count($scenarioMetrics) > 1 ? 'PER_SCENARIO_ONLY_NO_CROSS_STRATEGY_PORTFOLIO' : 'SINGLE_SCENARIO',
+            'metrics_scope' => count($scenarioMetrics) === 0 ? 'NO_SCENARIO_TRADES' : (count($scenarioMetrics) > 1 ? 'PER_SCENARIO_ONLY_NO_CROSS_STRATEGY_PORTFOLIO' : 'SINGLE_SCENARIO'),
             'trades' => $trades,
         ];
     }
