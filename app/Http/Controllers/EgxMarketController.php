@@ -137,8 +137,8 @@ class EgxMarketController extends Controller
         $data = $request->validate([
             'asset_id' => ['required', 'string', 'exists:egx_stocks,asset_id'],
             'profile' => ['required', 'string', 'in:Scalping,Intraday,Swing'],
-            'fee_rate' => ['sometimes', 'numeric', 'min:0', 'max:0.1'],
-            'slippage_bps' => ['sometimes', 'numeric', 'min:0', 'max:1000'],
+            'fee_rate' => ['required', 'numeric', 'min:0', 'max:0.1'],
+            'slippage_bps' => ['required', 'numeric', 'min:0', 'max:1000'],
             'initial_capital' => ['sometimes', 'numeric', 'gt:0'],
             'risk_fraction' => ['sometimes', 'numeric', 'gt:0', 'max:1'],
             'max_holding_bars' => ['sometimes', 'integer', 'min:1', 'max:10000'],
