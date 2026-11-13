@@ -1,6 +1,6 @@
 <?php
 
-namespace App\\Services\\Analysis;
+namespace App\Services\Analysis;
 
 /**
  * Finds early, research-only opportunities before the strict entry trigger.
