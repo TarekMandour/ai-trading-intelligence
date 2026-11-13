@@ -22,7 +22,7 @@
 <body>
     <h1>AI Trading Intelligence</h1>
     <p class="muted">EGX scanner powered by Thndr market data and the Technical Structure, Volume and Support/Resistance strategy.</p>
-    <p><a href="{{ route('egx.watchlists.index') }}">Manage EGX Watchlists</a></p>
+    <p><a href="{{ route('egx.watchlists.index') }}">Manage EGX Watchlists</a> · <a href="{{ route('egx.scans.index') }}">سجل عمليات الفحص والنتائج السابقة</a></p>
 
     <section class="panel">
         <h2>Thndr Token Capture</h2>
