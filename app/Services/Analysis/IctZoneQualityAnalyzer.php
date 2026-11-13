@@ -1,6 +1,6 @@
 <?php
 
-namespace App\\Services\\Analysis;
+namespace App\Services\Analysis;
 
 /** Scores linked FVG/OB zones using impulse, volume, structure and liquidity evidence. */
 class IctZoneQualityAnalyzer
