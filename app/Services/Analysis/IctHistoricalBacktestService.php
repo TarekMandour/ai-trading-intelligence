@@ -52,7 +52,12 @@ class IctHistoricalBacktestService
             if (! $hasHistory) continue;
 
             $analysis = $this->engine->evaluate($history, $profile);
-            foreach (($analysis['scenarios'] ?? []) as $scenario) {
+            $scenarioResults = $analysis['scenarios'] ?? [];
+            if (($analysis['canonical_scenario']['status'] ?? null) === 'ENTERABLE'
+                && is_array($analysis['canonical_scenario']['candidate'] ?? null)) {
+                array_unshift($scenarioResults, $analysis['canonical_scenario']);
+            }
+            foreach ($scenarioResults as $scenario) {
                 $scenarioKey = (string) ($scenario['scenario'] ?? 'UNKNOWN');
                 if ($scenarioKey === 'UNKNOWN' || $index < ($nextEligibleIndex[$scenarioKey] ?? $testStartIndex)) continue;
                 if (! in_array($scenario['status'] ?? null, ['ENTERABLE', 'WAIT'], true)
