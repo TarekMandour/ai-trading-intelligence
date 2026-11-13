@@ -130,7 +130,7 @@ class ProcessAnalysisRun implements ShouldQueue
                 if ($candidate === null && $decision !== 'REJECTED' && collect($scenarioResults)->contains(fn (array $scenario): bool => $scenario['status'] === 'WAIT')) {
                     $decision = 'WAIT';
                 }
-                if ($candidate === null && $decision === 'NO_OPPORTUNITY' && is_array($watchlist)) {
+                if ($candidate === null && in_array($decision, ['NO_OPPORTUNITY', 'WAIT'], true) && is_array($watchlist)) {
                     $decision = 'WATCHLIST';
                 }
 
