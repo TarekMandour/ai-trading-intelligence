@@ -130,15 +130,16 @@ class IctComprehensiveEngine
     private function fvgContinuation(string $profile, array $context, array $setup, array $entry): array
     {
         $contextOk = $context['bias'] === 'BULLISH' && $context['structure_bias'] !== 'BEARISH';
-        $displacement = $setup['displacement']['bullish'] ?? false;
-        $fvg = $setup['fvg'];
+        $sequenceConfirmed = ($setup['sequence']['status'] ?? null) === 'CONFIRMED';
+        $displacement = $sequenceConfirmed && ($setup['displacement']['bullish'] ?? false);
+        $fvg = $sequenceConfirmed ? $setup['fvg'] : null;
         $fvgLifecycle = $setup['fvg_lifecycle'] ?? null;
         if (($fvgLifecycle['status'] ?? null) === 'INVALIDATED' || ($fvgLifecycle['status'] ?? null) === 'FULLY_FILLED') $fvg = null;
         $touched = $fvg !== null && ($fvgLifecycle['touch_count'] ?? 0) > 0;
         $trigger = $entry['bullish_trigger'];
         $reasons = [];
         if (! $contextOk) $reasons[] = 'ICT02_NO_BULLISH_CONTEXT';
-        if (! $displacement) $reasons[] = 'ICT02_NO_VALID_DISPLACEMENT';
+        if (! $displacement) $reasons[] = 'ICT02_NO_CONFIRMED_SWEEP_DISPLACEMENT_MSS_SEQUENCE';
         if ($fvg === null) $reasons[] = 'ICT02_NO_VALID_FVG';
         if (! $touched) $reasons[] = 'ICT02_NO_RETRACEMENT';
         if (! $trigger) $reasons[] = 'ICT02_NO_ENTRY_TRIGGER';
@@ -186,7 +187,9 @@ class IctComprehensiveEngine
     {
         $contextOk = $context['bias'] === 'BULLISH' && $context['structure_bias'] !== 'BEARISH';
         $rejection = $advanced['rejection_block'] ?? null;
-        $structureConfirmed = ($setup['displacement']['bullish'] ?? false) && ($setup['mss']['confirmed'] ?? false);
+        $structureConfirmed = ($setup['sequence']['status'] ?? null) === 'CONFIRMED'
+            && ($setup['displacement']['bullish'] ?? false)
+            && ($setup['mss']['confirmed'] ?? false);
         $trigger = $entry['bullish_trigger'];
         $reasons = [];
         if (! $contextOk) $reasons[] = 'ICT05_NO_BULLISH_CONTEXT';
