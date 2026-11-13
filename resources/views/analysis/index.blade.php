@@ -219,6 +219,19 @@
                         [['Entry',candidateScenario.candidate.entry],['Stop loss',candidateScenario.candidate.stop],['Target 1',candidateScenario.candidate.target1],['Target 2',candidateScenario.candidate.target2]].forEach(([label,value])=>{const box=document.createElement('div');box.className='metric';const small=document.createElement('small');small.textContent=label;const strong=document.createElement('strong');strong.textContent=value??'—';box.append(small,strong);metrics.append(box);});
                         summary.append(metrics);card.append(summary);
                     }
+                } else if(result.status !== 'WATCHLIST'){
+                    const summary=document.createElement('section');summary.className='opportunity-summary';
+                    const heading=document.createElement('h5');heading.textContent='Analysis result · '+status;summary.append(heading);
+                    const note=document.createElement('p');
+                    note.textContent=result.status === 'REJECTED'
+                        ? 'Analysis rejected: required market data is incomplete or invalid. This is not a NO-SETUP decision.'
+                        : (result.status === 'NO_OPPORTUNITY'
+                            ? 'No qualifying setup was detected with the current evidence. Review the reasons and timeframe diagnostics below.'
+                            : 'No confirmed entry is available. Continue monitoring the next completed candles.');
+                    summary.append(note);
+                    if(reasons.length){const why=document.createElement('p');why.textContent='Reasons: '+reasons.join(', ');summary.append(why);}
+                    const disclaimer=document.createElement('p');disclaimer.className='disclaimer';disclaimer.textContent='No order is authorized by this result.';summary.append(disclaimer);
+                    card.append(summary);
                 }
                 if(result.context){
                     const context=document.createElement('p');
