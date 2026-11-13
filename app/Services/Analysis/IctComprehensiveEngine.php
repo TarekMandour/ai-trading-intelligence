@@ -44,6 +44,7 @@ class IctComprehensiveEngine
             'bullish_trigger' => $this->bullishTrigger($entry),
             'last_close' => (float) $entry[array_key_last($entry)]['close'],
             'last_close_time' => (int) ($entry[array_key_last($entry)]['close_time'] ?? 0),
+            'close_times' => array_map('intval', array_column($entry, 'close_time')),
         ];
 
         $results = [
@@ -428,14 +429,14 @@ class IctComprehensiveEngine
 
     private function triggerAfterZoneTouch(array $entryCandles, ?array $lifecycle): bool
     {
-        if (! $this->bullishTrigger($entryCandles)) return false;
+        if (! ($entryCandles['bullish_trigger'] ?? false)) return false;
 
         $touchTime = (int) ($lifecycle['last_touch_close_time'] ?? 0);
         if ($touchTime <= 0) return false;
 
         $barsAfterTouch = count(array_filter(
-            $entryCandles,
-            fn (array $candle): bool => (int) ($candle['close_time'] ?? 0) > $touchTime,
+            $entryCandles['close_times'] ?? [],
+            fn (int $closeTime): bool => $closeTime > $touchTime,
         ));
 
         return $barsAfterTouch >= 1
