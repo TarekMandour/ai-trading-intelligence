@@ -87,10 +87,18 @@ class IctHistoricalBacktestService
                 // Keep the original structural stop distance, then translate
                 // all price levels to the actual simulated fill price.
                 $stop = $entryPrice - $signalRisk;
-                $target1R = max(0.01, (float) config('ict.target_1_r', 2.0));
-                $target2R = max($target1R, (float) config('ict.target_2_r', 3.0));
-                $target1 = $entryPrice + ($signalRisk * $target1R);
-                $target2 = $entryPrice + ($signalRisk * $target2R);
+                // Preserve structure-derived target distances. Fall back to configured
+                // R multiples only when the candidate did not supply valid targets.
+                $signalTarget1 = (float) ($candidate['target1'] ?? 0.0);
+                $signalTarget2 = (float) ($candidate['target2'] ?? 0.0);
+                $target1Distance = $signalTarget1 > $signalEntry
+                    ? $signalTarget1 - $signalEntry
+                    : $signalRisk * max(0.01, (float) config('ict.target_1_r', 2.0));
+                $target2Distance = $signalTarget2 > $signalTarget1 && $signalTarget1 > $signalEntry
+                    ? $signalTarget2 - $signalEntry
+                    : $signalRisk * max((float) config('ict.target_1_r', 2.0), (float) config('ict.target_2_r', 3.0));
+                $target1 = $entryPrice + $target1Distance;
+                $target2 = max($entryPrice + $target2Distance, $target1 + ($signalRisk * 0.5));
                 $scenarioCapital = $capitalByScenario[$scenarioKey] ?? $initialCapital;
                 $trade = $this->simulateTrade(
                     $entryCandles, $fill, $stop, $target1, $target2,
