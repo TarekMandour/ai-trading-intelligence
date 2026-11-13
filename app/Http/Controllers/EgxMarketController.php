@@ -153,7 +153,7 @@ class EgxMarketController extends Controller
         ));
     }
 
-    public function scan(Request $request, ThndrApiClient $api, EgxCandleSyncService $sync, IctComprehensiveEngine $ict): JsonResponse
+    public function scan(Request $request, ThndrApiClient $api, EgxCandleSyncService $sync, IctComprehensiveEngine $ict, GeminiMarketAnalyst $gemini): JsonResponse
     {
         $data = $request->validate([
             'watchlist_id' => ['required', 'integer', 'exists:egx_watchlists,id'],
@@ -171,7 +171,7 @@ class EgxMarketController extends Controller
         ];
         $run = EgxScanRun::create([
             'egx_watchlist_id' => $watchlist->id, 'status' => 'RUNNING',
-            'profiles' => $profiles, 'started_at' => now(),
+            'profiles' => $profiles, 'ai_status' => filled(config('services.gemini.key')) ? 'RUNNING' : 'NOT_CONFIGURED', 'ai_provider' => 'gemini', 'ai_model' => config('services.gemini.model'), 'started_at' => now(),
         ]);
 
         try {
@@ -201,7 +201,42 @@ class EgxMarketController extends Controller
                     if ($rejected) {
                         $profileResult = ['decision' => 'REJECTED', 'reasons' => [$rejected], 'sync' => $syncReport];
                     } else {
+                        // Gemini receives the point-in-time candles directly, independently of the ICT decision.
+                        $asOf = now()->toIso8601String();
+                        $timeframes = [];
+                        foreach ($profileFrames[$profile] as $role => $timeframe) {
+                            $timeframes[$timeframe] = $series[$role];
+                        }
+                        $aiSnapshot = [
+                            'market' => 'EGX',
+                            'venue' => 'THNDR',
+                            'currency' => 'EGP',
+                            'symbol' => $stock->symbol,
+                            'name' => $stock->name,
+                            'arabic_name' => $stock->arabic_name,
+                            'asset_id' => $stock->asset_id,
+                            'profile' => $profile,
+                            'as_of' => $asOf,
+                            'candle_policy' => 'COMPLETED_CANDLES_ONLY',
+                            'candle_counts' => array_map('count', $timeframes),
+                            'stock_metadata' => $stock->metadata ?? [],
+                            'timeframes' => $timeframes,
+                        ];
+                        try {
+                            $geminiResult = $gemini->analyze($aiSnapshot);
+                            $geminiResult['as_of'] = $asOf;
+                            $geminiResult['input_snapshot'] = $aiSnapshot;
+                        } catch (Throwable $aiException) {
+                            $geminiResult = [
+                                'status' => 'FAILED',
+                                'provider' => 'gemini',
+                                'as_of' => $asOf,
+                                'error' => class_basename($aiException).': '.$aiException->getMessage(),
+                                'input_snapshot' => $aiSnapshot,
+                            ];
+                        }
                         $profileResult = $ict->evaluate($series, $profile) + ['sync' => $syncReport];
+                        $profileResult['gemini_analysis'] = $geminiResult;
                     }
                     // The ICT engine exposes its final outcome as `decision`; normalize it
                     // to `status` as well so API consumers have one consistent status field.
@@ -210,10 +245,17 @@ class EgxMarketController extends Controller
                 }
                 $results[] = $stockResult;
             }
-            $run->update(['status' => 'COMPLETED', 'results' => $results, 'completed_at' => now()]);
+            $aiStatuses = [];
+            foreach ($results as $stockResult) {
+                foreach ($stockResult['profiles'] as $profileResult) {
+                    if (isset($profileResult['gemini_analysis']['status'])) $aiStatuses[] = $profileResult['gemini_analysis']['status'];
+                }
+            }
+            $aiStatus = $aiStatuses === [] ? 'NOT_RUN' : (count(array_filter($aiStatuses, fn ($status) => $status === 'COMPLETED')) === count($aiStatuses) ? 'COMPLETED' : (count(array_filter($aiStatuses, fn ($status) => $status === 'COMPLETED')) > 0 ? 'PARTIAL' : 'FAILED'));
+            $run->update(['status' => 'COMPLETED', 'ai_status' => $aiStatus, 'results' => $results, 'completed_at' => now()]);
             return response()->json([
                 'run_id' => $run->id, 'watchlist_id' => $watchlist->id,
-                'watchlist' => $watchlist->name, 'market' => 'EGX', 'source' => 'thndr', 'stocks' => $results,
+                'watchlist' => $watchlist->name, 'market' => 'EGX', 'source' => 'thndr', 'ai_provider' => 'gemini', 'ai_status' => $aiStatus, 'stocks' => $results,
             ]);
         } catch (Throwable $exception) {
             $run->update(['status' => 'FAILED', 'failure_reason' => class_basename($exception) . ': ' . $exception->getMessage(), 'completed_at' => now()]);
