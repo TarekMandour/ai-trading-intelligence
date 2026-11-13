@@ -1,11 +1,11 @@
 <?php
 
-namespace Tests\\Unit;
+namespace Tests\Unit;
 
-use App\\Services\\Analysis\\IctHistoricalBacktestService;
-use App\\Services\\MarketData\\EgxCandleSyncService;
-use App\\Services\\MarketData\\EgxIctBacktestService;
-use Tests\\TestCase;
+use App\Services\Analysis\IctHistoricalBacktestService;
+use App\Services\MarketData\EgxCandleSyncService;
+use App\Services\MarketData\EgxIctBacktestService;
+use Tests\TestCase;
 
 class EgxIctBacktestServiceTest extends TestCase
 {
