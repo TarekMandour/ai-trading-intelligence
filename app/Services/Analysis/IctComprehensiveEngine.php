@@ -107,6 +107,8 @@ class IctComprehensiveEngine
                 'entry_plans' => $plan['entry_plans'],
                 'target_source' => $plan['target_source'],
                 'invalidation' => $plan['invalidation'],
+                'dealing_range' => $plan['dealing_range'] ?? null,
+                'dealing_range_confluence' => $plan['dealing_range_confluence'] ?? 'RANGE_UNAVAILABLE',
             ];
         }
 
