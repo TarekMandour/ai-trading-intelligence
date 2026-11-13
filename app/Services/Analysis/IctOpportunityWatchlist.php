@@ -39,7 +39,7 @@ class IctOpportunityWatchlist
         }
         foreach (['breaker_block' => 'BULLISH_BREAKER', 'ote' => 'BULLISH_OTE'] as $key => $type) {
             $zone = $advanced[$key] ?? null;
-            if (is_array($zone) && isset($zone['low'], $zone['high']) && ($zone['direction'] ?? 'LONG') === 'BULLISH') {
+            if (is_array($zone) && isset($zone['low'], $zone['high']) && in_array(($zone['direction'] ?? 'LONG'), ['BULLISH', 'LONG'], true)) {
                 $zones[] = ['type' => $type, 'zone' => $zone, 'lifecycle' => null];
             }
         }
