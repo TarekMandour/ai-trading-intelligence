@@ -116,7 +116,22 @@ class ProcessAnalysisRun implements ShouldQueue
 
                 $requiredRolesPresent = count(array_intersect(array_keys($timeframes), array_keys($candlesByRole))) === count($timeframes);
                 $ictResult = config('ict.enabled', true) ? $ict->evaluate($candlesByRole, $profile) : ['scenarios' => [], 'decision' => 'NO_OPPORTUNITY', 'reasons' => ['ICT_STRATEGY_DISABLED']];
-                $alignmentResult = ['state' => $ictResult['context']['bias'] ?? 'INSUFFICIENT', 'allow_entry' => ($ictResult['context']['bias'] ?? null) === 'BULLISH' && ($ictResult['context']['structure_bias'] ?? null) !== 'BEARISH', 'reasons' => $ictResult['reasons'] ?? []];
+                $contextBias = $ictResult['context']['bias'] ?? 'INSUFFICIENT';
+                $structureEvent = $ictResult['context']['last_structure_event']['type'] ?? null;
+                $setupBias = $ictResult['structural_analysis']['market_structure']['bias'] ?? 'UNCERTAIN';
+                $withTrend = $contextBias === 'BULLISH' && ($ictResult['context']['structure_bias'] ?? null) !== 'BEARISH';
+                $confirmedCountertrendReversal = $contextBias === 'BEARISH'
+                    && $structureEvent === 'CHOCH_BULLISH'
+                    && $setupBias === 'BULLISH';
+                $alignmentResult = [
+                    'state' => $withTrend ? 'ALIGNED' : ($confirmedCountertrendReversal ? 'COUNTERTREND_REVERSAL_CONFIRMED' : $contextBias),
+                    'allow_entry' => $withTrend || $confirmedCountertrendReversal,
+                    'reasons' => array_values(array_filter([
+                        $withTrend ? 'HIGHER_TIMEFRAME_BULLISH_ALIGNMENT' : null,
+                        $confirmedCountertrendReversal ? 'LOWER_TIMEFRAME_BULLISH_CHOCH_CONFIRMS_COUNTERTREND_REVERSAL' : null,
+                        ! $withTrend && ! $confirmedCountertrendReversal ? 'TIMEFRAME_ALIGNMENT_NOT_CONFIRMED' : null,
+                    ])),
+                ];
                 $entryState = $states['entry'] ?? null;
                 $regime = $entryState ?? ['direction' => 'UNCERTAIN', 'behavior' => 'UNCERTAIN', 'volatility' => 'NORMAL', 'reasons' => ['INSUFFICIENT_VALIDATED_CANDLE_EVIDENCE'], 'candidate' => null];
                 $scenarioResults = $ictResult['scenarios'] ?? [];
