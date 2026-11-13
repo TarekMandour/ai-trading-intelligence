@@ -613,7 +613,7 @@ class AnalysisComponentsTest extends TestCase
         $this->assertSame('LIMIT', $result['trades'][0]['entry_type']);
         $this->assertSame('OHLCV_LOW_TOUCH_ASSUMED_FILL_NOT_QUEUE_CONFIRMED', $result['trades'][0]['fill_assumption']);
         $this->assertSame('WIN', $result['trades'][0]['outcome']);
-        $this->assertGreaterThan(0, $result['metrics']['expectancy_r']);
+        $this->assertGreaterThan(0, $result['scenario_metrics']['ICT_TEST_LIMIT']['expectancy_r']);
     }
 
     public function test_ict_historical_backtest_models_gap_through_stop_at_worse_open_price(): void
