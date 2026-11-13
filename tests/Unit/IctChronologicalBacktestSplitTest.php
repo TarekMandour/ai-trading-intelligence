@@ -25,7 +25,7 @@ class IctChronologicalBacktestSplitTest extends TestCase
 
     public function test_backtest_reports_separate_chronological_train_validation_and_test_windows(): void
     {
-        $series = $this->series(100);
+        $series = $this->series(110);
         $roles = ['context' => $series, 'structure' => $series, 'setup' => $series, 'entry' => $series];
         $engine = $this->mock(IctComprehensiveEngine::class);
         $engine->shouldReceive('evaluate')->atLeast()->once()->andReturn(['scenarios' => []]);
@@ -36,9 +36,9 @@ class IctChronologicalBacktestSplitTest extends TestCase
 
         $this->assertSame('ICT_CHRONOLOGICAL_60_20_20_REPLAY', $result['engine']);
         $this->assertSame(['train', 'validation', 'test'], array_keys($result['splits']));
-        $this->assertSame(['start' => 29, 'end' => 59], $result['split_indices']['train']);
-        $this->assertSame(['start' => 60, 'end' => 79], $result['split_indices']['validation']);
-        $this->assertSame(['start' => 80, 'end' => 99], $result['split_indices']['test']);
+        $this->assertSame(['start' => 29, 'end' => 65], $result['split_indices']['train']);
+        $this->assertSame(['start' => 66, 'end' => 87], $result['split_indices']['validation']);
+        $this->assertSame(['start' => 88, 'end' => 109], $result['split_indices']['test']);
         $this->assertSame('NO_SCENARIO_TRADES', $result['splits']['test']['metrics_scope']);
         $this->assertSame('NOT_APPROVED_WITHOUT_PREDECLARED_THRESHOLDS_AND_PAPER_TRADING', $result['promotion_status']);
     }
