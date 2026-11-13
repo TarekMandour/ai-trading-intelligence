@@ -1,6 +1,6 @@
 <?php
 
-namespace App\\Services\\Analysis;
+namespace App\Services\Analysis;
 
 /** Builds chronological BOS/CHoCH events from already-confirmed pivots. */
 class IctMarketStructureAnalyzer
